@@ -30,3 +30,12 @@ replay_pid*
 /build
 /.gradle
 /bin
+
+# Run output logs
+runClient_output*
+
+# CSV result files
+*.csv
+
+# Stray compiled classes outside build/
+/com/

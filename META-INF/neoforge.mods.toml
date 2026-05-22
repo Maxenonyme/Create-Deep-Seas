@@ -1,0 +1,62 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="create_submarine"
+version="2.0.0"
+displayName="Create: Submarine"
+authors="Maxenonyme"
+logoFile="logo.png"
+logoBlur=false
+description='''
+A submarine addon for the Create mod.
+'''
+
+[[mixins]]
+config="create_submarine.mixins.json"
+
+# [[mixins]]
+# config="create_submarine_abyss.mixins.json"
+
+[[dependencies.create_submarine]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.create_submarine]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1]"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.create_submarine]]
+    modId="create"
+    type="required"
+    versionRange="[0.5,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.create_submarine]]
+    modId="ponder"
+    type="required"
+    versionRange="[1.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.create_submarine]]
+    modId="sable"
+    type="required"
+    versionRange="[1.1,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.create_submarine]]
+    modId="sodium"
+    type="incompatible"
+    versionRange="[mc1.21.1-0.6.13-neoforge]"
+    ordering="NONE"
+    side="CLIENT"

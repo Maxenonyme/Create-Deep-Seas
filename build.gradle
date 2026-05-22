@@ -180,6 +180,8 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+
+
 idea {
     module {
         downloadSources = true
@@ -191,6 +193,13 @@ task printClasspath {
     doLast {
         file('classpath.txt').text = sourceSets.main.compileClasspath.join(System.getProperty('path.separator'))
     }
+}
+
+task runBatchSolver(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.maxenonyme.createsubmarine.submarine.stress.BatchSolverRunner'
+    // Avoid loading NeoForge mods by disabling them
+    systemProperty 'neoforge.enableModLoading', 'false'
 }
 
 def changelogFile = file("changelog.md")

@@ -1,0 +1,551 @@
+package com.maxenonyme.createsubmarine.submarine.stress;
+
+import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
+import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
+import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.api.sublevel.SubLevelObserver;
+import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
+import dev.ryanhcode.sable.companion.math.Pose3dc;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.SubLevel;
+import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import org.joml.Vector3dc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class SubLevelStressAnalyzer implements SubLevelObserver {
+
+    static final Object2ObjectOpenHashMap<ServerLevel, SubLevelStressAnalyzer> INSTANCES = new Object2ObjectOpenHashMap<>();
+    private static final Random RAND = new Random();
+    private static final Logger LOGGER = LoggerFactory.getLogger("SubmarineStress");
+    private static final Map<UUID, Double> cachedWaterSurfaceY = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> lastWaterScanTick = new ConcurrentHashMap<>();
+
+    private final ServerLevel level;
+    private final Map<UUID, LatticeStressSolver> solvers = new ConcurrentHashMap<>();
+    private final Map<UUID, double[]> cachedCrushDepths = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> needsRecompute = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> tickCounter = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> wasInWater = new ConcurrentHashMap<>();
+    private final Map<UUID, double[]> previousU = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> previousStructureHashes = new ConcurrentHashMap<>();
+
+    public long totalSolveTimeNanos = 0;
+    public long totalCheckTimeNanos = 0;
+    public int solveCount = 0;
+
+    private SubLevelStressAnalyzer(final ServerLevel level) {
+        this.level = level;
+    }
+
+    public static SubLevelStressAnalyzer getOrCreate(final ServerLevel level) {
+        SubLevelStressAnalyzer analyzer = INSTANCES.get(level);
+        if (analyzer == null) {
+            analyzer = new SubLevelStressAnalyzer(level);
+            final SubLevelContainer container = SubLevelContainer.getContainer(level);
+            if (container != null) {
+                container.addObserver(analyzer);
+                if (container instanceof final ServerSubLevelContainer sslc) {
+                    for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
+                        analyzer.onSubLevelAdded(ssl);
+                    }
+                }
+            }
+            INSTANCES.put(level, analyzer);
+        }
+        return analyzer;
+    }
+
+    @Override
+    public void onSubLevelAdded(final SubLevel subLevel) {
+        if (subLevel instanceof final ServerSubLevel ssl && !ssl.getLevel().isClientSide) {
+            final UUID id = ssl.getUniqueId();
+            synchronized (this.solvers) {
+                this.needsRecompute.put(id, true);
+            }
+        }
+    }
+
+    @Override
+    public void onSubLevelRemoved(final SubLevel subLevel, final SubLevelRemovalReason reason) {
+        final UUID id = subLevel.getUniqueId();
+        this.solvers.remove(id);
+        this.cachedCrushDepths.remove(id);
+        this.needsRecompute.remove(id);
+        this.tickCounter.remove(id);
+        this.wasInWater.remove(id);
+        this.previousU.remove(id);
+        this.previousStructureHashes.remove(id);
+        cachedWaterSurfaceY.remove(id);
+        lastWaterScanTick.remove(id);
+    }
+
+    public LatticeStressSolver getSolver(final ServerSubLevel subLevel) {
+        return getOrCreateSolver(subLevel);
+    }
+
+    public boolean hasSolver(final ServerSubLevel subLevel) {
+        final LatticeStressSolver s = this.solvers.get(subLevel.getUniqueId());
+        return s != null && s.blockCount() > 0;
+    }
+
+    public void markDirty(final ServerSubLevel subLevel) {
+        this.needsRecompute.put(subLevel.getUniqueId(), true);
+    }
+
+    public void tickRefresh() {
+        final SubLevelContainer container = SubLevelContainer.getContainer(this.level);
+        if (container instanceof final ServerSubLevelContainer sslc) {
+            for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
+                final UUID id = ssl.getUniqueId();
+
+                if (!isWithinRenderDistance(ssl)) {
+                    this.solvers.remove(id);
+                    this.cachedCrushDepths.remove(id);
+                    this.needsRecompute.remove(id);
+                    this.wasInWater.remove(id);
+                    this.previousU.remove(id);
+                    this.previousStructureHashes.remove(id);
+                    continue;
+                }
+
+                final int count = this.tickCounter.merge(id, 1, Integer::sum);
+                final boolean alreadyTracked = this.solvers.containsKey(id);
+
+                if (!alreadyTracked) {
+                    this.needsRecompute.put(id, true);
+                }
+
+                final boolean inWater = isUnderwater(ssl);
+                final Boolean prevWasInWater = this.wasInWater.get(id);
+                if (prevWasInWater == null || inWater != prevWasInWater || count % 100 == 0) {
+                    this.needsRecompute.put(id, true);
+                }
+                this.wasInWater.put(id, inWater);
+
+                if (count % 40 == 0 && !alreadyTracked) {
+                    this.needsRecompute.put(id, true);
+                }
+
+                if (this.needsRecompute.getOrDefault(id, false)) {
+                    final LatticeStressSolver oldSolver = this.solvers.get(id);
+                    final BoundingBox3ic bb = ssl.getPlot().getBoundingBox();
+                    final long currentHash = computeBlockHash(ssl.getLevel(), bb);
+                    final Long prevHash = this.previousStructureHashes.get(id);
+                    if (oldSolver != null && prevHash != null && prevHash == currentHash) {
+                        this.needsRecompute.put(id, false);
+                        oldSolver.refreshWaterDepths(getWaterSurfaceWorldY(ssl));
+                        this.cachedCrushDepths.put(id, oldSolver.computeCrushDepth());
+                        continue;
+                    }
+
+                    if (oldSolver != null) {
+                        this.previousU.put(id, oldSolver.getU());
+                    }
+                    final long t0 = System.nanoTime();
+
+                    final double kernelRadius = SubmarineConfig.KERNEL_RADIUS != null
+                        ? SubmarineConfig.KERNEL_RADIUS.get() : 1.5;
+                    final Map<BlockPos, Set<Integer>> exposedFaces =
+                        LatticeStressSolver.buildExposedFaceMap(ssl.getLevel(), bb);
+                    final ShapeClassifier.ClassificationResult classification =
+                        ShapeClassifier.classify(exposedFaces, kernelRadius);
+
+                    final double[] warmStartU = this.previousU.remove(id);
+                    final LatticeStressSolver newSolver = new LatticeStressSolver(
+                        ssl.getLevel(), bb, warmStartU, classification, ssl.logicalPose().orientation(),
+                        ssl.logicalPose(), getWaterSurfaceWorldY(ssl));
+                    this.solvers.put(id, newSolver);
+                    this.previousStructureHashes.put(id, newSolver.getStructureHash());
+                    this.totalSolveTimeNanos += System.nanoTime() - t0;
+                    this.solveCount++;
+                    this.needsRecompute.put(id, false);
+                    if (newSolver.blockCount() > 0) {
+                        this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
+                    } else {
+                        this.cachedCrushDepths.remove(id);
+                    }
+
+                    if (classification.coherence() < 0.85) {
+                        LOGGER.debug("SubLevel {}: coherence={} (roughness penalty={})",
+                            id.toString().substring(0, 8),
+                            String.format("%.3f", classification.coherence()),
+                            String.format("%.3f", ShapeClassifier.roughnessPenalty(classification.coherence())));
+                    }
+                }
+
+            }
+        }
+
+        if (container instanceof ServerSubLevelContainer sslcProf && this.tickCounter.values().stream().anyMatch(c -> c > 0 && c % 200 == 0)) {
+            for (final ServerSubLevel sslProf : sslcProf.getAllSubLevels()) {
+                final UUID pid = sslProf.getUniqueId();
+                final LatticeStressSolver s = this.solvers.get(pid);
+                if (s == null) continue;
+                final boolean inWater = this.wasInWater.getOrDefault(pid, false);
+                final double[] cd = this.cachedCrushDepths.get(pid);
+                final String stressRange = cd != null ? String.format("%.1f-%.1f", cd[0], cd[s.blockCount()]) : "N/A";
+                LOGGER.info("SubLevel {}: {} blocks, inWater={}, stressRange=[{}], avgSolve={}ms",
+                    pid.toString().substring(0, 8), s.blockCount(), inWater, stressRange,
+                    String.format("%.2f", solveCount > 0 ? totalSolveTimeNanos / 1e6 / solveCount : 0));
+            }
+        }
+
+        if (container instanceof ServerSubLevelContainer) {
+            this.tickCounter.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            this.solvers.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            this.cachedCrushDepths.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            this.needsRecompute.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            this.wasInWater.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            this.previousU.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            this.previousStructureHashes.keySet().removeIf(id -> container.getSubLevel(id) == null);
+        }
+    }
+
+    private boolean isWithinRenderDistance(final ServerSubLevel ssl) {
+        final Vector3dc worldPos = ssl.logicalPose().position();
+        for (final ServerPlayer player : this.level.players()) {
+            if (player.distanceToSqr(worldPos.x(), worldPos.y(), worldPos.z()) < 256.0 * 256.0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static double getWaterSurfaceWorldY(final ServerSubLevel ssl) {
+        return 63.0;
+    }
+
+    private boolean isUnderwater(final ServerSubLevel ssl) {
+        return ssl.logicalPose().position().y() < getWaterSurfaceWorldY(ssl);
+    }
+
+    private LatticeStressSolver getOrCreateSolver(final ServerSubLevel subLevel) {
+        final UUID id = subLevel.getUniqueId();
+        LatticeStressSolver solver = this.solvers.get(id);
+        final boolean dirty = this.needsRecompute.getOrDefault(id, false);
+
+        if (solver == null || dirty) {
+            if (solver != null) {
+                this.previousU.put(id, solver.getU());
+            }
+            final long t0 = System.nanoTime();
+            final BoundingBox3ic bb = subLevel.getPlot().getBoundingBox();
+
+            final double kernelRadius = SubmarineConfig.KERNEL_RADIUS != null
+                ? SubmarineConfig.KERNEL_RADIUS.get() : 1.5;
+            final Map<BlockPos, Set<Integer>> exposedFaces =
+                LatticeStressSolver.buildExposedFaceMap(subLevel.getLevel(), bb);
+            final ShapeClassifier.ClassificationResult classification =
+                ShapeClassifier.classify(exposedFaces, kernelRadius);
+
+            final double[] warmStartU = this.previousU.remove(id);
+            final LatticeStressSolver newSolver = new LatticeStressSolver(
+                subLevel.getLevel(), bb, warmStartU, classification, subLevel.logicalPose().orientation(),
+                subLevel.logicalPose(), getWaterSurfaceWorldY(subLevel));
+            this.solvers.put(id, newSolver);
+            this.previousStructureHashes.put(id, newSolver.getStructureHash());
+            this.totalSolveTimeNanos += System.nanoTime() - t0;
+            this.solveCount++;
+            this.needsRecompute.put(id, false);
+            if (newSolver.blockCount() > 0) {
+                this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
+            } else {
+                this.cachedCrushDepths.remove(id);
+            }
+            return newSolver;
+        }
+        return solver;
+    }
+
+    public double[] getCrushDepths(final ServerSubLevel subLevel) {
+        final UUID id = subLevel.getUniqueId();
+        getOrCreateSolver(subLevel);
+        return this.cachedCrushDepths.get(id);
+    }
+
+    public String getCrushDepthResult(final ServerSubLevel subLevel) {
+        final LatticeStressSolver solver = getOrCreateSolver(subLevel);
+        if (solver == null || solver.blockCount() == 0) {
+            return "No stress data available for this sub-level";
+        }
+
+        final double[] crushDepths = getCrushDepths(subLevel);
+        if (crushDepths == null) {
+            return "No stress data available for this sub-level";
+        }
+
+        final int worstBlock = (int) crushDepths[solver.blockCount()];
+        final double globalDepth = worstBlock >= 0 ? crushDepths[worstBlock] : Double.POSITIVE_INFINITY;
+
+        if (worstBlock < 0 || Double.isInfinite(globalDepth)) {
+            return String.format("All %d blocks indestructible - no crush depth (solver: %s)",
+                solver.blockCount(), solver.debugInfo());
+        }
+
+        final String blockName = solver.getLocalPosition(worstBlock).toShortString();
+        final boolean isHull = solver.isHullBlock(worstBlock);
+        final int exposedFaces = solver.getExposedFaceCount(worstBlock);
+
+        return String.format("Crush depth: %.1f blocks  (total: %d blocks, hull: %d, worst at %s, %s, ext faces: %d, E=%.1e Pa, yield=%.1e Pa | solver: %s)",
+                globalDepth, solver.blockCount(), solver.hullBlockCount(),
+                blockName, isHull ? "HULL" : "interior", exposedFaces,
+                solver.getYoungsModulus(worstBlock), solver.getYieldStress(worstBlock),
+                solver.debugInfo());
+    }
+
+    public String getStressResult(final ServerSubLevel subLevel, final int waterDepth) {
+        if (waterDepth <= 0) return "Sub-level is not underwater - no hydrostatic stress";
+
+        final LatticeStressSolver solver = getOrCreateSolver(subLevel);
+        if (solver == null || solver.blockCount() == 0) {
+            return "No stress data available for this sub-level";
+        }
+
+        final double[] crushDepths = getCrushDepths(subLevel);
+        if (crushDepths == null) {
+            return "No stress data available for this sub-level";
+        }
+
+        final double[] stressDist = solver.getStressDistribution();
+        final double[] crushDepthsFull = solver.computeCrushDepth();
+
+        double maxFraction = 0;
+        double minFraction = Double.POSITIVE_INFINITY;
+        double sumFraction = 0;
+        int worstIdx = -1;
+        for (int i = 0; i < solver.blockCount(); i++) {
+            final double f = stressDist[i];
+            if (f > 0) {
+                if (f > maxFraction) { maxFraction = f; worstIdx = i; }
+                if (f < minFraction) minFraction = f;
+                sumFraction += f;
+            }
+        }
+
+        if (worstIdx < 0) return "No measurable stress";
+
+        final double avgFraction = sumFraction / solver.blockCount();
+        final int worstBlock = (int) crushDepths[solver.blockCount()];
+        final BlockPos stressCenter = solver.getStressCenter();
+        final double worstCrush = worstBlock >= 0 ? crushDepths[worstBlock] : Double.POSITIVE_INFINITY;
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Blocks: %d (hull: %d) | Depth: %d bl | Stress/yield: avg=%.1f%%, max=%.1f%% | ",
+                solver.blockCount(), solver.hullBlockCount(), waterDepth,
+                avgFraction * 100, maxFraction * 100));
+
+        if (worstIdx >= 0) {
+            final boolean isHull = solver.isHullBlock(worstIdx);
+            final double blockCrush = crushDepthsFull[worstIdx];
+            final int depthFromTop = solver.getDepthFromTop(worstIdx);
+            sb.append(String.format("Worst: %s [%s] (yield=%.1e Pa, depthFromTop=%d, crush=%.1f bl)",
+                    solver.getLocalPosition(worstIdx).toShortString(),
+                    isHull ? "HULL" : "interior",
+                    solver.getYieldStress(worstIdx),
+                    depthFromTop, blockCrush));
+            sb.append(String.format(" | Center: %s", stressCenter.toShortString()));
+        }
+
+        if (worstBlock >= 0 && worstCrush < 1.5 * waterDepth) {
+            sb.append(" | WARNING: approaching crush depth!");
+        }
+
+        sb.append(String.format(" | %s", solver.debugInfo()));
+
+        return sb.toString();
+    }
+
+    public boolean checkAndBreak(final ServerSubLevel subLevel, final int waterDepth, final Level plotLevel) {
+        final long t0 = System.nanoTime();
+        final UUID id = subLevel.getUniqueId();
+        final LatticeStressSolver solver = getOrCreateSolver(subLevel);
+        if (solver == null || solver.blockCount() <= 1) {
+            this.totalCheckTimeNanos += System.nanoTime() - t0;
+            return false;
+        }
+
+        final double[] crushDepths = getCrushDepths(subLevel);
+        if (crushDepths == null) {
+            this.totalCheckTimeNanos += System.nanoTime() - t0;
+            return false;
+        }
+
+        boolean brokeAny = false;
+        for (int i = 0; i < solver.blockCount(); i++) {
+            final double depth = crushDepths[i];
+            if (Double.isInfinite(depth)) continue;
+            if (waterDepth < depth * 0.5) continue;
+
+            final BlockPos pos = solver.getPosition(i);
+            final BlockState state = plotLevel.getBlockState(pos);
+            if (state.isAir()) continue;
+
+            if (isFragile(state) || waterDepth >= depth * 0.8) {
+                brokeAny |= breakBlock(plotLevel, pos, id, solver);
+            }
+        }
+
+        if (brokeAny) {
+            destroyDisconnectedFragments(solver, plotLevel);
+        }
+
+        this.totalCheckTimeNanos += System.nanoTime() - t0;
+        return brokeAny;
+    }
+
+    private void destroyDisconnectedFragments(final LatticeStressSolver solver, final Level plotLevel) {
+        final int n = solver.blockCount();
+        if (n <= 1) return;
+
+        final int[] remaining = new int[n];
+        int rc = 0;
+        for (int i = 0; i < n; i++) {
+            if (!plotLevel.getBlockState(solver.getPosition(i)).isAir()) {
+                remaining[rc++] = i;
+            }
+        }
+        if (rc <= 1) return;
+
+        final boolean[] assigned = new boolean[rc];
+        int bestComponentSize = 0;
+        final boolean[] keep = new boolean[rc];
+
+        for (int start = 0; start < rc; start++) {
+            if (assigned[start]) continue;
+
+            final java.util.ArrayDeque<Integer> queue = new java.util.ArrayDeque<>();
+            queue.addLast(start);
+            assigned[start] = true;
+            final int[] component = new int[rc];
+            int compSize = 0;
+            component[compSize++] = start;
+
+            while (!queue.isEmpty()) {
+                final BlockPos a = solver.getPosition(remaining[queue.removeFirst()]);
+                for (int t = 0; t < rc; t++) {
+                    if (assigned[t]) continue;
+                    final BlockPos b = solver.getPosition(remaining[t]);
+                    final int dx = Math.abs(a.getX() - b.getX());
+                    final int dy = Math.abs(a.getY() - b.getY());
+                    final int dz = Math.abs(a.getZ() - b.getZ());
+                    if (dx <= 1 && dy <= 1 && dz <= 1 && dx + dy + dz > 0) {
+                        assigned[t] = true;
+                        queue.addLast(t);
+                        component[compSize++] = t;
+                    }
+                }
+            }
+
+            if (compSize > bestComponentSize) {
+                bestComponentSize = compSize;
+                java.util.Arrays.fill(keep, false);
+                for (int k = 0; k < compSize; k++) {
+                    keep[component[k]] = true;
+                }
+            }
+        }
+
+        for (int t = 0; t < rc; t++) {
+            if (!keep[t]) {
+                plotLevel.setBlock(solver.getPosition(remaining[t]), Blocks.AIR.defaultBlockState(), 3);
+            }
+        }
+    }
+
+    private boolean breakBlock(final Level plotLevel, final BlockPos pos, final UUID id, final LatticeStressSolver solver) {
+        final BlockState state = plotLevel.getBlockState(pos);
+        if (state.isAir()) return false;
+
+        final ResourceLocation rl = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        if (rl.equals(ResourceLocation.withDefaultNamespace("iron_block"))) {
+            plotLevel.setBlock(pos, Blocks.RAW_IRON_BLOCK.defaultBlockState(), 3);
+        } else if (rl.equals(ResourceLocation.withDefaultNamespace("gold_block"))) {
+            plotLevel.setBlock(pos, Blocks.RAW_GOLD_BLOCK.defaultBlockState(), 3);
+        } else {
+            plotLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        }
+
+        this.needsRecompute.put(id, true);
+        return true;
+    }
+
+    private boolean isFragile(final BlockState state) {
+        return state.is(BlockTags.DIRT) ||
+               state.is(BlockTags.SAND) ||
+               state.is(BlockTags.WOOL) ||
+               state.is(net.minecraft.world.level.block.Blocks.GRAVEL) ||
+               state.is(BlockTags.LEAVES) ||
+               state.is(net.minecraft.world.level.block.Blocks.GLASS) ||
+               state.is(net.minecraft.world.level.block.Blocks.TINTED_GLASS) ||
+               state.is(BlockTags.ICE) ||
+               state.is(net.minecraft.world.level.block.Blocks.SPONGE) ||
+               state.is(net.minecraft.world.level.block.Blocks.WET_SPONGE) ||
+               state.is(BlockTags.FLOWERS) ||
+               state.is(BlockTags.CROPS);
+    }
+
+    public String getProfilerResult() {
+        return String.format("Profiler: %d solves, avg solve=%.2fms, total solve=%.2fms, total check=%.2fms",
+            solveCount,
+            solveCount > 0 ? totalSolveTimeNanos / 1e6 / solveCount : 0,
+            totalSolveTimeNanos / 1e6,
+            totalCheckTimeNanos / 1e6);
+    }
+
+    private static long computeBlockHash(final BlockGetter level, final BoundingBox3ic bounds) {
+        long hash = 0;
+        final BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+            for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
+                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                    mutable.set(x, y, z);
+                    if (LatticeStressSolver.includeBlockForHash(level.getBlockState(mutable), level, mutable)) {
+                        hash ^= BlockPos.asLong(x, y, z);
+                    }
+                }
+            }
+        }
+        return hash;
+    }
+
+    public static void clearForLevel(final ServerLevel level) {
+        final SubLevelStressAnalyzer analyzer = INSTANCES.remove(level);
+        if (analyzer != null) {
+            analyzer.solvers.clear();
+            analyzer.cachedCrushDepths.clear();
+            analyzer.needsRecompute.clear();
+            analyzer.tickCounter.clear();
+            analyzer.wasInWater.clear();
+            analyzer.previousU.clear();
+            analyzer.previousStructureHashes.clear();
+        }
+    }
+
+    public static void onGlobalServerTick(final ServerTickEvent.Post event) {
+        for (final ServerLevel level : event.getServer().getAllLevels()) {
+            final SubLevelStressAnalyzer analyzer = INSTANCES.get(level);
+            if (analyzer == null) continue;
+            analyzer.tickRefresh();
+        }
+    }
+}

@@ -4,8 +4,12 @@ import com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentDetector;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import com.maxenonyme.createsubmarine.submarine.network.SubCrackPayload;
+import com.maxenonyme.createsubmarine.submarine.stress.SubLevelStressAnalyzer;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
+import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
+import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -87,6 +91,19 @@ public class SubmarinePressureSystem {
         for (Map.Entry<UUID, SubLevelAccess> entry : SubLevelRegistry.getAll().entrySet()) {
             processSubmarine(entry.getKey(), entry.getValue());
         }
+
+        // Also run stress checks on ALL sublevels, not just registered submarines
+        for (final ServerLevel level : event.getServer().getAllLevels()) {
+            final SubLevelContainer container = SubLevelContainer.getContainer(level);
+            if (!(container instanceof final ServerSubLevelContainer sslc)) continue;
+            for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
+                if (SubLevelRegistry.getAll().containsKey(ssl.getUniqueId())) continue;
+                final SubLevelStressAnalyzer analyzer = SubLevelStressAnalyzer.getOrCreate(level);
+                final int waterDepth = measureWaterDepth(level, ssl.getUniqueId(), ssl.logicalPose().position());
+                if (waterDepth <= 0) continue;
+                analyzer.checkAndBreak(ssl, waterDepth, ssl.getLevel());
+            }
+        }
     }
 
     private static void processSubmarine(UUID id, SubLevelAccess sub) {
@@ -96,11 +113,21 @@ public class SubmarinePressureSystem {
         SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
         if (bounds == null) return;
 
-        Level oceanLevel = sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl ? sl.getLevel() : plotLevel;
+        // Use the plot level for ocean water detection - for submarines in the overworld,
+        // this IS the overworld level (not the sublevel's internal plot dimension).
+        Level oceanLevel = plotLevel;
 
         Vector3dc subCenter = sub.logicalPose().position();
         int waterDepth = measureWaterDepth(oceanLevel, id, subCenter);
         CACHED_WATER_DEPTH.put(id, waterDepth);
+
+        // Run stress analysis (tickRefresh is handled by onGlobalServerTick)
+        if (oceanLevel instanceof ServerLevel serverLevel) {
+            final SubLevelStressAnalyzer analyzer = SubLevelStressAnalyzer.getOrCreate(serverLevel);
+            if (waterDepth > 0 && sub instanceof ServerSubLevel ssl) {
+                analyzer.checkAndBreak(ssl, waterDepth, plotLevel);
+            }
+        }
 
         if (waterDepth <= 0) {
             BREACHED_PLOT.remove(id);

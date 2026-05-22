@@ -12,6 +12,21 @@ public class SubmarineConfig {
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
 
+    public static final ModConfigSpec.DoubleValue COHERENCE_THRESHOLD_ANALYTICAL;
+    public static final ModConfigSpec.DoubleValue COHERENCE_THRESHOLD_CORRECTED;
+    public static final ModConfigSpec.DoubleValue KERNEL_RADIUS;
+    public static final ModConfigSpec.BooleanValue COPYCAT_INHERIT_MATERIAL;
+    public static final ModConfigSpec.BooleanValue USE_ORIENTATION_PRESSURE;
+    public static final ModConfigSpec.DoubleValue MOON_POOL_PRESSURE_FACTOR;
+    public static final ModConfigSpec.DoubleValue ROUGHNESS_PENALTY;
+    public static final ModConfigSpec.IntValue MIN_APPROXIMATION_RADIUS;
+    public static final ModConfigSpec.DoubleValue GAUSSIAN_MAX_ERROR;
+
+    public static final ModConfigSpec.DoubleValue WATER_DENSITY_GRAVITY;
+    public static final ModConfigSpec.DoubleValue POISSON_RATIO;
+    public static final ModConfigSpec.DoubleValue TIKHONOV_ALPHA_FRACTION;
+    public static final ModConfigSpec.DoubleValue STRESS_FORCE_MAX;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -19,6 +34,40 @@ public class SubmarineConfig {
         DISABLE_IMPLOSION = builder
                 .comment("Disable all hull implosion damage from pressure.")
                 .define("disableImplosion", false);
+        builder.pop();
+
+        builder.push("shapeClassifier");
+        COHERENCE_THRESHOLD_ANALYTICAL = builder
+                .comment("Coherence score above which a surface is treated as smooth analytical.",
+                        "Higher = only very smooth surfaces get analytical treatment.",
+                        "Range: 0.0-1.0, Default: 0.85")
+                .defineInRange("coherenceThresholdAnalytical", 0.85, 0.0, 1.0);
+        COHERENCE_THRESHOLD_CORRECTED = builder
+                .comment("Coherence score above which a surface gets corrected smoothed normals.",
+                        "Below this, full lattice solver is used without normal smoothing.",
+                        "Range: 0.0-1.0, Default: 0.60")
+                .defineInRange("coherenceThresholdCorrected", 0.60, 0.0, 1.0);
+        KERNEL_RADIUS = builder
+                .comment("Radius (in blocks) of the kernel used for normal smoothing.",
+                        "Larger = more smoothing, but blurs fine details.",
+                        "Range: 0.5-3.0, Default: 1.5")
+                .defineInRange("kernelRadius", 1.5, 0.5, 3.0);
+        ROUGHNESS_PENALTY = builder
+                .comment("Additional stress penalty applied to corrected surfaces.",
+                        "Multiplied by (0.85 - coherence) / (0.85 - 0.60).",
+                        "Range: 0.0-1.0, Default: 0.05")
+                .defineInRange("roughnessPenalty", 0.05, 0.0, 1.0);
+        MIN_APPROXIMATION_RADIUS = builder
+                .comment("Minimum curve radius (in blocks) for analytical approximation.",
+                        "Below this, full lattice solver is always used regardless of coherence.",
+                        "Range: 1-50, Default: 2")
+                .defineInRange("minApproximationRadius", 2, 1, 50);
+        GAUSSIAN_MAX_ERROR = builder
+                .comment("Maximum coherence error allowed for Gaussian (kernel-smoothed) face counts.",
+                        "When the kernel-smoothed normal error exceeds this threshold,",
+                        "raw (non-smoothed) face counts are used instead.",
+                        "Range: 0.01-0.50, Default: 0.05")
+                .defineInRange("gaussianMaxError", 0.05, 0.01, 0.50);
         builder.pop();
 
         builder.push("hullStrength");
@@ -34,6 +83,52 @@ public class SubmarineConfig {
                 .comment("Multiplier on every block's implosionChance at runtime.",
                         "Lower = slower cracking, higher = faster cracking.")
                 .defineInRange("implosionChanceMultiplier", 1.0, 0.0, 10.0);
+        builder.pop();
+
+        builder.push("copycats");
+        COPYCAT_INHERIT_MATERIAL = builder
+                .comment("Copycat blocks inherit the Young's modulus and yield strength",
+                        "of the block they are mimicking (e.g., a copycat slab copying iron",
+                        "gets iron's E and yield, with slab geometry).",
+                        "Requires Copycats+ mod to be installed; silently falls back to defaults if not.")
+                .define("copycatInheritMaterial", true);
+        builder.pop();
+
+        builder.push("physics");
+        USE_ORIENTATION_PRESSURE = builder
+                .comment("Account for ship orientation when computing hydrostatic pressure gradient.",
+                        "When enabled, a tilted submarine gets correct pressure distribution",
+                        "with the deeper end experiencing higher pressure.",
+                        "Disable for legacy behavior (bounding-box Y gradient only).")
+                .define("useOrientationPressure", true);
+        MOON_POOL_PRESSURE_FACTOR = builder
+                .comment("Fraction of external hydrostatic pressure applied to moon pool walls",
+                        "from internal water column. 0 = no moon pool effect, 1 = full effect.",
+                        "Range: 0.0-1.0, Default: 0.8")
+                .defineInRange("moonPoolPressureFactor", 0.8, 0.0, 1.0);
+        WATER_DENSITY_GRAVITY = builder
+                .comment("Product of water density and gravitational acceleration (ρ·g).",
+                        "Controls how quickly hydrostatic pressure builds with depth.",
+                        "Default: 10000.0 (1000 kg/m³ × 10 m/s²)")
+                .defineInRange("waterDensityGravity", 10000.0, 100.0, 100000.0);
+        POISSON_RATIO = builder
+                .comment("Poisson's ratio for hull materials.",
+                        "Affects the relationship between Young's modulus and shear modulus.",
+                        "Range: 0.0-0.5, Default: 0.25 (typical for structural steel)")
+                .defineInRange("poissonRatio", 0.25, 0.0, 0.49);
+        TIKHONOV_ALPHA_FRACTION = builder
+                .comment("Tikhonov regularization fraction relative to Young's modulus.",
+                        "Added to stiffness matrix diagonal to suppress rigid-body modes.",
+                        "Higher = more regularization (stiffer, fewer CG iterations),",
+                        "Lower = more accurate but slower convergence.",
+                        "Range: 1e-6 to 0.1, Default: 0.01 (1% of E)")
+                .defineInRange("tikhonovAlphaFraction", 0.01, 1e-6, 0.1);
+        STRESS_FORCE_MAX = builder
+                .comment("Maximum force (in arbitrary units) applied per exposed hull face",
+                        "at full stress fraction (waterDepth >> crushDepth).",
+                        "This is the force pushed into Sable's QueuedForceGroup for force arrows.",
+                        "Range: 1.0-100000.0, Default: 2000.0")
+                .defineInRange("stressForceMax", 2000.0, 1.0, 100000.0);
         builder.pop();
 
         builder.push("propulsion");

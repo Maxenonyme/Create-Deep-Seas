@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import com.maxenonyme.createsubmarine.submarine.block.*;
 import com.maxenonyme.createsubmarine.submarine.block.entity.*;
 import com.maxenonyme.createsubmarine.submarine.effect.SuffocationEffect;
+import com.maxenonyme.createsubmarine.submarine.stress.StressForceFeedSystem;
 import com.maxenonyme.createsubmarine.submarine.system.*;
 import com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig;
 import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
@@ -164,6 +165,30 @@ public class CreateSubmarine {
                         () -> BlockEntityType.Builder.of(FloaterBlockEntity::new, FLOATER.get()).build(null));
 
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
+                net.minecraft.core.Registry.register(
+                        dev.ryanhcode.sable.api.physics.force.ForceGroups.REGISTRY,
+                        StressForceFeedSystem.STRESS_ID,
+                        new dev.ryanhcode.sable.api.physics.force.ForceGroup(
+                                net.minecraft.network.chat.Component.translatable("force.create_submarine.stress"),
+                                net.minecraft.network.chat.Component.translatable("force.create_submarine.stress.desc"),
+                                0xFFFF4444,
+                                true));
+                net.minecraft.core.Registry.register(
+                        dev.ryanhcode.sable.api.physics.force.ForceGroups.REGISTRY,
+                        StressForceFeedSystem.INTERNAL_STRESS_ID,
+                        new dev.ryanhcode.sable.api.physics.force.ForceGroup(
+                                net.minecraft.network.chat.Component.translatable("force.create_submarine.internal_stress"),
+                                net.minecraft.network.chat.Component.translatable("force.create_submarine.internal_stress.desc"),
+                                0xFFFFAA00,
+                                false));
+                net.minecraft.core.Registry.register(
+                        dev.ryanhcode.sable.api.physics.force.ForceGroups.REGISTRY,
+                        StressForceFeedSystem.BUOYANCY_ID,
+                        new dev.ryanhcode.sable.api.physics.force.ForceGroup(
+                                net.minecraft.network.chat.Component.translatable("force.create_submarine.buoyancy"),
+                                net.minecraft.network.chat.Component.translatable("force.create_submarine.buoyancy.desc"),
+                                0xFF44DDBB,
+                                true));
                 modContainer.registerConfig(ModConfig.Type.COMMON, SubmarineConfig.SPEC);
                 BLOCKS.register(modEventBus);
                 ITEMS.register(modEventBus);
@@ -178,11 +203,15 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
+                StressForceFeedSystem.register();
+                StressForceFeedSystem.registerListeners();
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.stress.SubLevelStressAnalyzer::onGlobalServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.WrenchRepairHandler::onRightClickBlock);
                 NeoForge.EVENT_BUS.addListener(this::onBlockPlaceAboveSensor);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SubmarineLifecycleHandler::onServerStopping);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SubmarineLifecycleHandler::onLevelUnload);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SubmarineLifecycleHandler::onPlayerLoggedIn);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.stress.StressCommand::register);
 
                 modEventBus.addListener(this::registerCapabilities);
 
@@ -191,12 +220,14 @@ public class CreateSubmarine {
                 }
         }
 
+
         private void onBlockPlaceAboveSensor(net.neoforged.neoforge.event.level.BlockEvent.EntityPlaceEvent event) {
                 net.minecraft.world.level.block.state.BlockState below = event.getLevel().getBlockState(event.getPos().below());
                 if (below.is(ELECTROLYZER.get()) || below.is(OXYGENE_DIFFUSER.get())) {
                         event.setCanceled(true);
                 }
         }
+
 
         private void registerPayloads(final net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event) {
                 final net.neoforged.neoforge.network.registration.PayloadRegistrar registrar = event.registrar(MOD_ID);
@@ -212,6 +243,14 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.network.ElectrolyzerTogglePayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.ElectrolyzerTogglePayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.ElectrolyzerTogglePayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.ShapeVizPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.ShapeVizPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.ShapeVizPayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload::handle);
         }
         private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
                 event.registerBlockEntity(

@@ -3,10 +3,12 @@
   "minVersion": "0.8",
   "package": "com.maxenonyme.createsubmarine.submarine.mixin",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "com.maxenonyme.createsubmarine.submarine.mixin.CreateSubmarineMixinPlugin",
   "mixins": [
     "LevelChunkMixin",
     "LevelMixin",
-    "compat.SablePhysicsCrashFixMixin"
+    "compat.SablePhysicsCrashFixMixin",
+    "compat.SubLevelPhysicsSystemMixin"
   ],
   "client": [
     "FluidRenderHelperBuilderMixin",
