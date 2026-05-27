@@ -1,5 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.mixin.compat;
 
+import com.maxenonyme.createsubmarine.submarine.client.renderer.SodiumWaterOcclusionBridge;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -16,7 +17,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "net.caffeinemc.mods.sodium.neoforge.render.FluidRendererImpl", remap = false)
 public abstract class SodiumFluidRendererMixin {
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private void createsubmarine$onRenderFluid(@Coerce Object levelSlice, BlockState blockState, FluidState fluidState, BlockPos blockPos, BlockPos offset, @Coerce Object collector, @Coerce Object buffers, CallbackInfo ci) {
+    private void createsubmarine$onRenderFluid(@Coerce Object levelSlice, BlockState blockState, FluidState fluidState,
+            BlockPos blockPos, BlockPos offset, @Coerce Object collector, @Coerce Object buffers, CallbackInfo ci) {
+        if (SodiumWaterOcclusionBridge.PIXEL_PERFECT_ACTIVE)
+            return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null && CompartmentTracker.isOccluded(mc.level, blockPos)) {
             ci.cancel();

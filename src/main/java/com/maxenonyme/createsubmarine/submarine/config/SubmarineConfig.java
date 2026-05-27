@@ -11,6 +11,7 @@ public class SubmarineConfig {
     public static final ModConfigSpec.DoubleValue BALLAST_FORCE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
+    public static final ModConfigSpec.BooleanValue ENABLE_ABYSS_GENERATION;
 
     public static final ModConfigSpec.DoubleValue COHERENCE_THRESHOLD_ANALYTICAL;
     public static final ModConfigSpec.DoubleValue COHERENCE_THRESHOLD_CORRECTED;
@@ -146,6 +147,10 @@ public class SubmarineConfig {
         ENABLE_PERMANENT_WATER_CULLING_TEST = builder
                 .comment("Enable the experimental Permanent Water Culling test for submarines and boats")
                 .define("enablePermanentWaterCullingTest", false);
+        ENABLE_ABYSS_GENERATION = builder
+                .comment("Generate Abyss biome pockets and the deeper ocean trenches that go with them.",
+                        "Off = vanilla ocean depth, no Abyss biome.")
+                .define("enableAbyssGeneration", true);
         builder.pop();
 
         SPEC = builder.build();

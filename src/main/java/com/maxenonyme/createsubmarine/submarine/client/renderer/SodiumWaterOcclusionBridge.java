@@ -1,6 +1,5 @@
 package com.maxenonyme.createsubmarine.submarine.client.renderer;
 
-import com.maxenonyme.createsubmarine.CreateSubmarine;
 import com.maxenonyme.createsubmarine.submarine.mixin.compat.WaterOcclusionRendererAccessor;
 import dev.ryanhcode.sable.SableClient;
 import dev.ryanhcode.sable.render.water_occlusion.WaterOcclusionRenderer;
@@ -15,7 +14,6 @@ import java.util.Map;
 
 // It seems there are more ways to optimize it, but my brain is about to explode, I HATE SODIUM !!!
 
-
 public final class SodiumWaterOcclusionBridge {
     public static final int CLOSE_TEXTURE_UNIT = 6;
     public static final int FAR_TEXTURE_UNIT = 7;
@@ -27,15 +25,21 @@ public final class SodiumWaterOcclusionBridge {
 
     private static final Map<Integer, ProgramUniforms> UNIFORM_CACHE = new HashMap<>();
 
+    public static volatile boolean PIXEL_PERFECT_ACTIVE = false;
+
     private record ProgramUniforms(int enabled, int closeSampler, int farSampler, int screenSize) {
-        boolean hasOcclusion() { return enabled >= 0; }
+        boolean hasOcclusion() {
+            return enabled >= 0;
+        }
     }
 
-    private SodiumWaterOcclusionBridge() {}
+    private SodiumWaterOcclusionBridge() {
+    }
 
     private static ProgramUniforms locations(int programHandle) {
         ProgramUniforms cached = UNIFORM_CACHE.get(programHandle);
-        if (cached != null) return cached;
+        if (cached != null)
+            return cached;
         ProgramUniforms u = new ProgramUniforms(
                 GL20.glGetUniformLocation(programHandle, UNIFORM_ENABLED),
                 GL20.glGetUniformLocation(programHandle, UNIFORM_CLOSE_SAMPLER),
@@ -46,9 +50,11 @@ public final class SodiumWaterOcclusionBridge {
     }
 
     public static void applyToProgram(int programHandle, boolean translucentPass) {
-        if (programHandle <= 0) return;
+        if (programHandle <= 0)
+            return;
         ProgramUniforms u = locations(programHandle);
-        if (!u.hasOcclusion()) return;
+        if (!u.hasOcclusion())
+            return;
 
         if (!translucentPass || !WaterOcclusionRenderer.isEnabled()) {
             GL20.glUniform1f(u.enabled, 0.0f);
@@ -76,13 +82,20 @@ public final class SodiumWaterOcclusionBridge {
             GL13.glBindTexture(GL13.GL_TEXTURE_2D, farDepth.getId());
             GL13.glActiveTexture(GL13.GL_TEXTURE0);
 
-            if (u.closeSampler >= 0) GL20.glUniform1i(u.closeSampler, CLOSE_TEXTURE_UNIT);
-            if (u.farSampler >= 0) GL20.glUniform1i(u.farSampler, FAR_TEXTURE_UNIT);
+            if (u.closeSampler >= 0)
+                GL20.glUniform1i(u.closeSampler, CLOSE_TEXTURE_UNIT);
+            if (u.farSampler >= 0)
+                GL20.glUniform1i(u.farSampler, FAR_TEXTURE_UNIT);
             if (u.screenSize >= 0) {
                 var window = Minecraft.getInstance().getWindow();
                 GL20.glUniform2f(u.screenSize, (float) window.getWidth(), (float) window.getHeight());
             }
             GL20.glUniform1f(u.enabled, 1.0f);
+            if (!PIXEL_PERFECT_ACTIVE) {
+                PIXEL_PERFECT_ACTIVE = true;
+
+                SubmarineWaterCullBuffer.invalidateAllPoseCaches();
+            }
         } catch (Throwable t) {
             GL20.glUniform1f(u.enabled, 0.0f);
         }

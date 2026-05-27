@@ -153,13 +153,16 @@ public class StressForceFeedSystem {
         double totalForce = 0;
         double wx = 0, wy = 0, wz = 0;
 
+        final double densityMultiplier = SubLevelStressAnalyzer.getFluidDensityMultiplier(ssl);
+
         for (int i = 0; i < n; i++) {
             final BlockPos pos = solver.getPosition(i);
             final int worldY = bounds.minY() + pos.getY();
             if (worldY >= waterSurface) continue;
 
             // Each full block contributes 10.5 N upward (matching Rust's 10.5 * volume * strength)
-            final double f = 10.5;
+            // Scaled by fluid density multiplier (1.0 for water, 3.1 for lava)
+            final double f = 10.5 * densityMultiplier;
             totalForce += f;
             final double cx = pos.getX() + 0.5;
             final double cy = pos.getY() + 0.5;
@@ -177,10 +180,11 @@ public class StressForceFeedSystem {
         final Vector3d center = new Vector3d(wx / totalForce, wy / totalForce, wz / totalForce);
         final Vector3d force = new Vector3d(0, totalForce, 0);
         queued.recordPointForce(center, force);
-        LOGGER.debug("Recorded buoyancy force {} N at center ({}, {}, {}) for ssl={}",
-            String.format("%.0f", totalForce),
-            String.format("%.1f", center.x), String.format("%.1f", center.y), String.format("%.1f", center.z),
-            ssl.getUniqueId().toString().substring(0, 8));
+        //commented out spam
+        //LOGGER.debug("Recorded buoyancy force {} N at center ({}, {}, {}) for ssl={}",
+        //    String.format("%.0f", totalForce),
+        //    String.format("%.1f", center.x), String.format("%.1f", center.y), String.format("%.1f", center.z),
+        //    ssl.getUniqueId().toString().substring(0, 8));
     }
 
     private static int recordFaceForces(final LatticeStressSolver solver, final QueuedForceGroup queued,

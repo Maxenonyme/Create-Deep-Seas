@@ -54,6 +54,7 @@ public class LatticeStressSolver {
     }
 
     public static double RHO_G = 10000.0;
+    private double rhoG = RHO_G;
     private static final Set<Runnable> CONFIG_LOAD_HOOKS = new java.util.LinkedHashSet<>();
 
     public static void loadConfigValues() {
@@ -70,6 +71,10 @@ public class LatticeStressSolver {
         if (SubmarineConfig.WATER_DENSITY_GRAVITY != null) {
             try { RHO_G = SubmarineConfig.WATER_DENSITY_GRAVITY.get(); } catch (Exception ignored) {}
         }
+    }
+
+    public void setFluidDensityMultiplier(double multiplier) {
+        this.rhoG = RHO_G * multiplier;
     }
 
     private final int n;
@@ -255,7 +260,9 @@ public class LatticeStressSolver {
                     if (includeBlock(neighborState, level, mutable) && facesTouch(dir, blockState, level, p, neighborState, level, mutable)) {
                         this.neighbors[i][dir] = j;
                         final double kVol = 0.5 * (this.volFraction[i] + this.volFraction[j]);
-                        final double axialK = 0.5 * (Ei + this.E[j]) * kVol;
+                        final double factorI = DefaultMaterialProperties.getDirectionalFactor(blockState, DX[dir], DY[dir], DZ[dir]);
+                        final double factorJ = DefaultMaterialProperties.getDirectionalFactor(neighborState, -DX[dir], -DY[dir], -DZ[dir]);
+                        final double axialK = 0.5 * (Ei * factorI + this.E[j] * factorJ) * kVol;
                         this.springK[i][dir] = -(axialK * INV_DIST[dir] * INV_DIST[dir]);
                     } else {
                         this.neighbors[i][dir] = -1;
@@ -424,7 +431,7 @@ public class LatticeStressSolver {
                 if (this.neighbors[i][dir] >= 0) continue;
                 final int comp = dir / 2;
                 final double sign = (dir % 2 == 0) ? -1.0 : 1.0;
-                double localPressure = RHO_G * waterDepth * this.volFraction[i];
+                double localPressure = this.rhoG * waterDepth * this.volFraction[i];
                 final Direction faceDir = Direction.from3DDataValue(dir);
 
                 if (this.orientationEnabled) {
@@ -470,7 +477,7 @@ public class LatticeStressSolver {
             final BlockPos p = this.positions[i];
             final double depth = (p.getX() * localDown.x + p.getY() * localDown.y + p.getZ() * localDown.z) - minDepth;
             this.blockWaterDepths[i] = depth + 0.5;
-            double pressure = RHO_G * (0.5 + depth / height);
+            double pressure = this.rhoG * (0.5 + depth / height);
 
             for (int dir = 0; dir < 6; dir++) {
                 if (this.neighbors[i][dir] >= 0) continue;

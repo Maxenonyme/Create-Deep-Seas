@@ -1,6 +1,6 @@
 {
   "parent": "create_submarine:block/ballast_vent_skin",
   "textures": {
-    "tex": "create_submarine:block/bottom_tyuau"
+    "tex": "create_submarine:block/bottom_pipe"
   }
 }

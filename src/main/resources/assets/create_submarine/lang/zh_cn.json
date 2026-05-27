@@ -14,8 +14,6 @@
   "block.create_submarine.ballast_vent": "压载排口",
   "block.create_submarine.oxygene_diffuser": "氧气扩散器",
   "block.create_submarine.electrolyzer": "电解器",
-  "block.create_submarine.pollution_debug": "污染调试方块",
-  "block.create_submarine.polluted_air": "污染空气",
 
   "create_submarine.simulated_section.submarine": "潜艇",
   "create_submarine.gui.goggles.ballast_status": "压载水罐状态",
@@ -35,10 +33,10 @@
 
   "block.create_submarine.industrial_alarm": "工业警报器",
 
-  "create_submarine.ponder.diffusoroxygene.header": "氧气扩散器用法",
-  "create_submarine.ponder.diffusoroxygene.text_1": "氧气扩散器需要电解器生成的氧气。",
-  "create_submarine.ponder.diffusoroxygene.text_2": "它会根据潜艇大小按比例消耗氧气。",
-  "create_submarine.ponder.diffusoroxygene.text_3": "提供红石信号以激活氧气扩散器。",
+  "create_submarine.ponder.oxygen_diffuser.header": "氧气扩散器用法",
+  "create_submarine.ponder.oxygen_diffuser.text_1": "氧气扩散器需要电解器生成的氧气。",
+  "create_submarine.ponder.oxygen_diffuser.text_2": "它会根据潜艇大小按比例消耗氧气。",
+  "create_submarine.ponder.oxygen_diffuser.text_3": "提供红石信号以激活氧气扩散器。",
 
   "create_submarine.ponder.electrolyzer.header": "电解器用法",
   "create_submarine.ponder.electrolyzer.text_1": "电解器需要水来生产氧气。",

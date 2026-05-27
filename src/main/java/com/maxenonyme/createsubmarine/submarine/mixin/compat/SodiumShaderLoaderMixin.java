@@ -11,14 +11,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(targets = "net.caffeinemc.mods.sodium.client.gl.shader.ShaderLoader", remap = false)
 public abstract class SodiumShaderLoaderMixin {
 
-    private static final String UNIFORM_BLOCK =
-            "uniform vec2 ScreenSize;\n" +
+    private static final String UNIFORM_BLOCK = "uniform vec2 ScreenSize;\n" +
             "uniform sampler2D SableCloseSampler;\n" +
             "uniform sampler2D SableFarSampler;\n" +
             "uniform float SableWaterOcclusionEnabled;\n";
 
-    private static final String DISCARD_BLOCK =
-            "    if (SableWaterOcclusionEnabled > 0.0) {\n" +
+    private static final String DISCARD_BLOCK = "    if (SableWaterOcclusionEnabled > 0.0) {\n" +
             "        float _csubCloseDepth = texture(SableCloseSampler, gl_FragCoord.xy / ScreenSize).r;\n" +
             "        float _csubFarDepth = texture(SableFarSampler, gl_FragCoord.xy / ScreenSize).r;\n" +
             "        float _csubFragDepth = gl_FragCoord.z;\n" +
@@ -28,11 +26,14 @@ public abstract class SodiumShaderLoaderMixin {
     @Inject(method = "getShaderSource", at = @At("RETURN"), cancellable = true, remap = false)
     private static void createsubmarine$injectOcclusion(ResourceLocation location, CallbackInfoReturnable<String> cir) {
         String path = location.getPath();
-        if (!path.endsWith(".fsh")) return;
-        if (!path.contains("block_layer")) return;
+        if (!path.endsWith(".fsh"))
+            return;
+        if (!path.contains("block_layer"))
+            return;
 
         String source = cir.getReturnValue();
-        if (source == null || source.contains("SableWaterOcclusionEnabled")) return;
+        if (source == null || source.contains("SableWaterOcclusionEnabled"))
+            return;
 
         StringBuilder out = new StringBuilder(source.length() + 1024);
 
@@ -57,10 +58,13 @@ public abstract class SodiumShaderLoaderMixin {
 
     private static String injectDiscardInMain(String source) {
         int mainIdx = source.indexOf("void main()");
-        if (mainIdx < 0) mainIdx = source.indexOf("void main(");
-        if (mainIdx < 0) return source;
+        if (mainIdx < 0)
+            mainIdx = source.indexOf("void main(");
+        if (mainIdx < 0)
+            return source;
         int braceIdx = source.indexOf('{', mainIdx);
-        if (braceIdx < 0) return source;
+        if (braceIdx < 0)
+            return source;
         return source.substring(0, braceIdx + 1) + "\n" + DISCARD_BLOCK + source.substring(braceIdx + 1);
     }
 }

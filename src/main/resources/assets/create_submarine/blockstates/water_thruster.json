@@ -1,10 +1,10 @@
 {
   "variants": {
-    "facing=north": { "model": "create_submarine:block/trusterwater", "x": 90, "y": 0 },
-    "facing=south": { "model": "create_submarine:block/trusterwater", "x": 90, "y": 180 },
-    "facing=east": { "model": "create_submarine:block/trusterwater", "x": 90, "y": 90 },
-    "facing=west": { "model": "create_submarine:block/trusterwater", "x": 90, "y": 270 },
-    "facing=up": { "model": "create_submarine:block/trusterwater", "x": 0 },
-    "facing=down": { "model": "create_submarine:block/trusterwater", "x": 180 }
+    "facing=north": { "model": "create_submarine:block/water_thruster", "x": 90, "y": 0 },
+    "facing=south": { "model": "create_submarine:block/water_thruster", "x": 90, "y": 180 },
+    "facing=east": { "model": "create_submarine:block/water_thruster", "x": 90, "y": 90 },
+    "facing=west": { "model": "create_submarine:block/water_thruster", "x": 90, "y": 270 },
+    "facing=up": { "model": "create_submarine:block/water_thruster", "x": 0 },
+    "facing=down": { "model": "create_submarine:block/water_thruster", "x": 180 }
   }
 }

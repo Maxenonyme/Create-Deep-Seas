@@ -172,7 +172,8 @@ public class SubmarinePressureSystem {
                 : (int) Math.round(subCenter.y());
 
         try {
-            if (!level.getFluidState(new BlockPos(x, startY, z)).is(net.minecraft.tags.FluidTags.WATER)) {
+            if (!level.getFluidState(new BlockPos(x, startY, z)).is(net.minecraft.tags.FluidTags.WATER)
+                && !level.getFluidState(new BlockPos(x, startY, z)).is(net.minecraft.tags.FluidTags.LAVA)) {
                 return 0;
             }
         } catch (Exception ignored) {
@@ -183,7 +184,8 @@ public class SubmarinePressureSystem {
         try {
             for (int y = startY; y < Math.min(startY + MAX_WATER_SCAN, level.getMaxBuildHeight()); y++) {
                 BlockState state = level.getBlockState(new BlockPos(x, y, z));
-                if (state.getFluidState().is(net.minecraft.tags.FluidTags.WATER)) {
+                if (state.getFluidState().is(net.minecraft.tags.FluidTags.WATER)
+                        || state.getFluidState().is(net.minecraft.tags.FluidTags.LAVA)) {
                     highestWaterY = y;
                 } else if (state.isAir() && y >= level.getSeaLevel()) {
                     break;

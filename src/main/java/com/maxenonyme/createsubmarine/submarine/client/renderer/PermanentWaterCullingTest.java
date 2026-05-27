@@ -1,14 +1,12 @@
 package com.maxenonyme.createsubmarine.submarine.client.renderer;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.math.BoundingBox3dc;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import dev.ryanhcode.sable.sublevel.plot.LevelPlot;
-import dev.ryanhcode.sable.sublevel.water_occlusion.WaterOcclusionContainer;
-import dev.ryanhcode.sable.sublevel.water_occlusion.WaterOcclusionRegion;
-import dev.ryanhcode.sable.util.BoundedBitVolume3i;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -33,30 +31,31 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-
 // WARNING
 // This feature will be used for boats, but it doesn't suit me yet, so I think I'll put it in experimental mode.
-
 
 @EventBusSubscriber(modid = CreateSubmarine.MOD_ID, value = Dist.CLIENT)
 public final class PermanentWaterCullingTest {
 
     public static boolean isEnabled() {
-        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.ENABLE_PERMANENT_WATER_CULLING_TEST.get();
+        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.ENABLE_PERMANENT_WATER_CULLING_TEST
+                .get();
     }
 
     private static final int UPDATE_INTERVAL_TICKS = 40;
     private static final double CAMERA_PROBE_OFFSET = 0.35;
 
-    private static final Map<UUID, WaterOcclusionRegion> TEST_REGIONS = new HashMap<>();
+    private static final Set<UUID> TRACKED_IDS = new HashSet<>();
     private static final Map<UUID, Set<BlockPos>> CACHED_BLOCKS = new HashMap<>();
     private static final Map<UUID, Set<BlockPos>> CACHED_INTERIOR = new HashMap<>();
     private static final Map<UUID, Long> LAST_SCAN_TICK = new HashMap<>();
     private static volatile boolean cameraInsideTestSub = false;
 
-    private PermanentWaterCullingTest() {}
+    private PermanentWaterCullingTest() {
+    }
 
-    private record ScanResult(Set<BlockPos> all, Set<BlockPos> interior) {}
+    private record ScanResult(Set<BlockPos> all, Set<BlockPos> interior) {
+    }
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
@@ -75,9 +74,8 @@ public final class PermanentWaterCullingTest {
 
     private static void updateRegions(Minecraft mc) {
         Level level = mc.level;
-        if (level == null) return;
-        WaterOcclusionContainer<?> occlusionContainer = WaterOcclusionContainer.getContainer(level);
-        if (occlusionContainer == null) return;
+        if (level == null)
+            return;
 
         SubLevelContainer subContainer;
         try {
@@ -85,21 +83,33 @@ public final class PermanentWaterCullingTest {
         } catch (Throwable t) {
             return;
         }
-        if (subContainer == null) return;
+        if (subContainer == null)
+            return;
 
         long now = level.getGameTime();
         List<? extends SubLevel> allSubs = subContainer.getAllSubLevels();
         Set<UUID> seenIds = new HashSet<>();
+        Set<UUID> hullTracked = CompartmentTracker.getSubsSnapshot().keySet();
 
         for (SubLevel sub : allSubs) {
             UUID id = sub.getUniqueId();
-            if (id == null) continue;
+            if (id == null)
+                continue;
             seenIds.add(id);
 
-            boolean hasRegion = TEST_REGIONS.containsKey(id);
+            // HullController/OxygenDiffuser scans take priority — skipping avoids two
+            // conflicting Sable regions for the same sub (root of the through-glass bug).
+            if (hullTracked.contains(id)) {
+                if (TRACKED_IDS.remove(id))
+                    deactivateSub(id);
+                continue;
+            }
+
+            boolean tracking = TRACKED_IDS.contains(id);
 
             if (!isAtSurface(sub)) {
-                if (hasRegion) deactivateSub(id, occlusionContainer);
+                if (tracking)
+                    deactivateSub(id);
                 continue;
             }
 
@@ -114,46 +124,44 @@ public final class PermanentWaterCullingTest {
                 CACHED_BLOCKS.put(id, blocks);
                 CACHED_INTERIOR.put(id, scan.interior());
                 LAST_SCAN_TICK.put(id, now);
-            } else if (hasRegion) {
+            } else if (tracking) {
                 continue;
             }
-            if (blocks == null) continue;
+            if (blocks == null)
+                continue;
 
             if (blocks.isEmpty()) {
-                if (hasRegion) deactivateSub(id, occlusionContainer);
+                if (tracking)
+                    deactivateSub(id);
                 continue;
             }
 
-            WaterOcclusionRegion old = TEST_REGIONS.remove(id);
-            if (old != null) occlusionContainer.removeRegion(old);
-
-            BoundedBitVolume3i volume = BoundedBitVolume3i.fromBlocks(blocks);
-            if (volume == null) continue;
-            WaterOcclusionRegion region = occlusionContainer.addRegion(volume);
-            if (region != null) TEST_REGIONS.put(id, region);
+            SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, blocks);
+            TRACKED_IDS.add(id);
         }
 
-        Iterator<Map.Entry<UUID, WaterOcclusionRegion>> it = TEST_REGIONS.entrySet().iterator();
+        Iterator<UUID> it = TRACKED_IDS.iterator();
         while (it.hasNext()) {
-            Map.Entry<UUID, WaterOcclusionRegion> e = it.next();
-            if (!seenIds.contains(e.getKey())) {
-                occlusionContainer.removeRegion(e.getValue());
-                CACHED_BLOCKS.remove(e.getKey());
-                CACHED_INTERIOR.remove(e.getKey());
-                LAST_SCAN_TICK.remove(e.getKey());
+            UUID id = it.next();
+            if (!seenIds.contains(id)) {
+                SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, null);
+                CACHED_BLOCKS.remove(id);
+                CACHED_INTERIOR.remove(id);
+                LAST_SCAN_TICK.remove(id);
                 it.remove();
             }
         }
     }
 
-    private static void deactivateSub(UUID id, WaterOcclusionContainer<?> occlusionContainer) {
-        WaterOcclusionRegion old = TEST_REGIONS.remove(id);
-        if (old != null) occlusionContainer.removeRegion(old);
+    private static void deactivateSub(UUID id) {
+        SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, null);
+        TRACKED_IDS.remove(id);
     }
 
     @SubscribeEvent
     public static void onRenderFog(ViewportEvent.RenderFog event) {
-        if (!cameraInsideTestSub) return;
+        if (!cameraInsideTestSub)
+            return;
         event.setNearPlaneDistance(2.0f);
         event.setFarPlaneDistance(40.0f);
         event.setCanceled(true);
@@ -161,16 +169,19 @@ public final class PermanentWaterCullingTest {
 
     @SubscribeEvent
     public static void onComputeFogColor(ViewportEvent.ComputeFogColor event) {
-        if (!cameraInsideTestSub) return;
+        if (!cameraInsideTestSub)
+            return;
         event.setRed(0.02f);
         event.setGreen(0.05f);
         event.setBlue(0.2f);
     }
 
     private static boolean computeCameraInside(Minecraft mc) {
-        if (TEST_REGIONS.isEmpty()) return false;
+        if (TRACKED_IDS.isEmpty())
+            return false;
         Camera camera = mc.gameRenderer.getMainCamera();
-        if (camera == null) return false;
+        if (camera == null)
+            return false;
         Vec3 cameraPos = camera.getPosition();
         SubLevelContainer subContainer;
         try {
@@ -178,14 +189,17 @@ public final class PermanentWaterCullingTest {
         } catch (Throwable t) {
             return false;
         }
-        if (subContainer == null) return false;
+        if (subContainer == null)
+            return false;
 
         Vector3d probe = new Vector3d();
-        for (UUID id : TEST_REGIONS.keySet()) {
+        for (UUID id : TRACKED_IDS) {
             Set<BlockPos> interior = CACHED_INTERIOR.get(id);
-            if (interior == null || interior.isEmpty()) continue;
+            if (interior == null || interior.isEmpty())
+                continue;
             SubLevel sub = subContainer.getSubLevel(id);
-            if (sub == null) continue;
+            if (sub == null)
+                continue;
 
             for (double dx = -CAMERA_PROBE_OFFSET; dx <= CAMERA_PROBE_OFFSET; dx += CAMERA_PROBE_OFFSET) {
                 for (double dy = -CAMERA_PROBE_OFFSET; dy <= CAMERA_PROBE_OFFSET; dy += CAMERA_PROBE_OFFSET) {
@@ -197,7 +211,8 @@ public final class PermanentWaterCullingTest {
                             continue;
                         }
                         BlockPos localPos = BlockPos.containing(probe.x, probe.y, probe.z);
-                        if (interior.contains(localPos)) return true;
+                        if (interior.contains(localPos))
+                            return true;
                     }
                 }
             }
@@ -212,14 +227,16 @@ public final class PermanentWaterCullingTest {
         } catch (Throwable t) {
             return false;
         }
-        if (oceanLevel == null) return false;
+        if (oceanLevel == null)
+            return false;
         BoundingBox3dc bb;
         try {
             bb = sub.boundingBox();
         } catch (Throwable t) {
             return false;
         }
-        if (bb == null) return false;
+        if (bb == null)
+            return false;
 
         int minX = (int) Math.floor(bb.minX());
         int maxX = (int) Math.ceil(bb.maxX());
@@ -233,9 +250,12 @@ public final class PermanentWaterCullingTest {
 
         for (int x = minX; x <= maxX; x += 2) {
             for (int z = minZ; z <= maxZ; z += 2) {
-                if (!waterAbove && isWaterAt(oceanLevel, x, topY, z)) waterAbove = true;
-                if (!waterBelow && isWaterAt(oceanLevel, x, botY, z)) waterBelow = true;
-                if (waterAbove && waterBelow) return false;
+                if (!waterAbove && isWaterAt(oceanLevel, x, topY, z))
+                    waterAbove = true;
+                if (!waterBelow && isWaterAt(oceanLevel, x, botY, z))
+                    waterBelow = true;
+                if (waterAbove && waterBelow)
+                    return false;
             }
         }
         return waterBelow && !waterAbove;
@@ -244,7 +264,8 @@ public final class PermanentWaterCullingTest {
     private static boolean isWaterAt(Level level, int x, int y, int z) {
         try {
             LevelChunk chunk = level.getChunkSource().getChunkNow(x >> 4, z >> 4);
-            if (chunk == null) return false;
+            if (chunk == null)
+                return false;
             return chunk.getFluidState(new BlockPos(x, y, z)).is(FluidTags.WATER);
         } catch (Throwable ignored) {
             return false;
@@ -255,9 +276,11 @@ public final class PermanentWaterCullingTest {
         Set<BlockPos> all = new HashSet<>();
         Set<BlockPos> interior = new HashSet<>();
         LevelPlot plot = sub.getPlot();
-        if (plot == null) return new ScanResult(all, interior);
+        if (plot == null)
+            return new ScanResult(all, interior);
         BoundingBox3ic bb = plot.getBoundingBox();
-        if (bb == null) return new ScanResult(all, interior);
+        if (bb == null)
+            return new ScanResult(all, interior);
 
         int minX = bb.minX(), maxX = bb.maxX();
         int minY = bb.minY(), maxY = bb.maxY();
@@ -265,7 +288,8 @@ public final class PermanentWaterCullingTest {
         int sX = maxX - minX + 1;
         int sY = maxY - minY + 1;
         int sZ = maxZ - minZ + 1;
-        if (sX <= 0 || sY <= 0 || sZ <= 0) return new ScanResult(all, interior);
+        if (sX <= 0 || sY <= 0 || sZ <= 0)
+            return new ScanResult(all, interior);
 
         boolean[][][] solid = new boolean[sX][sY][sZ];
 
@@ -279,7 +303,8 @@ public final class PermanentWaterCullingTest {
                         lastPos = cpos;
                         lastChunk = plot.getChunk(plot.toLocal(cpos));
                     }
-                    if (lastChunk == null) continue;
+                    if (lastChunk == null)
+                        continue;
                     for (int y = minY; y <= maxY; y++) {
                         BlockPos pos = new BlockPos(x, y, z);
                         BlockState state = lastChunk.getBlockState(pos);
@@ -308,20 +333,39 @@ public final class PermanentWaterCullingTest {
         double ax = Math.abs(worldUp.x);
         double ay = Math.abs(worldUp.y);
         double az = Math.abs(worldUp.z);
-        if (ay >= ax && ay >= az) return 1;
-        if (ax >= az) return 0;
+        if (ay >= ax && ay >= az)
+            return 1;
+        if (ax >= az)
+            return 0;
         return 2;
     }
 
-    
     private static void markInterior(boolean[][][] solid, int sX, int sY, int sZ,
-                                     int minX, int minY, int minZ, int upAxis,
-                                     Set<BlockPos> all, Set<BlockPos> interior) {
+            int minX, int minY, int minZ, int upAxis,
+            Set<BlockPos> all, Set<BlockPos> interior) {
         int axisA, axisB, sLayer, sA, sB;
         switch (upAxis) {
-            case 0 -> { axisA = 1; axisB = 2; sLayer = sX; sA = sY; sB = sZ; }
-            case 2 -> { axisA = 0; axisB = 1; sLayer = sZ; sA = sX; sB = sY; }
-            default -> { axisA = 0; axisB = 2; sLayer = sY; sA = sX; sB = sZ; }
+            case 0 -> {
+                axisA = 1;
+                axisB = 2;
+                sLayer = sX;
+                sA = sY;
+                sB = sZ;
+            }
+            case 2 -> {
+                axisA = 0;
+                axisB = 1;
+                sLayer = sZ;
+                sA = sX;
+                sB = sY;
+            }
+            default -> {
+                axisA = 0;
+                axisB = 2;
+                sLayer = sY;
+                sA = sX;
+                sB = sZ;
+            }
         }
 
         int[] aMin = new int[sB];
@@ -334,34 +378,41 @@ public final class PermanentWaterCullingTest {
             c[upAxis] = layer;
 
             for (int b = 0; b < sB; b++) {
-                aMin[b] = -1; aMax[b] = -1;
+                aMin[b] = -1;
+                aMax[b] = -1;
                 c[axisB] = b;
                 for (int a = 0; a < sA; a++) {
                     c[axisA] = a;
                     if (solid[c[0]][c[1]][c[2]]) {
-                        if (aMin[b] == -1) aMin[b] = a;
+                        if (aMin[b] == -1)
+                            aMin[b] = a;
                         aMax[b] = a;
                     }
                 }
             }
             for (int a = 0; a < sA; a++) {
-                bMin[a] = -1; bMax[a] = -1;
+                bMin[a] = -1;
+                bMax[a] = -1;
                 c[axisA] = a;
                 for (int b = 0; b < sB; b++) {
                     c[axisB] = b;
                     if (solid[c[0]][c[1]][c[2]]) {
-                        if (bMin[a] == -1) bMin[a] = b;
+                        if (bMin[a] == -1)
+                            bMin[a] = b;
                         bMax[a] = b;
                     }
                 }
             }
             for (int a = 0; a < sA; a++) {
-                if (bMin[a] < 0) continue;
+                if (bMin[a] < 0)
+                    continue;
                 c[axisA] = a;
                 for (int b = 0; b < sB; b++) {
-                    if (aMin[b] < 0) continue;
+                    if (aMin[b] < 0)
+                        continue;
                     c[axisB] = b;
-                    if (solid[c[0]][c[1]][c[2]]) continue;
+                    if (solid[c[0]][c[1]][c[2]])
+                        continue;
                     if (a > aMin[b] && a < aMax[b] && b > bMin[a] && b < bMax[a]) {
                         BlockPos pos = new BlockPos(c[0] + minX, c[1] + minY, c[2] + minZ);
                         all.add(pos);
@@ -373,16 +424,10 @@ public final class PermanentWaterCullingTest {
     }
 
     private static void clearAllState() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null && !TEST_REGIONS.isEmpty()) {
-            WaterOcclusionContainer<?> container = WaterOcclusionContainer.getContainer(mc.level);
-            if (container != null) {
-                for (WaterOcclusionRegion r : TEST_REGIONS.values()) {
-                    container.removeRegion(r);
-                }
-            }
+        for (UUID id : TRACKED_IDS) {
+            SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, null);
         }
-        TEST_REGIONS.clear();
+        TRACKED_IDS.clear();
         CACHED_BLOCKS.clear();
         CACHED_INTERIOR.clear();
         LAST_SCAN_TICK.clear();

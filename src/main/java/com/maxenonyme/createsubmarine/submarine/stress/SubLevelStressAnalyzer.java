@@ -39,6 +39,8 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
     private static final Logger LOGGER = LoggerFactory.getLogger("SubmarineStress");
     private static final Map<UUID, Double> cachedWaterSurfaceY = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> lastWaterScanTick = new ConcurrentHashMap<>();
+    private static final Map<UUID, Double> cachedFluidDensityMultiplier = new ConcurrentHashMap<>();
+    private static final double LAVA_DENSITY_MULTIPLIER = 3.1;
 
     private final ServerLevel level;
     private final Map<UUID, LatticeStressSolver> solvers = new ConcurrentHashMap<>();
@@ -97,6 +99,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
         this.previousStructureHashes.remove(id);
         cachedWaterSurfaceY.remove(id);
         lastWaterScanTick.remove(id);
+        cachedFluidDensityMultiplier.remove(id);
     }
 
     public LatticeStressSolver getSolver(final ServerSubLevel subLevel) {
@@ -125,6 +128,9 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     this.wasInWater.remove(id);
                     this.previousU.remove(id);
                     this.previousStructureHashes.remove(id);
+                    cachedWaterSurfaceY.remove(id);
+                    lastWaterScanTick.remove(id);
+                    cachedFluidDensityMultiplier.remove(id);
                     continue;
                 }
 
@@ -154,6 +160,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     if (oldSolver != null && prevHash != null && prevHash == currentHash) {
                         this.needsRecompute.put(id, false);
                         oldSolver.refreshWaterDepths(getWaterSurfaceWorldY(ssl));
+                        oldSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(ssl));
                         this.cachedCrushDepths.put(id, oldSolver.computeCrushDepth());
                         continue;
                     }
@@ -174,6 +181,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     final LatticeStressSolver newSolver = new LatticeStressSolver(
                         ssl.getLevel(), bb, warmStartU, classification, ssl.logicalPose().orientation(),
                         ssl.logicalPose(), getWaterSurfaceWorldY(ssl));
+                    newSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(ssl));
                     this.solvers.put(id, newSolver);
                     this.previousStructureHashes.put(id, newSolver.getStructureHash());
                     this.totalSolveTimeNanos += System.nanoTime() - t0;
@@ -218,6 +226,9 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             this.wasInWater.keySet().removeIf(id -> container.getSubLevel(id) == null);
             this.previousU.keySet().removeIf(id -> container.getSubLevel(id) == null);
             this.previousStructureHashes.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            cachedWaterSurfaceY.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            lastWaterScanTick.keySet().removeIf(id -> container.getSubLevel(id) == null);
+            cachedFluidDensityMultiplier.keySet().removeIf(id -> container.getSubLevel(id) == null);
         }
     }
 
@@ -232,11 +243,61 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
     }
 
     public static double getWaterSurfaceWorldY(final ServerSubLevel ssl) {
-        return 63.0;
+        return getFluidProperties(ssl)[0];
+    }
+
+    public static double getFluidDensityMultiplier(final ServerSubLevel ssl) {
+        return getFluidProperties(ssl)[1];
+    }
+
+    private static double[] getFluidProperties(final ServerSubLevel ssl) {
+        final UUID id = ssl.getUniqueId();
+        final long tick = ssl.getLevel() != null ? ssl.getLevel().getGameTime() : 0;
+        final Long lastTick = lastWaterScanTick.get(id);
+        if (lastTick != null && tick - lastTick < 100) {
+            return new double[]{
+                cachedWaterSurfaceY.getOrDefault(id, Double.POSITIVE_INFINITY),
+                cachedFluidDensityMultiplier.getOrDefault(id, 1.0)
+            };
+        }
+
+        final Level level = ssl.getLevel();
+        if (level == null) return new double[]{Double.POSITIVE_INFINITY, 1.0};
+
+        final Vector3dc pos = ssl.logicalPose().position();
+        final int x = (int) Math.round(pos.x());
+        final int z = (int) Math.round(pos.z());
+
+        double surfaceY = Double.POSITIVE_INFINITY;
+        double densityMultiplier = 1.0;
+
+        int startY = Math.max(level.getMinBuildHeight(), (int) Math.round(pos.y()));
+
+        for (int y = startY; y < level.getMaxBuildHeight(); y++) {
+            final FluidState fluid = level.getFluidState(new BlockPos(x, y, z));
+            if (fluid.is(FluidTags.WATER)) {
+                surfaceY = y + 1.0;
+                densityMultiplier = 1.0;
+                break;
+            }
+            if (fluid.is(FluidTags.LAVA)) {
+                surfaceY = y + 1.0;
+                densityMultiplier = LAVA_DENSITY_MULTIPLIER;
+                break;
+            }
+            if (fluid.isEmpty() && y >= level.getSeaLevel()) {
+                break;
+            }
+        }
+
+        cachedWaterSurfaceY.put(id, surfaceY);
+        cachedFluidDensityMultiplier.put(id, densityMultiplier);
+        lastWaterScanTick.put(id, tick);
+        return new double[]{surfaceY, densityMultiplier};
     }
 
     private boolean isUnderwater(final ServerSubLevel ssl) {
-        return ssl.logicalPose().position().y() < getWaterSurfaceWorldY(ssl);
+        return Double.isFinite(getWaterSurfaceWorldY(ssl));
     }
 
     private LatticeStressSolver getOrCreateSolver(final ServerSubLevel subLevel) {
@@ -262,6 +323,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             final LatticeStressSolver newSolver = new LatticeStressSolver(
                 subLevel.getLevel(), bb, warmStartU, classification, subLevel.logicalPose().orientation(),
                 subLevel.logicalPose(), getWaterSurfaceWorldY(subLevel));
+            newSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(subLevel));
             this.solvers.put(id, newSolver);
             this.previousStructureHashes.put(id, newSolver.getStructureHash());
             this.totalSolveTimeNanos += System.nanoTime() - t0;
@@ -538,6 +600,9 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             analyzer.wasInWater.clear();
             analyzer.previousU.clear();
             analyzer.previousStructureHashes.clear();
+            cachedWaterSurfaceY.clear();
+            lastWaterScanTick.clear();
+            cachedFluidDensityMultiplier.clear();
         }
     }
 

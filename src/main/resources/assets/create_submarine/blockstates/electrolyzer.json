@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "create_submarine:block/electrolyzer_vide"
+      "model": "create_submarine:block/electrolyzer"
     }
   }
 }

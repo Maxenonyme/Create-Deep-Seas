@@ -1,0 +1,4 @@
+#version 330
+#priority 0
+// Override of Veil's test_shaders pack. The original tries to #include veil:camera
+// which requires a GLSL extension not enabled on most drivers. Empty = no-op.

@@ -1,6 +1,5 @@
 package com.maxenonyme.createsubmarine.submarine.mixin.compat;
 
-import com.maxenonyme.createsubmarine.CreateSubmarine;
 import com.maxenonyme.createsubmarine.submarine.client.renderer.SodiumWaterOcclusionBridge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;

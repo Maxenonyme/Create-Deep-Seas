@@ -20,13 +20,13 @@ public class SubmarinePonderScenes {
                 .addStoryBoard("ballast_vent", SubmarinePonderScenes::ballastVent);
 
         helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "oxygene_diffuser"))
-                .addStoryBoard("diffusoroxygene", SubmarinePonderScenes::oxygeneDiffuser);
+                .addStoryBoard("oxygen_diffuser", SubmarinePonderScenes::oxygeneDiffuser);
 
         helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "electrolyzer"))
                 .addStoryBoard("electrolyzer", SubmarinePonderScenes::electrolyzer);
 
         helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "water_thruster"))
-                .addStoryBoard("trusterwater", SubmarinePonderScenes::waterThruster);
+                .addStoryBoard("water_thruster", SubmarinePonderScenes::waterThruster);
     }
 
     public static void ballastVent(SceneBuilder builder, SceneBuildingUtil util) {
@@ -113,7 +113,7 @@ public class SubmarinePonderScenes {
     public static void oxygeneDiffuser(SceneBuilder builder, SceneBuildingUtil util) {
         CreateSceneBuilder scene = new CreateSceneBuilder(builder);
 
-        scene.title("diffusoroxygene", "Oxygen Diffuser Usage");
+        scene.title("oxygen_diffuser", "Oxygen Diffuser Usage");
         scene.configureBasePlate(0, 0, 6);
         scene.scaleSceneView(0.8f);
 
@@ -138,7 +138,7 @@ public class SubmarinePonderScenes {
 
         scene.addKeyframe();
         scene.overlay().showText(70)
-                .text("create_submarine.ponder.diffusoroxygene.text_1")
+                .text("create_submarine.ponder.oxygen_diffuser.text_1")
                 .pointAt(util.vector().blockSurface(util.grid().at(3, 2, 4), Direction.WEST))
                 .placeNearTarget()
                 .attachKeyFrame();
@@ -160,7 +160,7 @@ public class SubmarinePonderScenes {
         scene.idle(20);
 
         scene.overlay().showText(70)
-                .text("create_submarine.ponder.diffusoroxygene.text_2")
+                .text("create_submarine.ponder.oxygen_diffuser.text_2")
                 .pointAt(util.vector().topOf(3, 1, 1))
                 .placeNearTarget()
                 .attachKeyFrame();
@@ -169,7 +169,7 @@ public class SubmarinePonderScenes {
         scene.addKeyframe();
 
         scene.overlay().showText(70)
-                .text("create_submarine.ponder.diffusoroxygene.text_3")
+                .text("create_submarine.ponder.oxygen_diffuser.text_3")
                 .pointAt(util.vector().topOf(3, 1, 1))
                 .placeNearTarget()
                 .attachKeyFrame();

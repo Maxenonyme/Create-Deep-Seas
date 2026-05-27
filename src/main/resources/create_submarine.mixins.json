@@ -23,7 +23,10 @@
     "compat.SodiumChunkRendererMixin",
     "compat.SodiumFluidRendererMixin",
     "compat.SodiumBlockRendererMixin",
-    "compat.sable.VanillaSubLevelRenderDispatcherMixin"
+    "compat.VeilShaderIncludeFixMixin",
+    "compat.sable.VanillaSubLevelRenderDispatcherMixin",
+    "compat.sable.SableSnapshotPacketMixin",
+    "compat.sable.SableStartTrackingPacketMixin"
   ],
   "injectors": {
     "defaultRequire": 1

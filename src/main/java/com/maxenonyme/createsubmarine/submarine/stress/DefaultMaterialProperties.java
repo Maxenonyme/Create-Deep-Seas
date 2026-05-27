@@ -1,7 +1,9 @@
 package com.maxenonyme.createsubmarine.submarine.stress;
 
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +12,23 @@ public class DefaultMaterialProperties {
 
     private static final Map<ResourceLocation, double[]> PROPERTIES = new HashMap<>();
 
+    private static final Map<ResourceLocation, double[]> DIRECTIONAL_MODIFIERS = new HashMap<>();
+
     static {
+        for (String wood : new String[]{"oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry",
+                "crimson", "warped"}) {
+            for (String suffix : new String[]{"log", "wood", "stripped_log", "stripped_wood"}) {
+                DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace(wood + "_" + suffix), new double[]{1.0, 0.05});
+            }
+        }
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("bamboo_block"), new double[]{1.0, 0.05});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("stripped_bamboo_block"), new double[]{1.0, 0.05});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("bone_block"), new double[]{1.0, 0.3});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("hay_block"), new double[]{1.0, 0.3});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("basalt"), new double[]{1.0, 0.5});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("polished_basalt"), new double[]{1.0, 0.5});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("smooth_basalt"), new double[]{1.0, 0.5});
+        DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("mushroom_stem"), new double[]{1.0, 0.5});
 
         PROPERTIES.put(ResourceLocation.withDefaultNamespace("iron_block"), new double[]{2.00e11, 2.50e8, 0.29});
         PROPERTIES.put(ResourceLocation.withDefaultNamespace("raw_iron_block"), new double[]{2.00e11, 2.00e8, 0.29});
@@ -594,5 +612,26 @@ public class DefaultMaterialProperties {
             return props[2];
         }
         return 0.25;
+    }
+
+    public static double getDirectionalFactor(final BlockState state, final int dx, final int dy, final int dz) {
+        if (!state.hasProperty(BlockStateProperties.AXIS)) {
+            return 1.0;
+        }
+        final Direction.Axis blockAxis = state.getValue(BlockStateProperties.AXIS);
+        final ResourceLocation id = state.getBlock().builtInRegistryHolder().key().location();
+        final double[] mods = DIRECTIONAL_MODIFIERS.get(id);
+        if (mods == null) {
+            return 1.0;
+        }
+        double axisDot = 0;
+        switch (blockAxis) {
+            case X: axisDot = Math.abs(dx); break;
+            case Y: axisDot = Math.abs(dy); break;
+            case Z: axisDot = Math.abs(dz); break;
+        }
+        final double dirLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        final double axialWeight = axisDot / dirLen;
+        return mods[0] * axialWeight + mods[1] * (1.0 - axialWeight);
     }
 }

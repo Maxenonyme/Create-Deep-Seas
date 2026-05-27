@@ -10,8 +10,6 @@
   "block.create_submarine.ballast_vent": "Évent de Ballast",
   "block.create_submarine.oxygene_diffuser": "Diffuseur d'Oxygène",
   "block.create_submarine.electrolyzer": "Électrolyseur",
-  "block.create_submarine.pollution_debug": "Bloc de Débogage de Pollution",
-  "block.create_submarine.polluted_air": "Air Pollué",
   "effect.create_submarine.suffocation": "Suffocation",
   "death.attack.create_submarine.suffocation": "%1$s a suffoqué dans une fumée épaisse",
   "create_submarine.simulated_section.submarine": "Sous-marin",
@@ -29,10 +27,10 @@
   "create_submarine.ponder.ballast_vent.text_4": "L'évent DOIT avoir au moins une face en contact direct avec la mer.",
   "create_submarine.ponder.ballast_vent.text_5": "Inversez le sens de rotation pour changer la pompe en Mode Vidage et expulser l'eau à l'extérieur !",
   "block.create_submarine.industrial_alarm": "Alarme Industrielle",
-  "create_submarine.ponder.diffusoroxygene.header": "Utilisation du Diffuseur d'Oxygène",
-  "create_submarine.ponder.diffusoroxygene.text_1": "Le Diffuseur d'Oxygène nécessite de l'oxygène généré par un Électrolyseur.",
-  "create_submarine.ponder.diffusoroxygene.text_2": "Il consomme de l'oxygène proportionnellement à la taille du sous-marin.",
-  "create_submarine.ponder.diffusoroxygene.text_3": "Pour activer le Diffuseur d'Oxygène, fournissez-lui un signal redstone.",
+  "create_submarine.ponder.oxygen_diffuser.header": "Utilisation du Diffuseur d'Oxygène",
+  "create_submarine.ponder.oxygen_diffuser.text_1": "Le Diffuseur d'Oxygène nécessite de l'oxygène généré par un Électrolyseur.",
+  "create_submarine.ponder.oxygen_diffuser.text_2": "Il consomme de l'oxygène proportionnellement à la taille du sous-marin.",
+  "create_submarine.ponder.oxygen_diffuser.text_3": "Pour activer le Diffuseur d'Oxygène, fournissez-lui un signal redstone.",
   "create_submarine.ponder.electrolyzer.header": "Utilisation de l'Électrolyseur",
   "create_submarine.ponder.electrolyzer.text_1": "L'Électrolyseur nécessite de l'eau pour produire de l'oxygène.",
   "create_submarine.ponder.electrolyzer.text_2": "Il doit être alimenté en énergie Forge (FE).",
@@ -67,5 +65,7 @@
   "create_submarine.configuration.waterThrusterPowerMultiplier.tooltip": "Multiplicateur sur la poussée des water thrusters. Bas = propulsion faible, haut = forte.",
   "create_submarine.configuration.experimental": "Expérimental",
   "create_submarine.configuration.enablePermanentWaterCullingTest": "Test d'Occlusion d'Eau",
-  "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Active le test expérimental d'occlusion d'eau permanente pour les sous-marins et les bateaux."
+  "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Active le test expérimental d'occlusion d'eau permanente pour les sous-marins et les bateaux.",
+  "create_submarine.configuration.enableAbyssGeneration": "Génération de l'Abysse",
+  "create_submarine.configuration.enableAbyssGeneration.tooltip": "Génère des poches du biome Abysse et les fosses océaniques profondes associées. Désactivé = profondeur océanique vanilla, pas de biome Abysse."
 }
