@@ -66,6 +66,8 @@
   "create_submarine.configuration.implosionChanceMultiplier.tooltip": "Multiplier on every block's implosion chance at runtime. Lower = slower cracking, higher = faster cracking.",
   "create_submarine.configuration.ballastForceMultiplier": "Ballast force multiplier",
   "create_submarine.configuration.ballastForceMultiplier.tooltip": "Multiplier on the vertical force ballast tanks apply. Lower = slower dive/ascend, higher = snappier.",
+  "create_submarine.configuration.ballastTransferRateMultiplier": "Ballast transfer rate multiplier",
+  "create_submarine.configuration.ballastTransferRateMultiplier.tooltip": "Multiplier on the ballast vent fill/drain transfer rate. Lower = slower filling/emptying, higher = faster.",
   "create_submarine.configuration.waterThrusterPowerMultiplier": "Water thruster power multiplier",
   "create_submarine.configuration.waterThrusterPowerMultiplier.tooltip": "Multiplier on water thruster thrust output. Lower = weaker propulsion, higher = stronger.",
   "create_submarine.configuration.experimental": "Experimental",
@@ -75,5 +77,6 @@
   "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Enable the experimental Permanent Water Culling test for submarines and boats.",
   "create_submarine.configuration.enableAbyssGeneration": "Abyss Generation",
   "create_submarine.configuration.enableAbyssGeneration.tooltip": "Generate Abyss biome pockets and the deeper ocean trenches that go with them. Off = vanilla ocean depth, no Abyss biome.",
-  "item.create_submarine.phycological_membrane": "Phycological Membrane"
+  "item.create_submarine.phycological_membrane": "Phycological Membrane",
+  "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air."
 }

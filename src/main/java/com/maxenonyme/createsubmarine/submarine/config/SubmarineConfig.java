@@ -9,6 +9,7 @@ public class SubmarineConfig {
     public static final ModConfigSpec.DoubleValue IMPLOSION_CHANCE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue MAX_DEPTH_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue BALLAST_FORCE_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue BALLAST_TRANSFER_RATE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
     public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
     public static final ModConfigSpec.BooleanValue ENABLE_ABYSS_GENERATION;
@@ -42,10 +43,14 @@ public class SubmarineConfig {
                 .comment("Multiplier on the vertical force ballast tanks apply.",
                         "Lower = slower dive/ascend, higher = snappier.")
                 .defineInRange("ballastForceMultiplier", 1.0, 0.1, 10.0);
+        BALLAST_TRANSFER_RATE_MULTIPLIER = builder
+                .comment("Multiplier on the ballast vent fill/drain transfer rate.",
+                        "Lower = slower filling/emptying, higher = faster.")
+                .defineInRange("ballastTransferRateMultiplier", 2.0, 0.1, 20.0);
         WATER_THRUSTER_POWER_MULTIPLIER = builder
                 .comment("Multiplier on water thruster thrust output.",
                         "Lower = weaker propulsion, higher = stronger.")
-                .defineInRange("waterThrusterPowerMultiplier", 1.0, 0.1, 10.0);
+                .defineInRange("waterThrusterPowerMultiplier", 6.0, 0.1, 50.0);
         builder.pop();
 
         builder.push("experimental");

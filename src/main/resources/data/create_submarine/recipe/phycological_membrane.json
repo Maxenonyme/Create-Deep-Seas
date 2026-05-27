@@ -1,0 +1,13 @@
+{
+  "type": "create:pressing",
+  "ingredients": [
+    {
+      "item": "minecraft:kelp"
+    }
+  ],
+  "results": [
+    {
+      "id": "create_submarine:phycological_membrane"
+    }
+  ]
+}

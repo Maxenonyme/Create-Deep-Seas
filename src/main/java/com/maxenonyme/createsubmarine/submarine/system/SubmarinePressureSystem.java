@@ -187,6 +187,8 @@ public class SubmarinePressureSystem {
         }
         if (!facesExterior) return;
 
+        if (RAND.nextFloat() >= prop.implosionChance()) return;
+
         Vector3d worldVec = new Vector3d(plotPos.getX() + 0.5, plotPos.getY() + 0.5, plotPos.getZ() + 0.5);
         sub.logicalPose().transformPosition(worldVec);
         BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
@@ -199,11 +201,6 @@ public class SubmarinePressureSystem {
                 creakPlayed[0] = true;
             }
         }
-        if (oceanLevel instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, worldVec.x, worldVec.y, worldVec.z, 3, 0.3, 0.3, 0.3, 0.01);
-        }
-
-        if (RAND.nextFloat() >= prop.implosionChance()) return;
 
         Map<BlockPos, Integer> cracks = CRACK_LEVELS.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
         int crackLevel = cracks.getOrDefault(plotPos, 0) + 1;

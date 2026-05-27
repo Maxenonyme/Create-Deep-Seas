@@ -211,4 +211,22 @@ public class HullStrengthConfig {
     private static float clamp(float v) {
         return Math.max(0f, Math.min(1f, v));
     }
+
+    public static Map<String, HullProperty> getValues() {
+        return new TreeMap<>(values);
+    }
+
+    public static void update(String key, int maxWaterDepth, float implosionChance) {
+        HullProperty prop = new HullProperty(maxWaterDepth, clamp(implosionChance));
+        values.put(key, prop);
+        Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(key));
+        if (block != null) {
+            resolvedCache.put(block, prop);
+        }
+    }
+
+    public static void save() {
+        Map<String, HullProperty> sorted = new TreeMap<>(values);
+        writeJson(CONFIG_PATH, sorted);
+    }
 }

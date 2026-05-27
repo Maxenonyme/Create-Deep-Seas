@@ -67,6 +67,8 @@
   "create_submarine.configuration.implosionChanceMultiplier.tooltip": "Multiplicateur runtime sur la chance d'implosion de chaque bloc. Bas = fissures plus lentes, haut = plus rapides.",
   "create_submarine.configuration.ballastForceMultiplier": "Multiplicateur force des ballasts",
   "create_submarine.configuration.ballastForceMultiplier.tooltip": "Multiplicateur sur la force verticale appliquée par les ballasts. Bas = descente/remontée lente, haut = réactif.",
+  "create_submarine.configuration.ballastTransferRateMultiplier": "Multiplicateur vitesse de transfert ballast",
+  "create_submarine.configuration.ballastTransferRateMultiplier.tooltip": "Multiplicateur sur la vitesse de remplissage/vidage des évents de ballast. Bas = transfert lent, haut = rapide.",
   "create_submarine.configuration.waterThrusterPowerMultiplier": "Multiplicateur puissance water thruster",
   "create_submarine.configuration.waterThrusterPowerMultiplier.tooltip": "Multiplicateur sur la poussée des water thrusters. Bas = propulsion faible, haut = forte.",
   "create_submarine.configuration.experimental": "Expérimental",
@@ -76,5 +78,6 @@
   "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "Active le test expérimental d'occlusion d'eau permanente pour les sous-marins et les bateaux.",
   "create_submarine.configuration.enableAbyssGeneration": "Génération de l'Abysse",
   "create_submarine.configuration.enableAbyssGeneration.tooltip": "Génère des poches du biome Abysse et les fosses océaniques profondes associées. Désactivé = profondeur océanique vanilla, pas de biome Abysse.",
-  "item.create_submarine.phycological_membrane": "Membrane Phycologique"
+  "item.create_submarine.phycological_membrane": "Membrane Phycologique",
+  "item.create_submarine.phycological_membrane.tooltip.summary": "Peut être remplie d'air."
 }

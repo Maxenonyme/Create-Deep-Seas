@@ -15,16 +15,49 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FloaterBlockEntity extends BlockEntity {
     private static final int PRESSURE_THRESHOLD = 50;
     private static final int PRESSURE_CHECK_INTERVAL = 20;
     private static final int MAX_WATER_SCAN = 200;
 
+    private static final Map<UUID, Integer> FLOATER_COUNTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_COUNT_TIMES = new ConcurrentHashMap<>();
+
     private int pressureTickCounter = 0;
 
     public FloaterBlockEntity(BlockPos pos, BlockState state) {
         super(CreateSubmarine.FLOATER_BE.get(), pos, state);
+    }
+
+    private static int getFloaterCount(Level level, SubLevelAccess sub) {
+        UUID id = sub.getUniqueId();
+        long time = level.getGameTime();
+        Long lastTime = LAST_COUNT_TIMES.get(id);
+        if (lastTime != null && time - lastTime < 20) {
+            return FLOATER_COUNTS.getOrDefault(id, 1);
+        }
+        SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
+        int count = 0;
+        if (bounds != null && !bounds.isEmpty()) {
+            for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+                for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
+                    for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                        BlockPos p = new BlockPos(x, y, z);
+                        if (level.getBlockState(p).is(CreateSubmarine.FLOATER.get())) {
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+        if (count == 0) count = 1;
+        FLOATER_COUNTS.put(id, count);
+        LAST_COUNT_TIMES.put(id, time);
+        return count;
     }
 
     public static void serverTick(Level level, BlockPos pos, FloaterBlockEntity be) {
@@ -42,7 +75,13 @@ public class FloaterBlockEntity extends BlockEntity {
                 sub.logicalPose().transformPosition(wp);
                 worldPos = BlockPos.containing(wp.x, wp.y, wp.z);
             }
-            if (countWaterAbove(worldLevel, worldPos) > PRESSURE_THRESHOLD) {
+            int threshold = PRESSURE_THRESHOLD;
+            net.minecraft.world.level.block.state.BlockState blockState = level.getBlockState(pos);
+            java.util.Optional<com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig.HullProperty> propOpt = com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig.getFor(blockState);
+            if (propOpt.isPresent()) {
+                threshold = propOpt.get().maxWaterDepth();
+            }
+            if (countWaterAbove(worldLevel, worldPos) > threshold) {
                 burst(level, pos);
                 return;
             }
@@ -54,62 +93,61 @@ public class FloaterBlockEntity extends BlockEntity {
         Vector3d worldPos = new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
         sub.logicalPose().transformPosition(worldPos);
 
+        Object handle = SablePhysicsHelper.getHandle(sub);
+        Vector3dc currentVel = SablePhysicsHelper.getVelocity(handle);
+        double currentVelY = (currentVel != null) ? currentVel.y() : 0;
+
         Level parentLevel = SubLevelRegistry.getLevel(sub.getUniqueId());
         if (parentLevel == null && level.getServer() != null) {
             parentLevel = level.getServer().overworld();
         }
+
         if (parentLevel == null)
             return;
 
-        Object handle = SablePhysicsHelper.getHandle(sub);
-        Vector3dc currentVel = SablePhysicsHelper.getVelocity(handle);
-
         BlockPos parentPos = BlockPos.containing(worldPos.x, worldPos.y, worldPos.z);
-        checkCrash(level, pos, parentLevel, parentPos, currentVel);
+        double localWaterSurfaceY = -999.0;
 
-        boolean isUnderWater = false;
-        net.minecraft.world.level.chunk.LevelChunk chunk = parentLevel.getChunkAt(parentPos);
-        if (chunk != null) {
-            int sectionY = chunk.getSectionIndex(parentPos.getY());
-            if (sectionY >= 0 && sectionY < chunk.getSections().length) {
-                net.minecraft.world.level.chunk.LevelChunkSection section = chunk.getSections()[sectionY];
-                if (section != null) {
-                    if (section.getFluidState(parentPos.getX() & 15, parentPos.getY() & 15, parentPos.getZ() & 15)
-                            .is(FluidTags.WATER)) {
-                        isUnderWater = true;
-                    }
-                }
+        net.minecraft.world.level.material.FluidState fluidState = parentLevel.getFluidState(parentPos);
+        if (fluidState.is(FluidTags.WATER)) {
+            float h = fluidState.getHeight(parentLevel, parentPos);
+            localWaterSurfaceY = parentPos.getY() + h + countWaterAbove(parentLevel, parentPos);
+        } else {
+            BlockPos belowPos = parentPos.below();
+            net.minecraft.world.level.material.FluidState belowFluid = parentLevel.getFluidState(belowPos);
+            if (belowFluid.is(FluidTags.WATER)) {
+                float h = belowFluid.getHeight(parentLevel, belowPos);
+                localWaterSurfaceY = belowPos.getY() + h + countWaterAbove(parentLevel, belowPos);
             }
         }
-        if (!isUnderWater || handle == null)
+
+        double depth = localWaterSurfaceY - (worldPos.y - 0.5);
+        boolean isUnderWater = (depth > 0.0);
+
+        if (!isUnderWater) {
+            checkCrash(level, pos, parentLevel, parentPos, currentVel);
             return;
+        }
 
-        double seaLevel = parentLevel.getSeaLevel();
-        double taperDist = com.maxenonyme.createsubmarine.submarine.config.FloaterTuning.surfaceTaperDistance();
-        double aboveSurface = worldPos.y - seaLevel;
-        // Archimedes: fully submerged (center >= taperDist below surface) = full lift,
-        // fully emerged (center >= taperDist above surface) = 0 lift, linear in between
-        double taper = Math.max(0.0, Math.min(1.0, 0.5 - aboveSurface / (taperDist * 2.0)));
+        checkCrash(level, pos, parentLevel, parentPos, currentVel);
 
+        double submergedRatio = Math.max(0.0, Math.min(1.0, depth));
+        double distanceToSurface = localWaterSurfaceY - worldPos.y;
+        double targetVelY = Math.max(-0.1, Math.min(1.0, distanceToSurface));
+
+        double perceivedVelY = Math.max(-0.2, currentVelY);
+        double errorY = targetVelY - perceivedVelY;
         double mass = SablePhysicsHelper.readMass(sub);
+
         double forceMult = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.BALLAST_FORCE_MULTIPLIER.get();
-        double lift = com.maxenonyme.createsubmarine.submarine.config.FloaterTuning.liftPerBlock();
-        double vDrag = com.maxenonyme.createsubmarine.submarine.config.FloaterTuning.verticalDrag();
-        double hDrag = com.maxenonyme.createsubmarine.submarine.config.FloaterTuning.horizontalDrag();
+        int count = getFloaterCount(level, sub);
+        double forceToApply = ((errorY * mass * 0.12 * forceMult) * submergedRatio) / count;
 
-        double vx = (currentVel != null) ? currentVel.x() : 0;
-        double vy = (currentVel != null) ? currentVel.y() : 0;
-        double vz = (currentVel != null) ? currentVel.z() : 0;
+        double ballastMaxForce = (4000.0 * mass * forceMult) / count;
+        forceToApply = Math.max(-ballastMaxForce, Math.min(ballastMaxForce, forceToApply));
 
-        double impulseY = (lift * taper - vDrag * vy) * mass * forceMult;
-        double impulseX = -hDrag * vx * mass * forceMult;
-        double impulseZ = -hDrag * vz * mass * forceMult;
-
-        if (Double.isFinite(impulseY) && Double.isFinite(impulseX) && Double.isFinite(impulseZ)) {
-            SablePhysicsHelper.wakeUp(handle);
-            Vector3d impulse = new Vector3d(impulseX, impulseY, impulseZ);
-            sub.logicalPose().orientation().conjugate(new org.joml.Quaterniond()).transform(impulse);
-            SablePhysicsHelper.applyLinearImpulse(handle, impulse);
+        if (Double.isFinite(forceToApply)) {
+            applyForce(sub, forceToApply);
         }
     }
 
@@ -155,4 +193,22 @@ public class FloaterBlockEntity extends BlockEntity {
         }
     }
 
+    private static void applyForce(SubLevelAccess sub, double forceY) {
+        Object handle = SablePhysicsHelper.getHandle(sub);
+        if (handle == null)
+            return;
+        SablePhysicsHelper.wakeUp(handle);
+
+        double velY = 0;
+        Vector3dc vel = SablePhysicsHelper.getVelocity(handle);
+        if (vel != null)
+            velY = vel.y();
+
+        double finalForce = (Math.abs(velY) < 0.01 && forceY < 0) ? forceY * 0.1 : forceY;
+
+        Vector3d forceVec = new Vector3d(0, finalForce, 0);
+        sub.logicalPose().orientation().conjugate(new org.joml.Quaterniond()).transform(forceVec);
+
+        SablePhysicsHelper.applyLinearImpulse(handle, forceVec);
+    }
 }

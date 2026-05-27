@@ -2,6 +2,6 @@
   "selector": "create_submarine:floater",
   "priority": 1001,
   "properties": {
-    "sable:mass": 0.1
+    "sable:mass": 0.10
   }
 }

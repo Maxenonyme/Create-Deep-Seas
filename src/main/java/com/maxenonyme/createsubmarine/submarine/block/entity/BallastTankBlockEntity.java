@@ -77,13 +77,22 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
         return cluster;
     }
     private boolean checkVentConnection(Direction side) {
-        if (level == null || side == null) return false;
+        if (level == null) return false;
         Set<BlockPos> visited = new HashSet<>();
         Queue<BlockPos> queue = new LinkedList<>();
-        BlockPos first = worldPosition.relative(side);
-        queue.add(first);
-        visited.add(first);
-        int maxDepth = 30;
+        Set<BlockPos> clusterPositions = new HashSet<>();
+        for (BallastTankBlockEntity be : getCluster()) {
+            clusterPositions.add(be.getBlockPos());
+        }
+        for (BallastTankBlockEntity be : getCluster()) {
+            for (Direction d : Direction.values()) {
+                BlockPos n = be.getBlockPos().relative(d);
+                if (!clusterPositions.contains(n) && visited.add(n)) {
+                    queue.add(n);
+                }
+            }
+        }
+        int maxDepth = 60;
         int count = 0;
         while (!queue.isEmpty() && count < maxDepth) {
             BlockPos pos = queue.poll();
@@ -211,28 +220,13 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
             lastClearTick = gameTick;
         }
         UUID subId = sub.getUniqueId();
-        double targetVelY = (0.5 - fillRatio) * 4.0;
 
         Vector3d worldPos = new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
         sub.logicalPose().transformPosition(worldPos);
 
-        if (targetVelY > 0) {
-            double seaLevel = level.getSeaLevel();
-            double distanceToSurface = seaLevel - worldPos.y;
-            if (distanceToSurface <= 0) {
-                targetVelY = -0.2;
-            } else if (distanceToSurface < 2.0) {
-
-                targetVelY *= (distanceToSurface / 2.0);
-            }
-        }
-
-        double currentVelY = 0;
         Object handle = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.getHandle(sub);
         Vector3dc currentVel = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.getVelocity(handle);
-        if (currentVel != null) {
-            currentVelY = currentVel.y();
-        }
+        double currentVelY = (currentVel != null) ? currentVel.y() : 0;
 
         Level parentLevel = com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry.getLevel(sub.getUniqueId());
         if (parentLevel == null && level.getServer() != null) {
@@ -253,31 +247,44 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
         if (parentLevel == null) return;
 
         BlockPos parentPos = BlockPos.containing(worldPos.x, worldPos.y, worldPos.z);
+        double localWaterSurfaceY = -999.0;
 
-        boolean isUnderWater = false;
-        net.minecraft.world.level.chunk.LevelChunk chunk = parentLevel.getChunkAt(parentPos);
-        if (chunk != null) {
-            int sectionY = chunk.getSectionIndex(parentPos.getY());
-            if (sectionY >= 0 && sectionY < chunk.getSections().length) {
-                net.minecraft.world.level.chunk.LevelChunkSection section = chunk.getSections()[sectionY];
-                if (section != null) {
-                    if (section.getFluidState(parentPos.getX() & 15, parentPos.getY() & 15, parentPos.getZ() & 15).is(net.minecraft.tags.FluidTags.WATER)) {
-                        isUnderWater = true;
-                    }
-                }
+        net.minecraft.world.level.material.FluidState fluidState = parentLevel.getFluidState(parentPos);
+        if (fluidState.is(net.minecraft.tags.FluidTags.WATER)) {
+            float h = fluidState.getHeight(parentLevel, parentPos);
+            localWaterSurfaceY = parentPos.getY() + h + countWaterAbove(parentLevel, parentPos);
+        } else {
+            BlockPos belowPos = parentPos.below();
+            net.minecraft.world.level.material.FluidState belowFluid = parentLevel.getFluidState(belowPos);
+            if (belowFluid.is(net.minecraft.tags.FluidTags.WATER)) {
+                float h = belowFluid.getHeight(parentLevel, belowPos);
+                localWaterSurfaceY = belowPos.getY() + h + countWaterAbove(parentLevel, belowPos);
             }
         }
 
-        if (!isUnderWater) {
-            return;
+        double depth = localWaterSurfaceY - (worldPos.y - 0.5);
+        boolean isUnderWater = (depth > 0.0);
+
+        if (!isUnderWater) return;
+
+        double submergedRatio = Math.max(0.0, Math.min(1.0, depth));
+
+        double baseTarget = (0.5 - fillRatio) * 4.0;
+        double distanceToSurface = localWaterSurfaceY - worldPos.y;
+        double targetVelY;
+        if (baseTarget > 0) {
+            targetVelY = Math.max(-0.1, Math.min(baseTarget, distanceToSurface));
+        } else {
+            targetVelY = baseTarget;
         }
 
-        double errorY = targetVelY - currentVelY;
+        double perceivedVelY = Math.max(-0.2, currentVelY);
+        double errorY = targetVelY - perceivedVelY;
         double mass = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.readMass(sub);
 
         int clusterSize = be.getCluster().size();
         double forceMult = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.BALLAST_FORCE_MULTIPLIER.get();
-        double forceToApply = (errorY * mass * 0.16 * forceMult) / clusterSize;
+        double forceToApply = ((errorY * mass * 0.16 * forceMult) * submergedRatio) / clusterSize;
 
         double ballastMaxForce = (4000.0 * mass * forceMult) / clusterSize;
         forceToApply = Math.max(-ballastMaxForce, Math.min(ballastMaxForce, forceToApply));
@@ -340,6 +347,18 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
         }
         return true;
     }
+    private static int countWaterAbove(Level level, BlockPos pos) {
+        int depth = 0;
+        for (int y = pos.getY() + 1; y < pos.getY() + 1 + 200; y++) {
+            if (level.getFluidState(new BlockPos(pos.getX(), y, pos.getZ())).is(net.minecraft.tags.FluidTags.WATER)) {
+                depth++;
+            } else {
+                break;
+            }
+        }
+        return depth;
+    }
+
     private static void applyForce(SubLevelAccess sub, double forceY) {
         Object handle = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.getHandle(sub);
         if (handle == null) return;

@@ -34,7 +34,7 @@ public final class CreateSubmarineClient {
     public static void init(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerExtensionPoint(
                 IConfigScreenFactory.class,
-                (container, parent) -> new ConfigurationScreen(container, parent));
+                (container, parent) -> new com.maxenonyme.createsubmarine.submarine.client.HullStrengthConfigScreen(container, parent));
 
         modEventBus.addListener(CreateSubmarineClient::onClientSetup);
         modEventBus.addListener(CreateSubmarineClient::onRegisterRenderers);

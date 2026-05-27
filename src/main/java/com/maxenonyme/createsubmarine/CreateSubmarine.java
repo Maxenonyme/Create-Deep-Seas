@@ -226,7 +226,7 @@ public class CreateSubmarine {
                         "floater",
                         () -> BlockEntityType.Builder.of(FloaterBlockEntity::new, FLOATER.get()).build(null));
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
-                        () -> new net.minecraft.world.item.Item(new net.minecraft.world.item.Item.Properties()
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
 
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
