@@ -99,9 +99,7 @@ public final class PermanentWaterCullingTest {
             if (id == null)
                 continue;
             seenIds.add(id);
-
-            // HullController/OxygenDiffuser scans take priority — skipping avoids two
-            // conflicting Sable regions for the same sub (root of the through-glass bug).
+            
             if (hullTracked.contains(id)) {
                 if (TRACKED_IDS.remove(id))
                     deactivateSub(id);
