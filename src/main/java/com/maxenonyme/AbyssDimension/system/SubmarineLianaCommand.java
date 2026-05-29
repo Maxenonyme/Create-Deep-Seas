@@ -222,14 +222,16 @@ public final class SubmarineLianaCommand {
 
             ServerSubLevel subLevel = SubLevelAssemblyHelper.assembleBlocks(level, plotAnchor, segmentBlocks, bounds);
             if (subLevel == null) {
-                for (ServerSubLevel sub : assembledSubLevels) {
-                    try {
-                        java.lang.reflect.Method method = container.getClass().getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason"));
-                        Class<?> enumCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
-                        Object reason = enumCls.getEnumConstants()[0];
-                        method.invoke(container, sub, reason);
-                    } catch (Throwable ignored) {}
-                }
+                try {
+                    Class<?> reasonCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
+                    java.lang.reflect.Method method = container.getClass().getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, reasonCls);
+                    Object reason = reasonCls.getEnumConstants()[0];
+                    for (ServerSubLevel sub : assembledSubLevels) {
+                        try {
+                            method.invoke(container, sub, reason);
+                        } catch (Throwable ignored) {}
+                    }
+                } catch (Throwable ignored) {}
                 rollback(level, originalStates);
                 return null;
             }
@@ -252,14 +254,16 @@ public final class SubmarineLianaCommand {
                     BoundingBox3i seedBounds = new BoundingBox3i(seedPos.getX(), seedPos.getY(), seedPos.getZ(), seedPos.getX(), seedPos.getY(), seedPos.getZ());
                     ServerSubLevel seedSubLevel = SubLevelAssemblyHelper.assembleBlocks(level, seedPos, List.of(seedPos), seedBounds);
                     if (seedSubLevel == null) {
-                        for (ServerSubLevel sub : assembledSubLevels) {
-                            try {
-                                java.lang.reflect.Method method = container.getClass().getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason"));
-                                Class<?> enumCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
-                                Object reason = enumCls.getEnumConstants()[0];
-                                method.invoke(container, sub, reason);
-                            } catch (Throwable ignored) {}
-                        }
+                        try {
+                            Class<?> reasonCls = Class.forName("dev.ryanhcode.sable.api.sublevel.SubLevelRemovalReason");
+                            java.lang.reflect.Method method = container.getClass().getMethod("removeSubLevel", dev.ryanhcode.sable.sublevel.SubLevel.class, reasonCls);
+                            Object reason = reasonCls.getEnumConstants()[0];
+                            for (ServerSubLevel sub : assembledSubLevels) {
+                                try {
+                                    method.invoke(container, sub, reason);
+                                } catch (Throwable ignored) {}
+                            }
+                        } catch (Throwable ignored) {}
                         rollback(level, originalStates);
                         return null;
                     }
