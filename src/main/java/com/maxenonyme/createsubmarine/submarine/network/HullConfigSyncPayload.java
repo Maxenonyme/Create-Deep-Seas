@@ -29,10 +29,10 @@ public record HullConfigSyncPayload(Map<String, HullStrengthConfig.HullProperty>
     }
 
     private static HullConfigSyncPayload read(FriendlyByteBuf buf) {
-        int size = buf.readVarInt();
+        int size = Math.max(0, Math.min(buf.readVarInt(), 100000));
         Map<String, HullStrengthConfig.HullProperty> map = new HashMap<>(size);
         for (int i = 0; i < size; i++) {
-            String key = buf.readUtf();
+            String key = buf.readUtf(256);
             int depth = buf.readVarInt();
             float chance = buf.readFloat();
             map.put(key, new HullStrengthConfig.HullProperty(depth, chance));

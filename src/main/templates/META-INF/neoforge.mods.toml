@@ -16,6 +16,11 @@ A submarine addon for the Create mod.
 [[mixins]]
 config="create_submarine.mixins.json"
 
+[[mixins]]
+config="abyss.mixins.json"
+
+
+
 [[dependencies.${mod_id}]]
     modId="lithostitched"
     type="required"

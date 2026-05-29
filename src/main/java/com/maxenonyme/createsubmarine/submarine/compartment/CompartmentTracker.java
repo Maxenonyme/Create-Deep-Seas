@@ -194,8 +194,12 @@ public class CompartmentTracker {
         try {
             boolean done = CompartmentDetector.stepScan(st, budget);
             if (done) {
-                CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
-                update(id, sub, r, gameTick);
+                if (st.chunksMissing) {
+                    LAST_UPDATE_TICK.put(id, gameTick);
+                } else {
+                    CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
+                    update(id, sub, r, gameTick);
+                }
                 ACTIVE_SCANS.remove(id);
                 return true;
             }
@@ -275,7 +279,7 @@ public class CompartmentTracker {
         if (idx < 0 || idx >= chunk.getSections().length)
             return Fluids.EMPTY.defaultFluidState();
         net.minecraft.world.level.chunk.LevelChunkSection section = chunk.getSection(idx);
-        if (section.hasOnlyAir())
+        if (section == null || section.hasOnlyAir())
             return Fluids.EMPTY.defaultFluidState();
         return section.getBlockState(pos.getX() & 15, y & 15, pos.getZ() & 15).getFluidState();
     }

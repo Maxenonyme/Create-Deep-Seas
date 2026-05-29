@@ -218,6 +218,7 @@ public class CreateSubmarine {
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
 
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
+                com.maxenonyme.AbyssDimension.LianaRegistry.init();
                 modContainer.registerConfig(ModConfig.Type.COMMON, SubmarineConfig.SPEC);
                 BLOCKS.register(modEventBus);
                 ITEMS.register(modEventBus);
@@ -233,6 +234,12 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.LianaLODOptimizer::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::onServerTick);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.createsubmarine.submarine.system.SubmarineInfoCommand::register);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::register);
                 NeoForge.EVENT_BUS.addListener(
                                 com.maxenonyme.createsubmarine.submarine.system.WrenchRepairHandler::onRightClickBlock);
                 NeoForge.EVENT_BUS.addListener(this::onBlockPlaceAboveSensor);

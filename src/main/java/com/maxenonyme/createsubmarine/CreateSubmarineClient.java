@@ -24,8 +24,7 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
-
-// Say whallih bro say whallih :) idk the problem of server
+import com.maxenonyme.AbyssDimension.client.PDAManager;
 
 public final class CreateSubmarineClient {
     private CreateSubmarineClient() {
@@ -39,10 +38,14 @@ public final class CreateSubmarineClient {
         modEventBus.addListener(CreateSubmarineClient::onClientSetup);
         modEventBus.addListener(CreateSubmarineClient::onRegisterRenderers);
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
+
         modEventBus.addListener(WatermarkOverlay::register);
 
         NeoForge.EVENT_BUS.register(SubmarineFogHandler.class);
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
+        NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);
+        NeoForge.EVENT_BUS.register(com.maxenonyme.AbyssDimension.client.CameraShake.GameEvents.class);
+        modEventBus.register(PDAManager.ModEvents.class);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             SubLevelCrackRenderer.clearAll();
             SubLevelRegistry.clearAll();
@@ -64,16 +67,18 @@ public final class CreateSubmarineClient {
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.WATER_THRUSTER.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.IRON_PRESSURIZER.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.COPPER_PRESSURIZER.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(com.maxenonyme.AbyssDimension.LianaRegistry.LIANA_BLOCK.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(com.maxenonyme.AbyssDimension.LianaRegistry.CREEPVINE_SEED.get(), RenderType.cutout());
         });
 
         PonderIndex.addPlugin(new SubmarinePonderPlugin());
         WaterOcclusionRenderer.setIsEnabled(true);
         AllPartialModels.init();
         SimpleBlockEntityVisualizer
-                .builder(CreateSubmarine.BALLAST_VENT_BE.get())
-                .factory(SingleAxisRotatingVisual::shaft)
-                .skipVanillaRender(be -> true)
-                .apply();
+            .builder(CreateSubmarine.BALLAST_VENT_BE.get())
+            .factory(SingleAxisRotatingVisual::shaft)
+            .skipVanillaRender(be -> true)
+            .apply();
     }
 
     private static void onRegisterScreens(RegisterMenuScreensEvent event) {
@@ -81,4 +86,6 @@ public final class CreateSubmarineClient {
                 CreateSubmarine.ELECTROLYZER_MENU.get(),
                 ElectrolyzerScreen::new);
     }
+
+
 }

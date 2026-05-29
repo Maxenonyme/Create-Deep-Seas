@@ -31,6 +31,10 @@ public class SubmarineSinkingSystem {
         CRASHED.clear();
     }
 
+    public static boolean isCrashing(UUID id) {
+        return CRASHED.contains(id);
+    }
+
     public static void onServerTick(ServerTickEvent.Post event) {
         long currentTick = event.getServer().getTickCount();
         PENDING.removeIf(removal -> {
@@ -47,6 +51,7 @@ public class SubmarineSinkingSystem {
             return;
         if (!(parentLevel instanceof ServerLevel serverLevel))
             return;
+        destroyLifeSupport(parentLevel, bounds);
         applySinkingForce(sub);
         Vector3d worldCenter = new Vector3d(
                 (bounds.minX() + bounds.maxX()) / 2.0,
@@ -67,6 +72,20 @@ public class SubmarineSinkingSystem {
         serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, worldCenter.x, worldCenter.y, worldCenter.z, 5, 3.0,
                 3.0, 3.0, 0.3);
         scheduleStructuralCuts(parentLevel, bounds);
+    }
+
+    private static void destroyLifeSupport(Level level, SubLevelRegistry.PlotBounds bounds) {
+        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
+            for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
+                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    net.minecraft.world.level.block.state.BlockState s = level.getBlockState(pos);
+                    if (s.is(CreateSubmarine.CREATIVE_OXYGENATOR.get()) || s.is(CreateSubmarine.OXYGENE_DIFFUSER.get())) {
+                        level.destroyBlock(pos, false);
+                    }
+                }
+            }
+        }
     }
 
     private static void removeBlock(Level parentLevel, BlockPos pos) {

@@ -75,6 +75,13 @@ public class SablePhysicsHelper {
         } catch (ReflectiveOperationException ignored) {}
     }
 
+    public static void setAsleep(Object handle, boolean asleep) {
+        if (handle == null || setAsleep == null) return;
+        try {
+            setAsleep.invoke(handle, asleep);
+        } catch (ReflectiveOperationException ignored) {}
+    }
+
     public static void applyLinearImpulse(Object handle, Vector3d force) {
         if (handle == null || applyLinearImpulse == null) return;
         try {

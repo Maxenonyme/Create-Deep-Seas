@@ -22,10 +22,15 @@ public class SableSnapshotQueue {
     private static volatile long lastSweepNanos = 0;
 
     public static void enqueue(long plot, int tick, Pose3d pose, PacketReceiveMode mode) {
-        Deque<Snap> q = PENDING.computeIfAbsent(plot, k -> new ArrayDeque<>());
-        synchronized (q) {
-            if (q.size() >= 16) q.pollFirst();
-            q.offerLast(new Snap(tick, new Pose3d(pose), mode, System.nanoTime()));
+        while (true) {
+            Deque<Snap> q = PENDING.computeIfAbsent(plot, k -> new ArrayDeque<>());
+            synchronized (q) {
+                if (PENDING.get(plot) == q) {
+                    if (q.size() >= 16) q.pollFirst();
+                    q.offerLast(new Snap(tick, new Pose3d(pose), mode, System.nanoTime()));
+                    break;
+                }
+            }
         }
         sweepStale();
     }
@@ -34,13 +39,15 @@ public class SableSnapshotQueue {
         long now = System.nanoTime();
         if (now - lastSweepNanos < SWEEP_INTERVAL_NS) return;
         lastSweepNanos = now;
-        PENDING.entrySet().removeIf(e -> {
+        for (Map.Entry<Long, Deque<Snap>> e : PENDING.entrySet()) {
             Deque<Snap> q = e.getValue();
             synchronized (q) {
                 Snap last = q.peekLast();
-                return last == null || now - last.ts > TTL_NS;
+                if (last == null || now - last.ts > TTL_NS) {
+                    PENDING.remove(e.getKey(), q);
+                }
             }
-        });
+        }
     }
 
     public static void drain(long plot, ClientSubLevelContainer container, ClientSubLevel sub) {

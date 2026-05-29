@@ -63,6 +63,8 @@ public class FloaterBlockEntity extends BlockEntity {
 
     public static void serverTick(Level level, BlockPos pos, FloaterBlockEntity be) {
         SubLevelAccess sub = SableCompanion.INSTANCE.getContaining(level, pos);
+        boolean sealed = sub != null
+                && com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.hasAnySealed(sub.getUniqueId());
 
         if (++be.pressureTickCounter >= PRESSURE_CHECK_INTERVAL) {
             be.pressureTickCounter = 0;
@@ -82,7 +84,7 @@ public class FloaterBlockEntity extends BlockEntity {
             if (propOpt.isPresent()) {
                 threshold = propOpt.get().maxWaterDepth();
             }
-            if (countWaterAbove(worldLevel, worldPos) > threshold) {
+            if (sealed && countWaterAbove(worldLevel, worldPos) > threshold) {
                 burst(level, pos);
                 return;
             }
@@ -126,11 +128,11 @@ public class FloaterBlockEntity extends BlockEntity {
         boolean isUnderWater = (depth > 0.0);
 
         if (!isUnderWater) {
-            checkCrash(level, pos, parentLevel, parentPos, currentVel);
+            if (sealed) checkCrash(level, pos, parentLevel, parentPos, currentVel);
             return;
         }
 
-        checkCrash(level, pos, parentLevel, parentPos, currentVel);
+        if (sealed) checkCrash(level, pos, parentLevel, parentPos, currentVel);
 
         double submergedRatio = Math.max(0.0, Math.min(1.0, depth));
         double distanceToSurface = localWaterSurfaceY - worldPos.y;

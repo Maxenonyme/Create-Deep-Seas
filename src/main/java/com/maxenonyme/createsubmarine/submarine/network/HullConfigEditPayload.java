@@ -31,8 +31,8 @@ public record HullConfigEditPayload(Map<String, HullStrengthConfig.HullProperty>
     }
 
     private static HullConfigEditPayload read(FriendlyByteBuf buf) {
-        int size = Math.min(buf.readVarInt(), 10000);
-        Map<String, HullStrengthConfig.HullProperty> map = new HashMap<>();
+        int size = Math.max(0, Math.min(buf.readVarInt(), 10000));
+        Map<String, HullStrengthConfig.HullProperty> map = new HashMap<>(size);
         for (int i = 0; i < size; i++) {
             String key = buf.readUtf(256);
             int depth = buf.readVarInt();
@@ -52,8 +52,15 @@ public record HullConfigEditPayload(Map<String, HullStrengthConfig.HullProperty>
             if (!(context.player() instanceof ServerPlayer player)) return;
             if (!player.hasPermissions(2) && !player.server.isSingleplayerOwner(player.getGameProfile())) return;
 
-            payload.changed().forEach((key, prop) ->
-                    HullStrengthConfig.update(key, prop.maxWaterDepth(), prop.implosionChance()));
+            payload.changed().forEach((key, prop) -> {
+                if (key == null || key.isEmpty()) return;
+                try { net.minecraft.resources.ResourceLocation.parse(key); }
+                catch (net.minecraft.ResourceLocationException ex) { return; }
+                float chance = prop.implosionChance();
+                if (!Float.isFinite(chance)) return;
+                int depth = Math.max(0, Math.min(prop.maxWaterDepth(), 100000));
+                HullStrengthConfig.update(key, depth, chance);
+            });
             HullStrengthConfig.save();
 
             HullConfigSyncPayload sync = new HullConfigSyncPayload(HullStrengthConfig.getValues());

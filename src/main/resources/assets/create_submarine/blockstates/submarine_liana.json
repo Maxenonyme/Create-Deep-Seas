@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "create_submarine:block/submarine_liana"
+    }
+  }
+}
