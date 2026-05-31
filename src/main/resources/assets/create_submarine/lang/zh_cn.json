@@ -67,5 +67,5 @@
   "create_submarine.command.spawn_liana_success": "成功生成一根长度为 %s 的潜艇藤蔓",
   "create_submarine.configuration.client": "客户端设置",
   "create_submarine.configuration.welcomeScreenSeen": "欢迎屏幕设置",
-  "create_submarine.configuration.welcomeScreenSeen.tooltip": "内部：一旦深海欢迎屏幕被确认，设置为 true。设置回 false 以在下一个主菜单上再次显示欢迎屏幕。",
+  "create_submarine.configuration.welcomeScreenSeen.tooltip": "内部：一旦深海欢迎屏幕被确认，设置为 true。设置回 false 以在下一个主菜单上再次显示欢迎屏幕。"
 }
