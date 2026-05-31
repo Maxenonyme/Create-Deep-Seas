@@ -2,6 +2,7 @@ package com.maxenonyme.createsubmarine;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.TransparentBlock;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -187,17 +188,19 @@ public class CreateSubmarine {
                                         () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
                                                         com.maxenonyme.createsubmarine.submarine.gui.ElectrolyzerMenu::new));
         public static final Supplier<Block> IRON_PRESSURIZER = BLOCKS.register("iron_pressurizer",
-                        () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS)
+                        () -> new TransparentBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS)
                                         .strength(5.0F, 1200.0F)
                                         .requiresCorrectToolForDrops()
                                         .noOcclusion()
                                         .isViewBlocking((state, level, pos) -> false)
                                         .isSuffocating((state, level, pos) -> false)));
+
+
         public static final Supplier<Item> IRON_PRESSURIZER_ITEM = ITEMS.register("iron_pressurizer",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.PressurizerItem(IRON_PRESSURIZER.get(), new Item.Properties()));
 
         public static final Supplier<Block> COPPER_PRESSURIZER = BLOCKS.register("copper_pressurizer",
-                        () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS)
+                        () -> new TransparentBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS)
                                         .strength(5.0F, 1200.0F)
                                         .requiresCorrectToolForDrops()
                                         .noOcclusion()
