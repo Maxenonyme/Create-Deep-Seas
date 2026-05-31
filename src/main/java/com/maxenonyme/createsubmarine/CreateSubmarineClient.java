@@ -15,16 +15,21 @@ import dev.ryanhcode.sable.render.water_occlusion.WaterOcclusionRenderer;
 import net.createmod.ponder.foundation.PonderIndex;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
-import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import com.maxenonyme.AbyssDimension.client.PDAManager;
+import net.neoforged.neoforge.event.AddPackFindersEvent;
 
 public final class CreateSubmarineClient {
     private CreateSubmarineClient() {
@@ -38,7 +43,7 @@ public final class CreateSubmarineClient {
         modEventBus.addListener(CreateSubmarineClient::onClientSetup);
         modEventBus.addListener(CreateSubmarineClient::onRegisterRenderers);
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
-
+        modEventBus.addListener(CreateSubmarineClient::addPackFinders);
         modEventBus.addListener(WatermarkOverlay::register);
 
         NeoForge.EVENT_BUS.addListener(
@@ -90,5 +95,17 @@ public final class CreateSubmarineClient {
                 ElectrolyzerScreen::new);
     }
 
-
+    public static void addPackFinders(AddPackFindersEvent event) {
+        if (event.getPackType() == PackType.CLIENT_RESOURCES) {
+            event.addPackFinders(
+                    ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "built_in_resourcepacks/connected-pressurizer-glass"),
+                    PackType.CLIENT_RESOURCES,
+                    Component.literal("Connected Pressurizer Glass"),
+                    PackSource.BUILT_IN,
+                    false,
+                    Pack.Position.TOP
+                     // Set to true if you want it forced on by default, false for optional
+            );
+        }
+    }
 }
