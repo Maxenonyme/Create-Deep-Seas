@@ -1,0 +1,10 @@
+{
+    "pack": {
+        "pack_format": 18,
+        "supported_formats": [18, 999],
+        "description": "Connected Pressurized Glass"
+    },
+    "fusion": {
+        "min_version": "1.2.11"
+    }
+}
