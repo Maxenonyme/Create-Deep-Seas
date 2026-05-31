@@ -7,8 +7,10 @@ import dev.ryanhcode.sable.companion.SubLevelAccess;
 import dev.simulated_team.simulated.content.blocks.rope.strand.server.ServerLevelRopeManager;
 import dev.simulated_team.simulated.content.blocks.rope.strand.server.ServerRopeStrand;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -127,6 +129,32 @@ public class SteelCablePhysicsSystem {
             }
         }
 
+        for (ServerLevel serverLevel : event.getServer().getAllLevels()) {
+            ServerLevelRopeManager ropeManager = ServerLevelRopeManager.getOrCreate(serverLevel);
+            if (ropeManager == null) continue;
+
+            for (ServerRopeStrand strand : ropeManager.getAllStrands()) {
+                if (!strand.isActive()) continue;
+                if (!isSteelCable(strand, serverLevel)) continue;
+
+                List<Vector3d> points = strand.getPoints();
+                for (int i = 0; i < points.size() - 1; i++) {
+                    Vector3d a = points.get(i);
+                    Vector3d b = points.get(i + 1);
+
+                    AABB segmentBox = new AABB(
+                        Math.min(a.x, b.x) - 1.0, Math.min(a.y, b.y) - 1.0, Math.min(a.z, b.z) - 1.0,
+                        Math.max(a.x, b.x) + 1.0, Math.max(a.y, b.y) + 1.0, Math.max(a.z, b.z) + 1.0
+                    );
+
+                    for (Entity entity : serverLevel.getEntities((Entity) null, segmentBox,
+                            e -> !(e instanceof Player) && e.isAlive() && !e.isPassenger())) {
+                        collideEntityWithCableSegment(entity, a, b);
+                    }
+                }
+            }
+        }
+
         Map<UUID, OrientedBoundingBox3d> hulls = SubmarineHullManager.getActiveHulls();
         if (hulls.isEmpty()) return;
 
@@ -155,6 +183,43 @@ public class SteelCablePhysicsSystem {
                     checkSublevelCollision(sub, obb, a, b);
                 }
             }
+        }
+    }
+
+    private static void collideEntityWithCableSegment(Entity entity, Vector3d a, Vector3d b) {
+        Vector3d ePos = new Vector3d(entity.getX(), entity.getY() + entity.getBbHeight() / 2.0, entity.getZ());
+        Vector3d c = getClosestPointOnSegment(a, b, ePos);
+
+        double horizontalDist = Math.sqrt((ePos.x - c.x) * (ePos.x - c.x) + (ePos.z - c.z) * (ePos.z - c.z));
+        double feetY = entity.getY();
+        double vertDiff = feetY - c.y;
+
+        if (horizontalDist < 0.4 && vertDiff >= -0.15 && vertDiff <= 0.45 && entity.getDeltaMovement().y <= 0.05) {
+            entity.setPos(entity.getX(), c.y + 0.1, entity.getZ());
+            entity.setDeltaMovement(entity.getDeltaMovement().x, 0.0, entity.getDeltaMovement().z);
+            entity.setOnGround(true);
+            entity.fallDistance = 0.0f;
+            return;
+        }
+
+        double d = ePos.distance(c);
+        double collisionLimit = 0.5;
+        if (d < collisionLimit) {
+            Vector3d push = new Vector3d(ePos).sub(c);
+            double dist = push.length();
+            if (dist < 1e-6) { push.set(0, 1, 0); dist = 1.0; }
+            double overlap = collisionLimit - dist;
+            push.normalize();
+
+            entity.setPos(entity.getX() + push.x * overlap, entity.getY() + push.y * overlap, entity.getZ() + push.z * overlap);
+
+            net.minecraft.world.phys.Vec3 velocity = entity.getDeltaMovement();
+            Vector3d vel = new Vector3d(velocity.x, velocity.y, velocity.z);
+            double dot = vel.dot(push);
+            if (dot < 0) vel.sub(new Vector3d(push).mul(dot));
+            vel.add(new Vector3d(push).mul(overlap * 0.8));
+            entity.setDeltaMovement(new net.minecraft.world.phys.Vec3(vel.x, vel.y, vel.z));
+            entity.hasImpulse = true;
         }
     }
 

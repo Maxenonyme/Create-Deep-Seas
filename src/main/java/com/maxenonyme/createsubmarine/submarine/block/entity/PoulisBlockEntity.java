@@ -21,6 +21,9 @@ import java.util.List;
 public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLevelActor {
 
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+    private static double getMaxSlideSpeed() {
+        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.PULLEY_MAX_SLIDE_SPEED.get();
+    }
 
     public static final java.util.Set<java.util.UUID> SLIDING_SUBLEVELS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
@@ -184,6 +187,7 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         }
 
         double speed = 0.0;
+        boolean atMaxSpeed = false;
 
         if (isConnected) {
             Vector3d upWorld = new Vector3d(0, 1, 0);
@@ -205,6 +209,12 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
             handle.getLinearVelocity(linearVelocity);
             double dot = linearVelocity.dot(u);
             speed = Math.abs(dot);
+
+            double maxSlideSpeed = getMaxSlideSpeed();
+            double clampedDot = Math.signum(dot) * Math.min(Math.abs(dot), maxSlideSpeed);
+            atMaxSpeed = Math.abs(dot) >= maxSlideSpeed;
+            dot = clampedDot;
+            speed = Math.abs(clampedDot);
 
             boolean isPrimary = true;
             if (peers != null) {
@@ -314,7 +324,7 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         }
 
         float oldHeat = getHeat();
-        if (isConnected && speed > 4.5) {
+        if (isConnected && atMaxSpeed) {
             this.stressTicks = Math.min(600, this.stressTicks + 1);
         } else {
             this.stressTicks = Math.max(0, this.stressTicks - (speed < 0.1 ? 2 : 1));
@@ -334,18 +344,18 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
             partner.getLevel().sendBlockUpdated(partner.getBlockPos(), partner.getBlockState(), partner.getBlockState(), 3);
         }
 
-        if (this.stressTicks >= 600) {
-            level.destroyBlock(worldPosition, true);
-            partner.getLevel().destroyBlock(partner.getBlockPos(), true);
-
-            if (level instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5, 20, 0.15, 0.15, 0.15, 0.05);
-                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5, 10, 0.15, 0.15, 0.15, 0.05);
-            }
-            if (partner.getLevel() instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, partner.getBlockPos().getX() + 0.5, partner.getBlockPos().getY() + 0.5, partner.getBlockPos().getZ() + 0.5, 20, 0.15, 0.15, 0.15, 0.05);
-                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, partner.getBlockPos().getX() + 0.5, partner.getBlockPos().getY() + 0.5, partner.getBlockPos().getZ() + 0.5, 10, 0.15, 0.15, 0.15, 0.05);
-            }
+        if (this.stressTicks >= 600 && level instanceof ServerLevel serverLevel) {
+            BlockPos selfPos = worldPosition;
+            BlockPos partnerPos = partner.getBlockPos();
+            ServerLevel partnerLevel = (ServerLevel) partner.getLevel();
+            serverLevel.getServer().tell(new net.minecraft.server.TickTask(serverLevel.getServer().getTickCount() + 1, () -> {
+                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, selfPos.getX() + 0.5, selfPos.getY() + 0.5, selfPos.getZ() + 0.5, 20, 0.15, 0.15, 0.15, 0.05);
+                serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, selfPos.getX() + 0.5, selfPos.getY() + 0.5, selfPos.getZ() + 0.5, 10, 0.15, 0.15, 0.15, 0.05);
+                partnerLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, partnerPos.getX() + 0.5, partnerPos.getY() + 0.5, partnerPos.getZ() + 0.5, 20, 0.15, 0.15, 0.15, 0.05);
+                partnerLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, partnerPos.getX() + 0.5, partnerPos.getY() + 0.5, partnerPos.getZ() + 0.5, 10, 0.15, 0.15, 0.15, 0.05);
+                serverLevel.destroyBlock(selfPos, true);
+                partnerLevel.destroyBlock(partnerPos, true);
+            }));
         }
     }
 

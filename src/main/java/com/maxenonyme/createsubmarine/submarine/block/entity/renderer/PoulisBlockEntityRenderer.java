@@ -72,9 +72,17 @@ public class PoulisBlockEntityRenderer implements BlockEntityRenderer<PoulisBloc
         SubLevelAccess sub = SableCompanion.INSTANCE.getContaining(be);
         if (sub == null || last == 0L) return;
 
-        double verticalSpeed = sub.logicalPose().position().y() - sub.lastPose().position().y();
+        double dx = sub.logicalPose().position().x() - sub.lastPose().position().x();
+        double dy = sub.logicalPose().position().y() - sub.lastPose().position().y();
+        double dz = sub.logicalPose().position().z() - sub.lastPose().position().z();
+
+        // project displacement onto sublevel's local up (rope direction) for correct sign
+        org.joml.Vector3d localUp = new org.joml.Vector3d(0, 1, 0);
+        sub.logicalPose().orientation().transform(localUp);
+        double signedSlide = dx * localUp.x + dy * localUp.y + dz * localUp.z;
+
         double frameSeconds = Math.min((now - last) / 1_000_000_000.0, MAX_FRAME_SECONDS);
-        be.clientWheelAngle -= (float) (verticalSpeed * 20.0 / WHEEL_RADIUS * frameSeconds);
+        be.clientWheelAngle -= (float) (signedSlide * 20.0 / WHEEL_RADIUS * frameSeconds);
     }
 
     private static Quaternionf facingRotation(Direction facing) {

@@ -11,6 +11,7 @@ public class SubmarineConfig {
     public static final ModConfigSpec.DoubleValue BALLAST_FORCE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue BALLAST_TRANSFER_RATE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue PULLEY_MAX_SLIDE_SPEED;
     public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
     public static final ModConfigSpec.BooleanValue ENABLE_DEEPER_OCEANS;
     public static final ModConfigSpec.IntValue DEEPER_OCEANS_DEPTH;
@@ -53,6 +54,10 @@ public class SubmarineConfig {
                 .comment("Multiplier on water thruster thrust output.",
                         "Lower = weaker propulsion, higher = stronger.")
                 .defineInRange("waterThrusterPowerMultiplier", 6.0, 0.1, 50.0);
+        PULLEY_MAX_SLIDE_SPEED = builder
+                .comment("Maximum sliding speed of a pulley along a steel cable (blocks/s).",
+                        "Above this speed the pulley starts overheating.")
+                .defineInRange("pulleyMaxSlideSpeed", 24.0, 1.0, 200.0);
         builder.pop();
 
         builder.push("experimental");

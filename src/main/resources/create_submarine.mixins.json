@@ -17,6 +17,8 @@
     "FluidRenderHelperMixin",
     "LevelRendererMixin",
     "RopeStrandRendererMixin",
+    "RopeWinchRendererMixin",
+    "RopeConnectorRendererMixin",
     "WaterOcclusionRendererMixin",
     "compat.AeronauticsVeilCrashFixMixin",
     "compat.AeronauticsShaderCrashFixMixin",

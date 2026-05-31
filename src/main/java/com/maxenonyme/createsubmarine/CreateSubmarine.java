@@ -209,7 +209,7 @@ public class CreateSubmarine {
         public static final Supplier<Block> FLOATER = BLOCKS.register("floater",
                         () -> new FloaterBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.WHITE_WOOL).noOcclusion()));
         public static final Supplier<Item> FLOATER_ITEM = ITEMS.register("floater",
-                        () -> new net.minecraft.world.item.BlockItem(FLOATER.get(), new Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.FloaterItem(FLOATER.get(), new Item.Properties()));
         public static final Supplier<BlockEntityType<FloaterBlockEntity>> FLOATER_BE = BLOCK_ENTITIES.register(
                         "floater",
                         () -> BlockEntityType.Builder.of(FloaterBlockEntity::new, FLOATER.get()).build(null));
@@ -246,6 +246,7 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.LianaLODOptimizer::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
@@ -302,6 +303,17 @@ public class CreateSubmarine {
         }
 
         private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
+                @SuppressWarnings("unchecked")
+                net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity> ropeWinchType =
+                        (net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity>)
+                        net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE.get(
+                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("simulated", "rope_winch"));
+                if (ropeWinchType != null) {
+                        event.registerBlockEntity(
+                                        net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+                                        ropeWinchType,
+                                        (be, side) -> com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem.getOrCreateStorage(be));
+                }
                 event.registerBlockEntity(
                                 net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
                                 BALLAST_TANK_BE.get(),
