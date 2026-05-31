@@ -84,5 +84,21 @@
   "create_submarine.welcome.configure": "Configure the mod",
   "create_submarine.welcome.dismiss": "Maybe later",
   "item.create_submarine.phycological_membrane": "Phycological Membrane",
-  "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air."
+  "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air.",
+  "create_submarine.screen.hull_strength_config.title": "Hull Strength Config",
+  "create_submarine.ui.button.apply_changes": "Apply Changes",
+  "create_submarine.ui.button.global_settings": "Global Settings",
+  "create_submarine.ui.button.save_exit": "Save & Exit",
+  "create_submarine.ui.button.cancel": "Cancel",
+  "create_submarine.ui.text.select_block_tip": "Select a block to edit its properties",
+  "create_submarine.ui.text.max_water_depth": "Max Water Depth (meters)",
+  "create_submarine.ui.text.implosion_chance": "Implosion Chance (0.0 - 1.0)",
+  "create_submarine.command.queue_submarine_lianas": "Queued %s submarine lianas of length %s to spawn progressively spreading from your position",
+  "create_submarine.command.no_sublevel_container": "No sublevel container found in this dimension.",
+  "create_submarine.command.player_only": "Player only.",
+  "create_submarine.command.spawn_liana_failed": "Failed to spawn submarine liana.",
+  "create_submarine.command.spawn_liana_success": "Successfully spawned a submarine liana of length %s",
+  "create_submarine.configuration.client": "clientSettings",
+  "create_submarine.configuration.welcomeScreenSeen": "welcomeScreenSettings",
+  "create_submarine.configuration.welcomeScreenSeen.tooltip": "Internal: set to true once the Deep Seas welcome screen has been acknowledged.Set back to false to show the welcome screen again on the next main menu."
 }

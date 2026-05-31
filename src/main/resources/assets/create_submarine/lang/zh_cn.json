@@ -51,5 +51,21 @@
   "create_submarine.ponder.water_thruster.text_4": "这个水罐会为推进提供所需的水。",
 
   "block.create_submarine.glass_pressurizer": "玻璃加压器",
-  "item.create_submarine.phycological_membrane": "藻类薄膜"
+  "item.create_submarine.phycological_membrane": "藻类薄膜",
+  "create_submarine.screen.hull_strength_config.title": "船体强度配置",
+  "create_submarine.ui.button.apply_changes": "应用更改",
+  "create_submarine.ui.button.global_settings": "全局设置",
+  "create_submarine.ui.button.save_exit": "保存并退出",
+  "create_submarine.ui.button.cancel": "取消",
+  "create_submarine.ui.text.select_block_tip": "选择一个方块以编辑其属性",
+  "create_submarine.ui.text.max_water_depth": "最大水深（米）",
+  "create_submarine.ui.text.implosion_chance": "内爆概率（0.0 - 1.0）",
+  "create_submarine.command.queue_submarine_lianas": "已排队生成 %s 根长度为 %s 的潜艇藤蔓，将从你的位置开始逐步蔓延生成",
+  "create_submarine.command.no_sublevel_container": "当前维度中未找到子场景容器。",
+  "create_submarine.command.player_only": "仅玩家可执行此指令。",
+  "create_submarine.command.spawn_liana_failed": "生成潜艇藤蔓失败。",
+  "create_submarine.command.spawn_liana_success": "成功生成一根长度为 %s 的潜艇藤蔓",
+  "create_submarine.configuration.client": "客户端设置",
+  "create_submarine.configuration.welcomeScreenSeen": "欢迎屏幕设置",
+  "create_submarine.configuration.welcomeScreenSeen.tooltip": "内部：一旦深海欢迎屏幕被确认，设置为 true。设置回 false 以在下一个主菜单上再次显示欢迎屏幕。",
 }
