@@ -100,5 +100,5 @@
   "create_submarine.command.spawn_liana_success": "Successfully spawned a submarine liana of length %s",
   "create_submarine.configuration.client": "clientSettings",
   "create_submarine.configuration.welcomeScreenSeen": "welcomeScreenSettings",
-  "create_submarine.configuration.welcomeScreenSeen.tooltip": "Internal: set to true once the Deep Seas welcome screen has been acknowledged.Set back to false to show the welcome screen again on the next main menu."
+  "create_submarine.configuration.welcomeScreenSeen.tooltip": "Internal: set to true once the Deep Seas welcome screen has been acknowledged. Set back to false to show the welcome screen again on the next main menu."
 }
