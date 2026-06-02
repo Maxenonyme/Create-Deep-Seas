@@ -22,9 +22,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-// Should I improve it later or now?
-// I think I'm talking to a wall.
-
 @OnlyIn(Dist.CLIENT)
 public class SubLevelCrackRenderer {
     private static final Map<UUID, Map<BlockPos, int[]>> CLIENT_CRACKS = new ConcurrentHashMap<>();

@@ -30,3 +30,6 @@ replay_pid*
 /build
 /.gradle
 /bin
+.eclipse/configurations/Server.launch
+/.eclipse
+.eclipse/configurations/Data.launch

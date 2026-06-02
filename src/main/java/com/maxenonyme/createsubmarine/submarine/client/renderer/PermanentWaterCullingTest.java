@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-// WARNING
-// This feature will be used for boats, but it doesn't suit me yet, so I think I'll put it in experimental mode.
 
 @EventBusSubscriber(modid = CreateSubmarine.MOD_ID, value = Dist.CLIENT)
 public final class PermanentWaterCullingTest {

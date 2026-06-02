@@ -217,9 +217,21 @@ public class CreateSubmarine {
                         () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
 
+        public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
+        public static final Supplier<CreativeModeTab> ABYSS_TAB = CREATIVE_MODE_TABS.register("abyss_tab",
+                        () -> CreativeModeTab.builder()
+                                        .title(Component.translatable("itemGroup.create_submarine.abyss_tab"))
+                                        .icon(() -> new ItemStack(com.maxenonyme.AbyssDimension.entities.EntityRegistry.AMPHISTIUM_SPAWN_EGG.get()))
+                                        .displayItems((parameters, output) -> {
+                                                output.accept(com.maxenonyme.AbyssDimension.entities.EntityRegistry.AMPHISTIUM_SPAWN_EGG.get());
+                                        })
+                                        .build());
+
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
                 com.maxenonyme.AbyssDimension.LianaRegistry.init();
+                com.maxenonyme.AbyssDimension.entities.EntityRegistry.init(modEventBus);
                 modContainer.registerConfig(ModConfig.Type.COMMON, SubmarineConfig.SPEC);
+                CREATIVE_MODE_TABS.register(modEventBus);
                 BLOCKS.register(modEventBus);
                 ITEMS.register(modEventBus);
                 BLOCK_ENTITIES.register(modEventBus);
@@ -235,6 +247,13 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
+<<<<<<< Updated upstream
+=======
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.fluid.SubLevelFluidSimulation::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.fluid.SubLevelFluidCommand::onRegisterCommands);
+>>>>>>> Stashed changes
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.LianaLODOptimizer::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
@@ -372,6 +391,13 @@ public class CreateSubmarine {
                                         subSection);
                         tabItems.add(FLOATER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "floater"), subSection);
+<<<<<<< Updated upstream
+=======
+                        tabItems.add(STEEL_CABLE::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
+                        tabItems.add(POULIS_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "poulis"), subSection);
+>>>>>>> Stashed changes
                         tabItems.add(PHYCOLOGICAL_MEMBRANE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
                 } catch (Exception ignored) {

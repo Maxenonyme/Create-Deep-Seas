@@ -1,5 +1,5 @@
 {
-  "itemGroup.create_submarine": "机械动力：潜艇",
+  "itemGroup.create_submarine": "Create Deep Seas",
   "fluid.create_submarine.oxygen": "氧气",
 
   "block.create_submarine.creative_oxygenator": "创造制氧机",
@@ -15,7 +15,7 @@
   "block.create_submarine.oxygene_diffuser": "氧气扩散器",
   "block.create_submarine.electrolyzer": "电解器",
 
-  "create_submarine.simulated_section.submarine": "潜艇",
+  "create_submarine.simulated_section.submarine": "Deep Seas",
   "create_submarine.gui.goggles.ballast_status": "压载水罐状态",
   "create_submarine.gui.goggles.water": "水",
   "create_submarine.gui.goggles.air": "空气",
@@ -52,6 +52,7 @@
 
   "block.create_submarine.glass_pressurizer": "玻璃加压器",
   "item.create_submarine.phycological_membrane": "藻类薄膜",
+<<<<<<< Updated upstream
   "create_submarine.screen.hull_strength_config.title": "船体强度配置",
   "create_submarine.ui.button.apply_changes": "应用更改",
   "create_submarine.ui.button.global_settings": "全局设置",
@@ -68,4 +69,9 @@
   "create_submarine.configuration.client": "客户端设置",
   "create_submarine.configuration.welcomeScreenSeen": "欢迎屏幕设置",
   "create_submarine.configuration.welcomeScreenSeen.tooltip": "内部：一旦深海欢迎屏幕被确认，设置为 true。设置回 false 以在下一个主菜单上再次显示欢迎屏幕。"
+=======
+  "entity.create_submarine.amphistium": "两形鱼",
+  "item.create_submarine.amphistium_spawn_egg": "两形鱼刷怪蛋",
+  "itemGroup.create_submarine.abyss_tab": "Create Deep Seas"
+>>>>>>> Stashed changes
 }

@@ -11,7 +11,7 @@
   "block.create_submarine.ballast_vent": "Ballast Vent",
   "block.create_submarine.oxygene_diffuser": "Oxygen Diffuser",
   "block.create_submarine.electrolyzer": "Electrolyzer",
-  "create_submarine.simulated_section.submarine": "Submarine",
+  "create_submarine.simulated_section.submarine": "Deep Seas",
   "create_submarine.gui.goggles.ballast_status": "Ballast Tank Status",
   "create_submarine.gui.goggles.water": "Water",
   "create_submarine.gui.goggles.air": "Air",
@@ -85,6 +85,7 @@
   "create_submarine.welcome.dismiss": "Maybe later",
   "item.create_submarine.phycological_membrane": "Phycological Membrane",
   "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air.",
+<<<<<<< Updated upstream
   "create_submarine.screen.hull_strength_config.title": "Hull Strength Config",
   "create_submarine.ui.button.apply_changes": "Apply Changes",
   "create_submarine.ui.button.global_settings": "Global Settings",
@@ -101,4 +102,11 @@
   "create_submarine.configuration.client": "Client Settings",
   "create_submarine.configuration.welcomeScreenSeen": "Welcome Screen",
   "create_submarine.configuration.welcomeScreenSeen.tooltip": "Internal: set to true once the Deep Seas welcome screen has been acknowledged. Set back to false to show the welcome screen again on the next main menu."
+=======
+  "item.create_submarine.steel_cable": "Steel Cable",
+  "block.create_submarine.poulis": "Pulley",
+  "entity.create_submarine.amphistium": "Amphistium",
+  "item.create_submarine.amphistium_spawn_egg": "Amphistium Spawn Egg",
+  "itemGroup.create_submarine.abyss_tab": "Create Deep Seas"
+>>>>>>> Stashed changes
 }

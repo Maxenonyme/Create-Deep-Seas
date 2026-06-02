@@ -14,10 +14,6 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
 import java.util.List;
 
-/**
- * One-time welcome shown in front of the main menu, recommending the player set up their Deep Seas
- * preferences. Either button marks it acknowledged in the config TOML so it never shows again.
- */
 public class DeepSeasWelcomeScreen extends Screen {
     private static final int PANEL_BG = 0xE6101A22;
     private static final int PANEL_ACCENT = 0xFF3FB6E0;
@@ -35,7 +31,6 @@ public class DeepSeasWelcomeScreen extends Screen {
         this.titleScreen = titleScreen;
     }
 
-    /** Swap the main menu for the welcome screen the first time it opens, until acknowledged. */
     public static void onScreenOpening(ScreenEvent.Opening event) {
         if (SubmarineConfig.WELCOME_SCREEN_SEEN.get()) {
             return;

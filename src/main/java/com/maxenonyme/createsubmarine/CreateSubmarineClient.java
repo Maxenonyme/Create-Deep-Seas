@@ -37,6 +37,7 @@ public final class CreateSubmarineClient {
 
         modEventBus.addListener(CreateSubmarineClient::onClientSetup);
         modEventBus.addListener(CreateSubmarineClient::onRegisterRenderers);
+        modEventBus.addListener(CreateSubmarineClient::onRegisterLayers);
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
 
         modEventBus.addListener(WatermarkOverlay::register);
@@ -61,6 +62,21 @@ public final class CreateSubmarineClient {
         event.registerBlockEntityRenderer(
                 CreateSubmarine.ELECTROLYZER_BE.get(),
                 ElectrolyzerBlockEntityRenderer::new);
+<<<<<<< Updated upstream
+=======
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.POULIS_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PoulisBlockEntityRenderer::new);
+        event.registerEntityRenderer(
+                com.maxenonyme.AbyssDimension.entities.EntityRegistry.AMPHISTIUM.get(),
+                com.maxenonyme.AbyssDimension.client.renderer.AmphistiumRenderer::new);
+    }
+
+    private static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(
+                com.maxenonyme.AbyssDimension.client.model.Amphistium.LAYER_LOCATION,
+                com.maxenonyme.AbyssDimension.client.model.Amphistium::createBodyLayer);
+>>>>>>> Stashed changes
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

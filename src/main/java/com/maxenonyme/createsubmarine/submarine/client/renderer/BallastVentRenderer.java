@@ -23,7 +23,7 @@ public class BallastVentRenderer extends KineticBlockEntityRenderer<BallastVentB
             .light(light)
             .renderInto(ms, buffer.getBuffer(RenderType.cutout()));
 
-        if (be.getLevel() != null && !be.getLevel().getClass().getSimpleName().contains("Ponder")) { //For developers who want to create ponders and don't know how, use this method; it's robust from what I've read.
+        if (be.getLevel() != null && !be.getLevel().getClass().getSimpleName().contains("Ponder")) {
             super.renderSafe(be, partialTicks, ms, buffer, light, overlay);
         }
     }

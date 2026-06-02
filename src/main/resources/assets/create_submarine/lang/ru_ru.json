@@ -1,5 +1,5 @@
 {
-  "itemGroup.create_submarine": "Create: Субмарины",
+  "itemGroup.create_submarine": "Create Deep Seas",
   "fluid.create_submarine.oxygen": "Кислород",
   "block.create_submarine.creative_oxygenator": "Творческий Оксигенатор",
   "item.create_submarine.creative_oxygenator.tooltip.summary": "Убирает воду когда\nсубмарина герметична.",
@@ -11,7 +11,7 @@
   "block.create_submarine.ballast_vent": "Клапан Балласта",
   "block.create_submarine.oxygene_diffuser": "Кислородный Диффузор",
   "block.create_submarine.electrolyzer": "Электролизёр",
-  "create_submarine.simulated_section.submarine": "Акватика",
+  "create_submarine.simulated_section.submarine": "Deep Seas",
   "create_submarine.gui.goggles.ballast_status": "Информация о цистерне балласта",
   "create_submarine.gui.goggles.water": "Вода",
   "create_submarine.gui.goggles.air": "Воздух",
@@ -40,5 +40,8 @@
   "create_submarine.ponder.water_thruster.text_3": "Чем больше давление и скорость, тем быстрее вы передвигаетесь!",
   "create_submarine.ponder.water_thruster.text_4": "Эта цистерна обеспечивает водой, необходимой для работы двигателя.",
   "block.create_submarine.glass_pressurizer": "Стеклянный Герметик",
-  "item.create_submarine.phycological_membrane": "Фикологическая мембрана"
+  "item.create_submarine.phycological_membrane": "Фикологическая мембрана",
+  "entity.create_submarine.amphistium": "Амфистиум",
+  "item.create_submarine.amphistium_spawn_egg": "Яйцо призыва амфистиума",
+  "itemGroup.create_submarine.abyss_tab": "Create Deep Seas"
 }

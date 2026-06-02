@@ -12,7 +12,7 @@
   "block.create_submarine.electrolyzer": "Électrolyseur",
   "effect.create_submarine.suffocation": "Suffocation",
   "death.attack.create_submarine.suffocation": "%1$s a suffoqué dans une fumée épaisse",
-  "create_submarine.simulated_section.submarine": "Sous-marin",
+  "create_submarine.simulated_section.submarine": "Deep Seas",
   "create_submarine.gui.goggles.ballast_status": "Statut du Réservoir de Ballast",
   "create_submarine.gui.goggles.water": "Eau",
   "fluid.create_submarine.oxygen": "Oxygène",
@@ -85,5 +85,14 @@
   "create_submarine.welcome.configure": "Configurer le mod",
   "create_submarine.welcome.dismiss": "Plus tard",
   "item.create_submarine.phycological_membrane": "Membrane Phycologique",
+<<<<<<< Updated upstream
   "item.create_submarine.phycological_membrane.tooltip.summary": "Peut être remplie d'air."
+=======
+  "item.create_submarine.phycological_membrane.tooltip.summary": "Peut être remplie d'air.",
+  "item.create_submarine.steel_cable": "Câble d'acier",
+  "block.create_submarine.poulis": "Poulie",
+  "entity.create_submarine.amphistium": "Amphistium",
+  "item.create_submarine.amphistium_spawn_egg": "Œuf d'apparition d'Amphistium",
+  "itemGroup.create_submarine.abyss_tab": "Create Deep Seas"
+>>>>>>> Stashed changes
 }
