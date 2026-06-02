@@ -30,3 +30,4 @@ replay_pid*
 /build
 /.gradle
 /bin
+/.eclipse

@@ -1,0 +1,23 @@
+{
+	"credit": "Made by Farcr",
+	"parent": "minecraft:block/block",
+	"texture_size": [32, 32],
+	"textures": {
+		"1": "create_submarine:block/steel_cable"
+	},
+	"elements": [
+		{
+			"from": [6, 6, 6],
+			"to": [10, 10, 10],
+			"faces": {
+				"north": {"uv": [14, 1.5, 16, 3.5], "texture": "#1"},
+				"east": {"uv": [14, 1.5, 16, 3.5], "texture": "#1"},
+				"south": {"uv": [14, 1.5, 16, 3.5], "texture": "#1"},
+				"west": {"uv": [14, 1.5, 16, 3.5], "texture": "#1"},
+				"up": {"uv": [14, 5, 16, 7], "texture": "#1"},
+				"down": {"uv": [14, 5, 16, 7], "texture": "#1"}
+			}
+		}
+	],
+	"display": {}
+}

@@ -37,6 +37,7 @@ public final class CreateSubmarineClient {
 
         modEventBus.addListener(CreateSubmarineClient::onClientSetup);
         modEventBus.addListener(CreateSubmarineClient::onRegisterRenderers);
+        modEventBus.addListener(CreateSubmarineClient::onRegisterLayers);
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
 
         modEventBus.addListener(WatermarkOverlay::register);
@@ -48,6 +49,7 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
         NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);
         NeoForge.EVENT_BUS.register(com.maxenonyme.AbyssDimension.client.CameraShake.GameEvents.class);
+        NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.client.ClientSteelCableItemHandler::onClientTick);
         modEventBus.register(PDAManager.ModEvents.class);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             SubLevelCrackRenderer.clearAll();
@@ -61,6 +63,18 @@ public final class CreateSubmarineClient {
         event.registerBlockEntityRenderer(
                 CreateSubmarine.ELECTROLYZER_BE.get(),
                 ElectrolyzerBlockEntityRenderer::new);
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.POULIS_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PoulisBlockEntityRenderer::new);
+        event.registerEntityRenderer(
+                com.maxenonyme.AbyssDimension.entities.EntityRegistry.AMPHISTIUM.get(),
+                com.maxenonyme.AbyssDimension.client.renderer.AmphistiumRenderer::new);
+    }
+
+    private static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(
+                com.maxenonyme.AbyssDimension.client.model.Amphistium.LAYER_LOCATION,
+                com.maxenonyme.AbyssDimension.client.model.Amphistium::createBodyLayer);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

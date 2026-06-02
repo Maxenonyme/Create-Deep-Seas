@@ -10,10 +10,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.lang.reflect.Field;
 
-
-//MC if you happen to see this, please don't steal my code, thanks
-
-
 @Pseudo
 @Mixin(targets = "net.caffeinemc.mods.sodium.client.render.chunk.ShaderChunkRenderer", remap = false)
 public abstract class SodiumChunkRendererMixin {
