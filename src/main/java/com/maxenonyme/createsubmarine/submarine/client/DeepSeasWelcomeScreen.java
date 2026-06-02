@@ -37,12 +37,20 @@ public class DeepSeasWelcomeScreen extends Screen {
 
     /** Swap the main menu for the welcome screen the first time it opens, until acknowledged. */
     public static void onScreenOpening(ScreenEvent.Opening event) {
+        // Only act on the main menu. This also avoids reading the config during the early screens
+        // some mods open from Minecraft.<init>, before the config spec has finished loading.
+        if (!(event.getNewScreen() instanceof TitleScreen menu)) {
+            return;
+        }
+        // Guard against reading the config before it is loaded: ConfigValue.get() throws an
+        // IllegalStateException ("Cannot get config value before config is loaded") otherwise.
+        if (!SubmarineConfig.SPEC.isLoaded()) {
+            return;
+        }
         if (SubmarineConfig.WELCOME_SCREEN_SEEN.get()) {
             return;
         }
-        if (event.getNewScreen() instanceof TitleScreen menu) {
-            event.setNewScreen(new DeepSeasWelcomeScreen(menu));
-        }
+        event.setNewScreen(new DeepSeasWelcomeScreen(menu));
     }
 
     @Override
