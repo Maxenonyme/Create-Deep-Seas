@@ -32,7 +32,7 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
     public float clientWheelAngle = 0f;
     public long clientLastNanos = 0L;
 
-
+    private transient long lastClampLogMs = 0L;
     private int stressTicks = 0;
     private transient boolean lastTickClampedAndConnected = false;
 
@@ -173,7 +173,10 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
 
         boolean isConnected = (closestPoint != null && closestDistSq < 16.0);
 
-
+        if (System.currentTimeMillis() - lastClampLogMs > 1000) {
+            lastClampLogMs = System.currentTimeMillis();
+            LOGGER.info("[Poulis] pos={} partner={} closestDistSq={} isConnected={}", worldPosition, partner.getBlockPos(), closestDistSq, isConnected);
+        }
 
         if (state.hasProperty(PoulisBlock.CONNECTED) && state.getValue(PoulisBlock.CONNECTED) != isConnected) {
             level.setBlock(worldPosition, state.setValue(PoulisBlock.CONNECTED, isConnected), 3);

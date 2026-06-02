@@ -209,13 +209,23 @@ public class CreateSubmarine {
         public static final Supplier<Block> FLOATER = BLOCKS.register("floater",
                         () -> new FloaterBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.WHITE_WOOL).noOcclusion()));
         public static final Supplier<Item> FLOATER_ITEM = ITEMS.register("floater",
-                        () -> new net.minecraft.world.item.BlockItem(FLOATER.get(), new Item.Properties()));
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.FloaterItem(FLOATER.get(), new Item.Properties()));
         public static final Supplier<BlockEntityType<FloaterBlockEntity>> FLOATER_BE = BLOCK_ENTITIES.register(
                         "floater",
                         () -> BlockEntityType.Builder.of(FloaterBlockEntity::new, FLOATER.get()).build(null));
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+        public static final Supplier<Item> STEEL_CABLE = ITEMS.register("steel_cable",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(new net.minecraft.world.item.Item.Properties()));
+
+        public static final Supplier<Block> POULIS = BLOCKS.register("poulis",
+                        () -> new PoulisBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
+        public static final Supplier<Item> POULIS_ITEM = ITEMS.register("poulis",
+                        () -> new net.minecraft.world.item.BlockItem(POULIS.get(), new Item.Properties()));
+        public static final Supplier<BlockEntityType<PoulisBlockEntity>> POULIS_BE = BLOCK_ENTITIES.register(
+                        "poulis",
+                        () -> BlockEntityType.Builder.of(PoulisBlockEntity::new, POULIS.get()).build(null));
 
         public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
         public static final Supplier<CreativeModeTab> ABYSS_TAB = CREATIVE_MODE_TABS.register("abyss_tab",
@@ -247,13 +257,12 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
-<<<<<<< Updated upstream
-=======
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.fluid.SubLevelFluidSimulation::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.fluid.SubLevelFluidCommand::onRegisterCommands);
->>>>>>> Stashed changes
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.LianaLODOptimizer::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
@@ -310,6 +319,17 @@ public class CreateSubmarine {
         }
 
         private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
+                @SuppressWarnings("unchecked")
+                net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity> ropeWinchType =
+                        (net.minecraft.world.level.block.entity.BlockEntityType<dev.simulated_team.simulated.content.blocks.rope.rope_winch.RopeWinchBlockEntity>)
+                        net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE.get(
+                                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("simulated", "rope_winch"));
+                if (ropeWinchType != null) {
+                        event.registerBlockEntity(
+                                        net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+                                        ropeWinchType,
+                                        (be, side) -> com.maxenonyme.createsubmarine.submarine.system.CableElectrificationSystem.getOrCreateStorage(be));
+                }
                 event.registerBlockEntity(
                                 net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
                                 BALLAST_TANK_BE.get(),
@@ -391,15 +411,16 @@ public class CreateSubmarine {
                                         subSection);
                         tabItems.add(FLOATER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "floater"), subSection);
-<<<<<<< Updated upstream
-=======
                         tabItems.add(STEEL_CABLE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
                         tabItems.add(POULIS_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "poulis"), subSection);
->>>>>>> Stashed changes
                         tabItems.add(PHYCOLOGICAL_MEMBRANE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
+                        tabItems.add(STEEL_CABLE::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
+                        tabItems.add(POULIS_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "poulis"), subSection);
                 } catch (Exception ignored) {
                 }
         }

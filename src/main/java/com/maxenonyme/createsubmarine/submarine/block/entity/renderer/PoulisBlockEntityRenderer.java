@@ -76,6 +76,7 @@ public class PoulisBlockEntityRenderer implements BlockEntityRenderer<PoulisBloc
         double dy = sub.logicalPose().position().y() - sub.lastPose().position().y();
         double dz = sub.logicalPose().position().z() - sub.lastPose().position().z();
 
+        // project displacement onto sublevel's local up (rope direction) for correct sign
         org.joml.Vector3d localUp = new org.joml.Vector3d(0, 1, 0);
         sub.logicalPose().orientation().transform(localUp);
         double signedSlide = dx * localUp.x + dy * localUp.y + dz * localUp.z;

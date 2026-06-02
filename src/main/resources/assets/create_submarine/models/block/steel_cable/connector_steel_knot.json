@@ -1,0 +1,24 @@
+{
+	"format_version": "1.21.11",
+	"parent": "block",
+	"textures": {
+		"0": "create_submarine:block/steel_cable/connector_steel_knot",
+		"particle": "create_submarine:block/steel_cable/connector_steel_knot"
+	},
+	"elements": [
+		{
+			"name": "rope",
+			"from": [5, 5, 6],
+			"to": [11, 11, 10],
+			"rotation": {"angle": 0, "axis": "x", "origin": [8, 4, 8]},
+			"faces": {
+				"north": {"uv": [11, 11, 5, 5], "rotation": 270, "texture": "#0"},
+				"east": {"uv": [10, 13, 6, 7], "texture": "#0"},
+				"south": {"uv": [5, 5, 11, 11], "rotation": 270, "texture": "#0"},
+				"west": {"uv": [10, 13, 6, 7], "texture": "#0"},
+				"up": {"uv": [10, 10, 6, 4], "rotation": 90, "texture": "#0"},
+				"down": {"uv": [10, 12, 6, 6], "rotation": 90, "texture": "#0"}
+			}
+		}
+	]
+}

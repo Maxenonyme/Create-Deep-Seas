@@ -49,6 +49,7 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
         NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);
         NeoForge.EVENT_BUS.register(com.maxenonyme.AbyssDimension.client.CameraShake.GameEvents.class);
+        NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.client.ClientSteelCableItemHandler::onClientTick);
         modEventBus.register(PDAManager.ModEvents.class);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             SubLevelCrackRenderer.clearAll();
@@ -62,8 +63,6 @@ public final class CreateSubmarineClient {
         event.registerBlockEntityRenderer(
                 CreateSubmarine.ELECTROLYZER_BE.get(),
                 ElectrolyzerBlockEntityRenderer::new);
-<<<<<<< Updated upstream
-=======
         event.registerBlockEntityRenderer(
                 CreateSubmarine.POULIS_BE.get(),
                 com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PoulisBlockEntityRenderer::new);
@@ -76,7 +75,10 @@ public final class CreateSubmarineClient {
         event.registerLayerDefinition(
                 com.maxenonyme.AbyssDimension.client.model.Amphistium.LAYER_LOCATION,
                 com.maxenonyme.AbyssDimension.client.model.Amphistium::createBodyLayer);
->>>>>>> Stashed changes
+=======
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.POULIS_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PoulisBlockEntityRenderer::new);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
