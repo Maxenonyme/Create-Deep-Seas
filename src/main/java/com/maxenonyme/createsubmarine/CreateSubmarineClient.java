@@ -114,11 +114,10 @@ public final class CreateSubmarineClient {
             event.addPackFinders(
                     ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "built_in_resourcepacks/connected-pressurizer-glass"),
                     PackType.CLIENT_RESOURCES,
-                    Component.literal("Connected Pressurizer Glass"),
+                    Component.translatable("create_submarine.resourcepack.connected_glass"),
                     PackSource.BUILT_IN,
                     false,
                     Pack.Position.TOP
-                     // Set to true if you want it forced on by default, false for optional
             );
         }
     }

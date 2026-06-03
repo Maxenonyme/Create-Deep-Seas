@@ -99,5 +99,6 @@
   "block.create_submarine.poulis": "Pulley",
   "entity.create_submarine.amphistium": "Amphistium",
   "item.create_submarine.amphistium_spawn_egg": "Amphistium Spawn Egg",
-  "itemGroup.create_submarine.abyss_tab": "Create Deep Seas"
+  "itemGroup.create_submarine.abyss_tab": "Create Deep Seas",
+  "create_submarine.resourcepack.connected_glass": "Connected Pressurizer Glass"
 }
