@@ -2,7 +2,7 @@
     "pack": {
         "pack_format": 18,
         "supported_formats": [18, 999],
-        "description": "Connected Pressurized Glass"
+        "description": "Requires Fusion mod to use."
     },
     "fusion": {
         "min_version": "1.2.11"
