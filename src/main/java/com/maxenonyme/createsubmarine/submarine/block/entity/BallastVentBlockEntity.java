@@ -252,7 +252,7 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
             double fx = cx + dir.getStepX() * 0.6;
             double fy = cy + dir.getStepY() * 0.6;
             double fz = cz + dir.getStepZ() * 0.6;
-            int count = 50;
+            int count = 5;
             double spread = 0.9;
             double speedMagnitude = 0.5;
             if (filling) {

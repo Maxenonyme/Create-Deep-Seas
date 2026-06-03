@@ -30,112 +30,33 @@ public class SteelCablePhysicsSystem {
 
     public static void onServerTick(ServerTickEvent.Post event) {
         for (Player player : event.getServer().getPlayerList().getPlayers()) {
-            if (player.isSpectator()) continue;
+            if (player.isSpectator())
+                continue;
+
+            if (player.level() instanceof ServerLevel sl) {
+                Vector3d pPos = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                collidePlayerWithCables(player, sl, pPos, null);
+            }
 
             UUID subId = SubLevelRegistry.findUUID(player.level());
             SubLevelAccess sub = subId != null ? SubLevelRegistry.getAll().get(subId) : null;
-            ServerLevel ropeSearchLevel = (player.level() instanceof ServerLevel sl) ? sl : null;
-
-            if (sub != null) {
-                Level parent = SubLevelRegistry.getLevel(subId);
-                if (parent instanceof ServerLevel sl) {
-                    ropeSearchLevel = sl;
-                }
-            }
-
-            if (ropeSearchLevel == null) continue;
-
-            ServerLevelRopeManager ropeManager = ServerLevelRopeManager.getOrCreate(ropeSearchLevel);
-            if (ropeManager == null) continue;
-
-            Vector3d pPos = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
-            if (sub != null) {
+            if (sub != null && SubLevelRegistry.getLevel(subId) instanceof ServerLevel parent) {
+                Vector3d pPos = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
                 sub.logicalPose().transformPosition(pPos);
-            }
-
-            for (ServerRopeStrand strand : ropeManager.getAllStrands()) {
-                if (!strand.isActive()) continue;
-                if (!isSteelCable(strand, ropeSearchLevel)) continue;
-
-                List<Vector3d> points = strand.getPoints();
-                for (int i = 0; i < points.size() - 1; i++) {
-                    Vector3d a = points.get(i);
-                    Vector3d b = points.get(i + 1);
-
-                     Vector3d c = getClosestPointOnSegment(a, b, pPos);
-                     double d = pPos.distance(c);
-
-                     double worldX = pPos.x;
-                     double worldZ = pPos.z;
-                     double worldFeetY = pPos.y - player.getBbHeight() / 2.0;
-                     double horizontalDist = Math.sqrt((worldX - c.x) * (worldX - c.x) + (worldZ - c.z) * (worldZ - c.z));
-                     double vertDiff = worldFeetY - c.y;
-
-                     if (horizontalDist < 0.4 && vertDiff >= -0.15 && vertDiff <= 0.45 && player.getDeltaMovement().y <= 0.05) {
-                         double targetWorldFeetY = c.y + 0.1;
-                         double pushY = targetWorldFeetY - worldFeetY;
-
-                         Vector3d pushVec = new Vector3d(0, pushY, 0);
-                         if (sub != null) {
-                             sub.logicalPose().orientation().conjugate(new Quaterniond()).transform(pushVec);
-                         }
-
-                         player.setPos(player.getX() + pushVec.x, player.getY() + pushVec.y, player.getZ() + pushVec.z);
-                         player.setDeltaMovement(player.getDeltaMovement().x, 0.0, player.getDeltaMovement().z);
-                         player.setOnGround(true);
-                         player.fallDistance = 0.0f;
-
-                         pPos.set(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
-                         if (sub != null) {
-                             sub.logicalPose().transformPosition(pPos);
-                         }
-                         continue;
-                     }
-
-                     double collisionLimit = 0.5;
-                     if (d < collisionLimit) {
-                         Vector3d push = new Vector3d(pPos).sub(c);
-                         double dist = push.length();
-                         if (dist < 1e-6) {
-                             push.set(0, 1, 0);
-                             dist = 1.0;
-                         }
-                         double overlap = collisionLimit - dist;
-                         push.normalize();
-
-                        Vector3d pushVec = new Vector3d(push).mul(overlap);
-                        if (sub != null) {
-                            sub.logicalPose().orientation().conjugate(new Quaterniond()).transform(pushVec);
-                        }
-
-                        player.setPos(player.getX() + pushVec.x, player.getY() + pushVec.y, player.getZ() + pushVec.z);
-
-                        net.minecraft.world.phys.Vec3 velocity = player.getDeltaMovement();
-                        Vector3d vel = new Vector3d(velocity.x, velocity.y, velocity.z);
-                        double dot = vel.dot(push);
-                        if (dot < 0) {
-                            vel.sub(new Vector3d(push).mul(dot));
-                        }
-                        vel.add(new Vector3d(push).mul(overlap * 0.8));
-                        player.setDeltaMovement(new net.minecraft.world.phys.Vec3(vel.x, vel.y, vel.z));
-                        player.hasImpulse = true;
-
-                        pPos.set(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
-                        if (sub != null) {
-                            sub.logicalPose().transformPosition(pPos);
-                        }
-                    }
-                }
+                collidePlayerWithCables(player, parent, pPos, sub);
             }
         }
 
         for (ServerLevel serverLevel : event.getServer().getAllLevels()) {
             ServerLevelRopeManager ropeManager = ServerLevelRopeManager.getOrCreate(serverLevel);
-            if (ropeManager == null) continue;
+            if (ropeManager == null)
+                continue;
 
             for (ServerRopeStrand strand : ropeManager.getAllStrands()) {
-                if (!strand.isActive()) continue;
-                if (!isSteelCable(strand, serverLevel)) continue;
+                if (!strand.isActive())
+                    continue;
+                if (!isSteelCable(strand, serverLevel))
+                    continue;
 
                 List<Vector3d> points = strand.getPoints();
                 for (int i = 0; i < points.size() - 1; i++) {
@@ -143,9 +64,8 @@ public class SteelCablePhysicsSystem {
                     Vector3d b = points.get(i + 1);
 
                     AABB segmentBox = new AABB(
-                        Math.min(a.x, b.x) - 1.0, Math.min(a.y, b.y) - 1.0, Math.min(a.z, b.z) - 1.0,
-                        Math.max(a.x, b.x) + 1.0, Math.max(a.y, b.y) + 1.0, Math.max(a.z, b.z) + 1.0
-                    );
+                            Math.min(a.x, b.x) - 1.0, Math.min(a.y, b.y) - 1.0, Math.min(a.z, b.z) - 1.0,
+                            Math.max(a.x, b.x) + 1.0, Math.max(a.y, b.y) + 1.0, Math.max(a.z, b.z) + 1.0);
 
                     for (Entity entity : serverLevel.getEntities((Entity) null, segmentBox,
                             e -> !(e instanceof Player) && e.isAlive() && !e.isPassenger())) {
@@ -156,24 +76,30 @@ public class SteelCablePhysicsSystem {
         }
 
         Map<UUID, OrientedBoundingBox3d> hulls = SubmarineHullManager.getActiveHulls();
-        if (hulls.isEmpty()) return;
+        if (hulls.isEmpty())
+            return;
 
         for (Map.Entry<UUID, OrientedBoundingBox3d> entry : hulls.entrySet()) {
             UUID id = entry.getKey();
-            if (com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.SLIDING_SUBLEVELS.contains(id)) {
+            if (com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.SLIDING_SUBLEVELS
+                    .contains(id)) {
                 continue;
             }
             OrientedBoundingBox3d obb = entry.getValue();
             SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
             Level parentLevel = SubLevelRegistry.getLevel(id);
-            if (sub == null || !(parentLevel instanceof ServerLevel serverLevel)) continue;
+            if (sub == null || !(parentLevel instanceof ServerLevel serverLevel))
+                continue;
 
             ServerLevelRopeManager ropeManager = ServerLevelRopeManager.getOrCreate(serverLevel);
-            if (ropeManager == null) continue;
+            if (ropeManager == null)
+                continue;
 
             for (ServerRopeStrand strand : ropeManager.getAllStrands()) {
-                if (!strand.isActive()) continue;
-                if (!isSteelCable(strand, serverLevel)) continue;
+                if (!strand.isActive())
+                    continue;
+                if (!isSteelCable(strand, serverLevel))
+                    continue;
 
                 List<Vector3d> points = strand.getPoints();
                 for (int i = 0; i < points.size() - 1; i++) {
@@ -181,6 +107,90 @@ public class SteelCablePhysicsSystem {
                     Vector3d b = points.get(i + 1);
 
                     checkSublevelCollision(sub, obb, a, b);
+                }
+            }
+        }
+    }
+
+    private static void collidePlayerWithCables(Player player, ServerLevel level, Vector3d pPos, SubLevelAccess sub) {
+        ServerLevelRopeManager ropeManager = ServerLevelRopeManager.getOrCreate(level);
+        if (ropeManager == null)
+            return;
+
+        for (ServerRopeStrand strand : ropeManager.getAllStrands()) {
+            if (!strand.isActive())
+                continue;
+            if (!isSteelCable(strand, level))
+                continue;
+
+            List<Vector3d> points = strand.getPoints();
+            for (int i = 0; i < points.size() - 1; i++) {
+                Vector3d a = points.get(i);
+                Vector3d b = points.get(i + 1);
+
+                Vector3d c = getClosestPointOnSegment(a, b, pPos);
+                double d = pPos.distance(c);
+
+                double worldX = pPos.x;
+                double worldZ = pPos.z;
+                double worldFeetY = pPos.y - player.getBbHeight() / 2.0;
+                double horizontalDist = Math.sqrt((worldX - c.x) * (worldX - c.x) + (worldZ - c.z) * (worldZ - c.z));
+                double vertDiff = worldFeetY - c.y;
+
+                if (horizontalDist < 0.4 && vertDiff >= -0.15 && vertDiff <= 0.45
+                        && player.getDeltaMovement().y <= 0.05) {
+                    double targetWorldFeetY = c.y + 0.1;
+                    double pushY = targetWorldFeetY - worldFeetY;
+
+                    Vector3d pushVec = new Vector3d(0, pushY, 0);
+                    if (sub != null) {
+                        sub.logicalPose().orientation().conjugate(new Quaterniond()).transform(pushVec);
+                    }
+
+                    player.setPos(player.getX() + pushVec.x, player.getY() + pushVec.y, player.getZ() + pushVec.z);
+                    player.setDeltaMovement(player.getDeltaMovement().x, 0.0, player.getDeltaMovement().z);
+                    player.setOnGround(true);
+                    player.fallDistance = 0.0f;
+
+                    pPos.set(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                    if (sub != null) {
+                        sub.logicalPose().transformPosition(pPos);
+                    }
+                    continue;
+                }
+
+                double collisionLimit = 0.5;
+                if (d < collisionLimit) {
+                    Vector3d push = new Vector3d(pPos).sub(c);
+                    double dist = push.length();
+                    if (dist < 1e-6) {
+                        push.set(0, 1, 0);
+                        dist = 1.0;
+                    }
+                    double overlap = collisionLimit - dist;
+                    push.normalize();
+
+                    Vector3d pushVec = new Vector3d(push).mul(overlap);
+                    if (sub != null) {
+                        sub.logicalPose().orientation().conjugate(new Quaterniond()).transform(pushVec);
+                    }
+
+                    player.setPos(player.getX() + pushVec.x, player.getY() + pushVec.y, player.getZ() + pushVec.z);
+
+                    net.minecraft.world.phys.Vec3 velocity = player.getDeltaMovement();
+                    Vector3d vel = new Vector3d(velocity.x, velocity.y, velocity.z);
+                    double dot = vel.dot(push);
+                    if (dot < 0) {
+                        vel.sub(new Vector3d(push).mul(dot));
+                    }
+                    vel.add(new Vector3d(push).mul(overlap * 0.8));
+                    player.setDeltaMovement(new net.minecraft.world.phys.Vec3(vel.x, vel.y, vel.z));
+                    player.hasImpulse = true;
+
+                    pPos.set(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                    if (sub != null) {
+                        sub.logicalPose().transformPosition(pPos);
+                    }
                 }
             }
         }
@@ -207,16 +217,21 @@ public class SteelCablePhysicsSystem {
         if (d < collisionLimit) {
             Vector3d push = new Vector3d(ePos).sub(c);
             double dist = push.length();
-            if (dist < 1e-6) { push.set(0, 1, 0); dist = 1.0; }
+            if (dist < 1e-6) {
+                push.set(0, 1, 0);
+                dist = 1.0;
+            }
             double overlap = collisionLimit - dist;
             push.normalize();
 
-            entity.setPos(entity.getX() + push.x * overlap, entity.getY() + push.y * overlap, entity.getZ() + push.z * overlap);
+            entity.setPos(entity.getX() + push.x * overlap, entity.getY() + push.y * overlap,
+                    entity.getZ() + push.z * overlap);
 
             net.minecraft.world.phys.Vec3 velocity = entity.getDeltaMovement();
             Vector3d vel = new Vector3d(velocity.x, velocity.y, velocity.z);
             double dot = vel.dot(push);
-            if (dot < 0) vel.sub(new Vector3d(push).mul(dot));
+            if (dot < 0)
+                vel.sub(new Vector3d(push).mul(dot));
             vel.add(new Vector3d(push).mul(overlap * 0.8));
             entity.setDeltaMovement(new net.minecraft.world.phys.Vec3(vel.x, vel.y, vel.z));
             entity.hasImpulse = true;

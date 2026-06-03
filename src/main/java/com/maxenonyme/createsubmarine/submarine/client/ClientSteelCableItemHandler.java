@@ -126,16 +126,29 @@ public class ClientSteelCableItemHandler {
         if (player.isSpectator()) return;
 
         dev.simulated_team.simulated.content.blocks.rope.strand.client.ClientLevelRopeManager ropeManager = dev.simulated_team.simulated.content.blocks.rope.strand.client.ClientLevelRopeManager.getOrCreate(level);
-        if (ropeManager == null) return;
+        if (ropeManager != null) {
+            org.joml.Vector3d pPos = new org.joml.Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+            collidePlayerWithCables(player, ropeManager, pPos, null);
+        }
 
         java.util.UUID subId = com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry.findUUID(player.level());
         dev.ryanhcode.sable.companion.SubLevelAccess sub = subId != null ? com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry.getAll().get(subId) : null;
-
-        org.joml.Vector3d pPos = new org.joml.Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
         if (sub != null) {
-            sub.logicalPose().transformPosition(pPos);
+            Level parent = com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry.getLevel(subId);
+            dev.simulated_team.simulated.content.blocks.rope.strand.client.ClientLevelRopeManager parentManager =
+                    parent != null ? dev.simulated_team.simulated.content.blocks.rope.strand.client.ClientLevelRopeManager.getOrCreate(parent) : null;
+            if (parentManager != null) {
+                org.joml.Vector3d pPos = new org.joml.Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                sub.logicalPose().transformPosition(pPos);
+                collidePlayerWithCables(player, parentManager, pPos, sub);
+            }
         }
+    }
 
+    private static void collidePlayerWithCables(Player player,
+                                                dev.simulated_team.simulated.content.blocks.rope.strand.client.ClientLevelRopeManager ropeManager,
+                                                org.joml.Vector3d pPos,
+                                                dev.ryanhcode.sable.companion.SubLevelAccess sub) {
         for (dev.simulated_team.simulated.content.blocks.rope.strand.client.ClientRopeStrand strand : ropeManager.getAllStrands()) {
             if (!(strand instanceof com.maxenonyme.createsubmarine.submarine.util.SteelCableHolderAccessor accessor) || !accessor.createsubmarine$isSteelCable()) {
                 continue;

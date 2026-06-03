@@ -179,13 +179,19 @@ public class HullStrengthConfigScreen extends Screen {
             g.drawString(this.font, text, leftWidth + (this.width - leftWidth - tw) / 2, this.height / 2, 0x88888888, false);
         } else {
             int rightX = leftWidth + 20;
-            g.renderFakeItem(new ItemStack(this.selectedBlock.block), rightX, 40);
+            renderBlockIcon(g, this.selectedBlock.block, rightX, 40);
             g.drawString(this.font, this.selectedBlock.name, rightX + 25, 44, 0xFFFFFFFF, false);
             g.drawString(this.font, Component.literal(this.selectedBlock.key), rightX, 65, 0x88888888, false);
 
             g.drawString(this.font, Component.literal("Max Water Depth (meters)"), rightX, 85, 0xFFAAAAAA, false);
             g.drawString(this.font, Component.literal("Implosion Chance (0.0 - 1.0)"), rightX, 135, 0xFFAAAAAA, false);
         }
+    }
+
+    private void renderBlockIcon(GuiGraphics g, Block block, int x, int y) {
+        try {
+            g.renderFakeItem(new ItemStack(block), x, y);
+        } catch (Exception ignored) {}
     }
 
     public class BlockList extends ObjectSelectionList<BlockEntry> {
@@ -231,7 +237,7 @@ public class HullStrengthConfigScreen extends Screen {
             } else if (isMouseOver) {
                 g.fill(left - 2, top - 2, left + width + 2, top + height + 2, 0x11FFFFFF);
             }
-            g.renderFakeItem(new ItemStack(this.block), left + 2, top + 2);
+            renderBlockIcon(g, this.block, left + 2, top + 2);
             g.drawString(font, this.name, left + 24, top + 6, 0xFFFFFFFF, false);
         }
 

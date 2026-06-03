@@ -32,12 +32,13 @@ public class DeepSeasWelcomeScreen extends Screen {
     }
 
     public static void onScreenOpening(ScreenEvent.Opening event) {
-        if (SubmarineConfig.WELCOME_SCREEN_SEEN.get()) {
+        if (!(event.getNewScreen() instanceof TitleScreen menu)) {
             return;
         }
-        if (event.getNewScreen() instanceof TitleScreen menu) {
-            event.setNewScreen(new DeepSeasWelcomeScreen(menu));
+        if (!SubmarineConfig.SPEC.isLoaded() || SubmarineConfig.WELCOME_SCREEN_SEEN.get()) {
+            return;
         }
+        event.setNewScreen(new DeepSeasWelcomeScreen(menu));
     }
 
     @Override

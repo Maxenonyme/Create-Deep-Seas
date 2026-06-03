@@ -11,7 +11,16 @@
     "foliage_color": 0,
     "ambient_sound": "minecraft:ambient.underwater.loop"
   },
-  "spawners": {},
+  "spawners": {
+    "water_ambient": [
+      {
+        "type": "create_submarine:amphistium",
+        "weight": 80,
+        "minCount": 4,
+        "maxCount": 6
+      }
+    ]
+  },
   "spawn_costs": {},
   "features": [],
   "carvers": {}

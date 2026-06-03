@@ -15,7 +15,7 @@ public final class EntityRegistry {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, CreateSubmarine.MOD_ID);
 
     public static final Supplier<EntityType<AmphistiumEntity>> AMPHISTIUM = ENTITY_TYPES.register("amphistium",
-            () -> EntityType.Builder.of(AmphistiumEntity::new, MobCategory.WATER_CREATURE)
+            () -> EntityType.Builder.of(AmphistiumEntity::new, MobCategory.WATER_AMBIENT)
                     .sized(0.6F, 0.4F)
                     .clientTrackingRange(4)
                     .build("amphistium"));
@@ -26,9 +26,20 @@ public final class EntityRegistry {
     public static void init(IEventBus modEventBus) {
         ENTITY_TYPES.register(modEventBus);
         modEventBus.addListener(EntityRegistry::registerAttributes);
+        modEventBus.addListener(EntityRegistry::registerSpawnPlacements);
     }
 
     public static void registerAttributes(EntityAttributeCreationEvent event) {
         event.put(AMPHISTIUM.get(), AmphistiumEntity.createAttributes().build());
+    }
+
+    public static void registerSpawnPlacements(net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent event) {
+        event.register(
+                AMPHISTIUM.get(),
+                net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
+                net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                AmphistiumEntity::checkSpawnRules,
+                net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
+        );
     }
 }

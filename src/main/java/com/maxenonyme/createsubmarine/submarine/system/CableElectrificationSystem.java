@@ -15,7 +15,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.energy.EnergyStorage;
@@ -24,12 +23,14 @@ import org.joml.Vector3d;
 
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 public class CableElectrificationSystem {
 
-    public static final WeakHashMap<RopeWinchBlockEntity, EnergyStorage> WINCH_ENERGY = new WeakHashMap<>();
+    public static final Map<RopeWinchBlockEntity, EnergyStorage> WINCH_ENERGY = Collections.synchronizedMap(new WeakHashMap<>());
 
     private static final int FE_CAPACITY = 10000;
     private static final int FE_DRAIN_PER_TICK = 50;
@@ -128,17 +129,19 @@ public class CableElectrificationSystem {
         for (Player player : server.getPlayerList().getPlayers()) {
             if (player.isSpectator() || !player.isAlive()) continue;
 
+            if (player.level() == level) {
+                Vector3d worldPos = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                tryDamage(level, player, worldPos, points);
+                continue;
+            }
+
             java.util.UUID subId = SubLevelRegistry.findUUID(player.level());
             SubLevelAccess sub = subId != null ? SubLevelRegistry.getAll().get(subId) : null;
-            Level parentLevel = sub != null ? SubLevelRegistry.getLevel(subId) : player.level();
-
-            if (parentLevel != level) continue;
-
-            Vector3d worldPos = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
-            if (sub != null) {
+            if (sub != null && SubLevelRegistry.getLevel(subId) == level) {
+                Vector3d worldPos = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
                 sub.logicalPose().transformPosition(worldPos);
+                tryDamage(level, player, worldPos, points);
             }
-            tryDamage(level, player, worldPos, points);
         }
     }
 

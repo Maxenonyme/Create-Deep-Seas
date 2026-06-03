@@ -46,7 +46,7 @@ public class Amphistium<T extends AmphistiumEntity> extends HierarchicalModel<T>
         PartDefinition anglerfish = partdefinition.addOrReplaceChild("anglerfish", CubeListBuilder.create(), PartPose.offset(0.0F, 26.0F, 0.0F));
 
         PartDefinition body = anglerfish.addOrReplaceChild("body", CubeListBuilder.create().texOffs(12, 26).addBox(-1.5F, -1.0F, 1.0F, 3.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
-        .texOffs(0, 29).addBox(0.0F, -5.0F, 1.0F, 0.0F, 4.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, -5.0F, -4.0F));
+        .texOffs(0, 29).addBox(0.0F, -5.0F, 1.0F, 0.0F, 4.0F, 2.0F, new CubeDeformation(0.01F)), PartPose.offset(0.0F, -5.0F, -4.0F));
 
         PartDefinition head = body.addOrReplaceChild("head", CubeListBuilder.create().texOffs(16, 18).addBox(-1.5F, -3.0F, -3.0F, 3.0F, 5.0F, 3.0F, new CubeDeformation(0.0F))
         .texOffs(0, 24).addBox(-1.5F, -3.0F, -6.0F, 3.0F, 2.0F, 3.0F, new CubeDeformation(0.0F))
@@ -57,13 +57,13 @@ public class Amphistium<T extends AmphistiumEntity> extends HierarchicalModel<T>
 
         PartDefinition lower_fins = head.addOrReplaceChild("lower_fins", CubeListBuilder.create(), PartPose.offset(0.0F, 0.0F, -1.0F));
 
-        PartDefinition r = lower_fins.addOrReplaceChild("r", CubeListBuilder.create().texOffs(28, 18).addBox(-0.01F, 0.0F, -1.0F, 0.0F, 4.0F, 3.0F, new CubeDeformation(0.0F)), PartPose.offset(-1.5F, 0.0F, 0.0F));
+        PartDefinition r = lower_fins.addOrReplaceChild("r", CubeListBuilder.create().texOffs(28, 18).addBox(-0.01F, 0.0F, -1.0F, 0.0F, 4.0F, 3.0F, new CubeDeformation(0.01F)), PartPose.offset(-1.5F, 0.0F, 0.0F));
 
-        PartDefinition l = lower_fins.addOrReplaceChild("l", CubeListBuilder.create().texOffs(28, 0).addBox(0.01F, 0.0F, -1.0F, 0.0F, 4.0F, 3.0F, new CubeDeformation(0.0F)), PartPose.offset(1.5F, 0.0F, 0.0F));
+        PartDefinition l = lower_fins.addOrReplaceChild("l", CubeListBuilder.create().texOffs(28, 0).addBox(0.01F, 0.0F, -1.0F, 0.0F, 4.0F, 3.0F, new CubeDeformation(0.01F)), PartPose.offset(1.5F, 0.0F, 0.0F));
 
-        PartDefinition bone2 = head.addOrReplaceChild("bone2", CubeListBuilder.create().texOffs(14, 0).addBox(0.0F, -4.0F, -5.0F, 0.0F, 4.0F, 7.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, -2.0F, -4.0F));
+        PartDefinition bone2 = head.addOrReplaceChild("bone2", CubeListBuilder.create().texOffs(14, 0).addBox(0.0F, -4.0F, -5.0F, 0.0F, 4.0F, 7.0F, new CubeDeformation(0.01F)), PartPose.offset(0.0F, -2.0F, -4.0F));
 
-        PartDefinition tail_fin = body.addOrReplaceChild("tail_fin", CubeListBuilder.create().texOffs(0, 0).addBox(0.0F, -5.0F, 0.0F, 0.0F, 10.0F, 7.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 1.0F, 3.0F));
+        PartDefinition tail_fin = body.addOrReplaceChild("tail_fin", CubeListBuilder.create().texOffs(0, 0).addBox(0.0F, -5.0F, 0.0F, 0.0F, 10.0F, 7.0F, new CubeDeformation(0.01F)), PartPose.offset(0.0F, 1.0F, 3.0F));
 
         return LayerDefinition.create(meshdefinition, 64, 64);
     }
