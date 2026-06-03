@@ -121,6 +121,7 @@ dependencies {
         }
     }
     localRuntime "maven.modrinth:lithostitched:1.4.8-neoforge-1.21"
+    implementation files("libs/sable-neoforge-1.21.1-1.2.2.jar")
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

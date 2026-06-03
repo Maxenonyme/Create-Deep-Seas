@@ -12,7 +12,7 @@ public class WatermarkOverlay {
             Minecraft mc = Minecraft.getInstance();
             if (mc.options.hideGui || FMLEnvironment.production) return;
             
-            String text = "[Create Deep Seas: In devloppement]";
+            String text = "[Create Deep Seas: In development]";
             int x = 10;
             int y = guiGraphics.guiHeight() - 15;
             

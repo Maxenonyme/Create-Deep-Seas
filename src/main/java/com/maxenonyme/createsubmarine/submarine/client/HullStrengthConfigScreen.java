@@ -34,7 +34,7 @@ public class HullStrengthConfigScreen extends Screen {
     private Button btnApply;
 
     public HullStrengthConfigScreen(ModContainer modContainer, Screen parentScreen) {
-        super(Component.literal("Hull Strength Config"));
+        super(Component.translatable("create_submarine.screen.hull_strength_config.title"));
         this.modContainer = modContainer;
         this.parentScreen = parentScreen;
         this.editedValues.putAll(HullStrengthConfig.getValues());
@@ -65,21 +65,21 @@ public class HullStrengthConfigScreen extends Screen {
         this.implosionBox.visible = false;
         this.addRenderableWidget(this.implosionBox);
 
-        this.btnApply = Button.builder(Component.literal("Apply Changes"), this::onApply)
+        this.btnApply = Button.builder(Component.translatable("create_submarine.ui.button.apply_changes"), this::onApply)
                 .bounds(rightX, 185, rightWidth, 20)
                 .build();
         this.btnApply.visible = false;
         this.addRenderableWidget(this.btnApply);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Global Settings"), btn -> this.minecraft.setScreen(new ConfigurationScreen(this.modContainer, this)))
+        this.addRenderableWidget(Button.builder(Component.translatable("create_submarine.ui.button.global_settings"), btn -> this.minecraft.setScreen(new ConfigurationScreen(this.modContainer, this)))
                 .bounds(10, this.height - 30, leftWidth - 20, 20)
                 .build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("Save & Exit"), btn -> this.onSave())
+        this.addRenderableWidget(Button.builder(Component.translatable("create_submarine.ui.button.save_exit"), btn -> this.onSave())
                 .bounds(this.width - 210, this.height - 30, 95, 20)
                 .build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("Cancel"), btn -> this.onCancel())
+        this.addRenderableWidget(Button.builder(Component.translatable("create_submarine.ui.button.cancel"), btn -> this.onCancel())
                 .bounds(this.width - 105, this.height - 30, 95, 20)
                 .build());
 
@@ -174,7 +174,7 @@ public class HullStrengthConfigScreen extends Screen {
         g.fill(leftWidth, 30, leftWidth + 1, this.height - 40, 0x44FFFFFF);
 
         if (this.selectedBlock == null) {
-            String text = "Select a block to edit its properties";
+            String text = Component.translatable("create_submarine.ui.text.select_block_tip").getString();
             int tw = this.font.width(text);
             g.drawString(this.font, text, leftWidth + (this.width - leftWidth - tw) / 2, this.height / 2, 0x88888888, false);
         } else {
@@ -183,8 +183,8 @@ public class HullStrengthConfigScreen extends Screen {
             g.drawString(this.font, this.selectedBlock.name, rightX + 25, 44, 0xFFFFFFFF, false);
             g.drawString(this.font, Component.literal(this.selectedBlock.key), rightX, 65, 0x88888888, false);
 
-            g.drawString(this.font, Component.literal("Max Water Depth (meters)"), rightX, 85, 0xFFAAAAAA, false);
-            g.drawString(this.font, Component.literal("Implosion Chance (0.0 - 1.0)"), rightX, 135, 0xFFAAAAAA, false);
+            g.drawString(this.font, Component.translatable("create_submarine.ui.text.max_water_depth"), rightX, 85, 0xFFAAAAAA, false);
+            g.drawString(this.font, Component.translatable("create_submarine.ui.text.implosion_chance"), rightX, 135, 0xFFAAAAAA, false);
         }
     }
 
