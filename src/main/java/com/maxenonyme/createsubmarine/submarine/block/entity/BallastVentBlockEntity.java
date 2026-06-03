@@ -78,7 +78,6 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
                 .get();
         int transferRate = (int) (baseTransferRate * speedMultiplier * rateMult);
 
-        // It doesn't want to work :(
         int minRateForFullTransfer = (int) Math.ceil((double) totalCapacity / 600.0);
         transferRate = Math.max(transferRate, minRateForFullTransfer);
 

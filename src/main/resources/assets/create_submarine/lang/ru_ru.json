@@ -11,7 +11,7 @@
   "block.create_submarine.ballast_vent": "Клапан Балласта",
   "block.create_submarine.oxygene_diffuser": "Кислородный Диффузор",
   "block.create_submarine.electrolyzer": "Электролизёр",
-  "create_submarine.simulated_section.submarine": "Акватика",
+  "create_submarine.simulated_section.submarine": "Deep Seas",
   "create_submarine.gui.goggles.ballast_status": "Информация о цистерне балласта",
   "create_submarine.gui.goggles.water": "Вода",
   "create_submarine.gui.goggles.air": "Воздух",

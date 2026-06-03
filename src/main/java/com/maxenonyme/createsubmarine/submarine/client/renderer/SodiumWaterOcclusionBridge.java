@@ -12,7 +12,6 @@ import org.lwjgl.opengl.GL20;
 import java.util.HashMap;
 import java.util.Map;
 
-// It seems there are more ways to optimize it, but my brain is about to explode, I HATE SODIUM !!!
 
 public final class SodiumWaterOcclusionBridge {
     public static final int CLOSE_TEXTURE_UNIT = 6;

@@ -10,4 +10,3 @@ public class LevelReusedVectors {
     public final Vector3d tempVert5 = new Vector3d();
     public final Vector3d tempVert6 = new Vector3d();
 }
-//I forgot to plug it in, too lazy if someone wants to do it
