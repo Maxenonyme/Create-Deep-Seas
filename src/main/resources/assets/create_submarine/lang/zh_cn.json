@@ -113,7 +113,7 @@
 
 "create_submarine.configuration.experimental": "实验",
 "create_submarine.configuration.experimental.button": "实验",
-"create_submarine.configuration.experimental.tooltip": "实验性内容，可能导致游戏崩溃。",
+"create_submarine.configuration.experimental.tooltip": "实验性内容，可能无法正常工作。",
 
 "create_submarine.configuration.enablePermanentWaterCullingTest": "永久水体剔除测试",
 "create_submarine.configuration.enablePermanentWaterCullingTest.tooltip": "启用对潜艇和船只生效的实验性永久水体剔除测试。",
