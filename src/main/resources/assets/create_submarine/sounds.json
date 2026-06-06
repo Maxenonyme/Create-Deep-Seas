@@ -22,5 +22,21 @@
                 "stream": false
             }
         ]
+    },
+    "explosionunderwater": {
+        "sounds": [
+            {
+                "name": "create_submarine:explosionunderwater",
+                "stream": false
+            }
+        ]
+    },
+    "impact_explosion_03": {
+        "sounds": [
+            {
+                "name": "create_submarine:impact_explosion_03",
+                "stream": false
+            }
+        ]
     }
 }

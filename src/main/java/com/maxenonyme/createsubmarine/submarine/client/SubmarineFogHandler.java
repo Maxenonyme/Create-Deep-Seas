@@ -32,7 +32,7 @@ public class SubmarineFogHandler {
             return;
         }
         SubmarineWaterCullBuffer.syncSubmarinePoses();
-        cachedShouldFog = computeShouldFog(mc.level, player.getEyePosition());
+        cachedShouldFog = false;
     }
 
     @SubscribeEvent
@@ -74,8 +74,10 @@ public class SubmarineFogHandler {
         int z = (int) Math.floor(probePos.z);
         int startY = (int) Math.floor(probePos.y);
         int endY = level.getMaxBuildHeight();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         for (int y = startY; y <= endY; y++) {
-            if (CompartmentTracker.isOccluded(level, new BlockPos(x, y, z))) continue;
+            cursor.set(x, y, z);
+            if (CompartmentTracker.isOccluded(level, cursor)) continue;
             return isWaterAt(level, x, y, z);
         }
         return false;

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "R": {
+      "item": "simulated:rope_coupling"
+    },
+    "I": {
+      "item": "create:iron_sheet"
+    },
+    "S": {
+      "item": "simulated:spring"
+    }
+  },
+  "pattern": [
+    "   ",
+    "IRI",
+    "ISI"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:steel_cable"
+  }
+}

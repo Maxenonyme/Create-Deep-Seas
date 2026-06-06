@@ -43,13 +43,13 @@ public class CameraShake {
                 if (mc.player != null && !mc.isPaused()) {
                     float progress = maxShakeTicks > 0 ? (float) shakeTicks / maxShakeTicks : 1.0f;
                     float currentIntensity = shakeIntensity * progress;
-                    
+
                     float time = mc.player.tickCount + (float) event.getPartialTick();
-                    
+
                     float pitchShake = Mth.sin(time * 2.5F) * currentIntensity;
                     float yawShake = Mth.cos(time * 3.1F) * currentIntensity;
                     float rollShake = Mth.sin(time * 3.7F) * currentIntensity;
-                    
+
                     event.setPitch(event.getPitch() + pitchShake);
                     event.setYaw(event.getYaw() + yawShake);
                     event.setRoll(event.getRoll() + rollShake);

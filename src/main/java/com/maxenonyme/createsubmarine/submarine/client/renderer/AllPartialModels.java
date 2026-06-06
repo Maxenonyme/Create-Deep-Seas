@@ -12,6 +12,10 @@ public class AllPartialModels {
     public static final PartialModel POULIS_CORE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/poulis_core"));
     public static final PartialModel WINCH_STEEL_COIL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil"));
     public static final PartialModel CONNECTOR_STEEL_KNOT = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/connector_steel_knot"));
+    public static final PartialModel SUBMARINE_PROPELLER = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller"));
+    public static final PartialModel SUBMARINE_PROPELLER_REVERSED = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_reversed"));
+    public static final PartialModel SUBMARINE_PROPELLER_CONTRA = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_contra"));
+    public static final PartialModel SUBMARINE_PROPELLER_REVERSED_CONTRA = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_reversed_contra"));
 
     public static final SpriteShiftEntry WINCH_STEEL_COIL_SCROLL = SpriteShifter.get(
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil"),

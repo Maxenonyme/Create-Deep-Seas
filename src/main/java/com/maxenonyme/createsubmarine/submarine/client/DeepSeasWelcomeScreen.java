@@ -35,7 +35,10 @@ public class DeepSeasWelcomeScreen extends Screen {
         if (!(event.getNewScreen() instanceof TitleScreen menu)) {
             return;
         }
-        if (!SubmarineConfig.SPEC.isLoaded() || SubmarineConfig.WELCOME_SCREEN_SEEN.get()) {
+        if (!SubmarineConfig.SPEC.isLoaded() || com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.hasSeenWelcomeScreen()) {
+            return;
+        }
+        if (SubmarineConfig.DISABLE_STARTUP_SCREENS.get()) {
             return;
         }
         event.setNewScreen(new DeepSeasWelcomeScreen(menu));
@@ -91,8 +94,7 @@ public class DeepSeasWelcomeScreen extends Screen {
     }
 
     private void acknowledge() {
-        SubmarineConfig.WELCOME_SCREEN_SEEN.set(true);
-        SubmarineConfig.WELCOME_SCREEN_SEEN.save();
+        com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.setWelcomeScreenSeen(true);
     }
 
     private void openConfig() {

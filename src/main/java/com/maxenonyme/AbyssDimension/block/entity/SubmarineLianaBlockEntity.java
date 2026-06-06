@@ -320,10 +320,10 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
                         seedSub = (ServerSubLevel) container.getSubLevel(seedId);
                     }
                     if (seedSub != null && seedSub.getPlot() != null) {
-                        // The seed sublevel can load before this segment and fall under gravity; a
-                        // joint created then would lock it at the fallen spot. Snap it back to its
-                        // rest offset from the segment (zeroing velocity) before binding, so it always
-                        // reattaches where it belongs regardless of chunk load order.
+
+
+
+
                         if (seedOffset != null) {
                             Vector3d seedTarget = new Vector3d(subLevel.logicalPose().position()).add(seedOffset);
                             RigidBodyHandle seedHandle = RigidBodyHandle.of(seedSub);
@@ -484,13 +484,13 @@ public class SubmarineLianaBlockEntity extends BlockEntity implements BlockEntit
         handle.applyForcesAndReset(forceTotal);
     }
 
-    // Topology (controller/parent/ground/attachment) is owned by
-    // PlantPhysicsRegistry, not the
-    // block entity NBT: a segment holds one BE per stacked block and the
-    // embedded-level lookup that
-    // would set those fields at spawn isn't reliable, so the NBT copy was always
-    // empty. Only the
-    // rendered light level lives on the BE itself.
+
+
+
+
+
+
+
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);

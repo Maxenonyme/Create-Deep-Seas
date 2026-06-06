@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3d;
 import java.util.UUID;
 public class HullControllerBlockEntity extends BlockEntity {
-    private static final int SCAN_BUDGET = 1500;
+
     private UUID currentSubLevelId = null;
     private boolean subLevelRegistered = false;
     public HullControllerBlockEntity(BlockPos pos, BlockState state) {
@@ -33,11 +33,11 @@ public class HullControllerBlockEntity extends BlockEntity {
                 return;
             }
             if (!CompartmentTracker.isScanActive(currentSubLevelId)
-                    && gameTick - CompartmentTracker.lastUpdateTick(currentSubLevelId) >= 20) {
+                    && gameTick - CompartmentTracker.lastUpdateTick(currentSubLevelId) >= getDynamicScanDelay()) {
                 CompartmentTracker.beginScanIfIdle(currentSubLevelId, sub);
             }
             if (CompartmentTracker.isScanActive(currentSubLevelId)) {
-                boolean done = CompartmentTracker.stepScan(currentSubLevelId, sub, SCAN_BUDGET, gameTick);
+                boolean done = CompartmentTracker.stepScan(currentSubLevelId, sub, getDynamicScanBudget(), gameTick);
                 if (done && !level.isClientSide) {
                     SubmarinePressureSystem.setSealedCompartments(
                         currentSubLevelId, CompartmentTracker.getCompartments(currentSubLevelId));
@@ -66,6 +66,24 @@ public class HullControllerBlockEntity extends BlockEntity {
             currentSubLevelId = null;
             subLevelRegistered = false;
         }
+    }
+
+    private int getDynamicScanDelay() {
+        if (level == null) return 20;
+        if (level.isClientSide) {
+            return 2;
+        }
+        net.minecraft.server.MinecraftServer server = level.getServer();
+        if (server != null) {
+            int players = server.getPlayerCount();
+            if (players <= 1) return 1;
+            return Math.min(40, players * 5);
+        }
+        return 20;
+    }
+
+    private int getDynamicScanBudget() {
+        return 1500;
     }
 
     private void releaseDriver() {

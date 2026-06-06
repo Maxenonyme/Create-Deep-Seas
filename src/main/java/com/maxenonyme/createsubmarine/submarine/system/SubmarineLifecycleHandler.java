@@ -27,6 +27,7 @@ public final class SubmarineLifecycleHandler {
         CompartmentTracker.clearAll();
         SubmarineDriverRegistry.clearAll();
         SubmarineInteractionSystem.clearAll();
+        com.maxenonyme.createsubmarine.submarine.block.entity.UnderwaterMineBlockEntity.clearAll();
     }
 
     public static void onLevelUnload(LevelEvent.Unload event) {

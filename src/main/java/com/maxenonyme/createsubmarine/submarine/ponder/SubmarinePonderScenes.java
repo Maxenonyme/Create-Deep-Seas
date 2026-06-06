@@ -482,11 +482,11 @@ public class SubmarinePonderScenes {
                         .add(util.select().fromTo(4, 3, 0, 12, 6, 4))
                         .add(util.select().fromTo(1, 4, 0, 3, 6, 4))
                         .add(util.select().fromTo(1, 3, 0, 3, 3, 1))
-                        .add(util.select().fromTo(1, 3, 3, 3, 3, 4));                         
+                        .add(util.select().fromTo(1, 3, 3, 3, 3, 4));
                 scene.world().showSection(worldWithoutPulleys, Direction.UP);
                 scene.idle(20);
 
-             
+
                 net.minecraft.world.phys.Vec3 from = new net.minecraft.world.phys.Vec3(0.5, 4.0, 2.5);
                 net.minecraft.world.phys.Vec3 to   = new net.minecraft.world.phys.Vec3(12.5, 4.0, 2.5);
                 SteelCablePonderElement rope = new SteelCablePonderElement(from, to, 12.0, 0.3, 1.0f);
@@ -495,7 +495,7 @@ public class SubmarinePonderScenes {
 
                 scene.idle(10);
 
-               
+
                 net.minecraft.core.BlockPos posA = util.grid().at(1, 3, 2);
                 net.minecraft.core.BlockPos posB = util.grid().at(3, 3, 2);
                 scene.world().setBlock(posA,
@@ -524,7 +524,7 @@ public class SubmarinePonderScenes {
 
                 scene.idle(30);
 
-                
+
                 final float anglePerTick = (float)(0.08 / 0.6875);
                 scene.world().moveSection(pulleySection, new net.minecraft.world.phys.Vec3(8, 0, 0), 100);
                 for (int i = 0; i < 100; i++) {

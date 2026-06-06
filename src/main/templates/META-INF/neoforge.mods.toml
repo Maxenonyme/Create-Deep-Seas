@@ -23,7 +23,7 @@ config="abyss.mixins.json"
 
 [[dependencies.${mod_id}]]
     modId="lithostitched"
-    type="required"
+    type="optional"
     versionRange="[1.4.8,)"
     ordering="AFTER"
     side="BOTH"
@@ -60,6 +60,13 @@ config="abyss.mixins.json"
     modId="sable"
     type="required"
     versionRange="${sable_version_range}"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="aeronautics"
+    type="required"
+    versionRange="[1.1.3,)"
     ordering="AFTER"
     side="BOTH"
 

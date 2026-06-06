@@ -1,0 +1,26 @@
+modLoader = "lowcodefml" #mandatory
+loaderVersion = "[4,)" #mandatory
+license = "Read attached LICENSE.md" # Review your options at https://choosealicense.com/.
+#issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
+[[mods]] #mandatory
+modId = "aeronautics_bundled" #mandatory
+version = "1.2.1" #mandatory
+displayName = "Create Aeronautics" #mandatory
+#updateJSONURL="https://change.me.example.invalid/updates.json" #optional, see https://docs.neoforged.net/docs/misc/updatechecker/
+#displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional, displayed in the mod UI
+logoFile = "aeronautics_bundled.png" #optional
+credits = "" #optional
+authors = "Simulated Team" #optional
+description = '''Expands the Create mod with physics-based contraptions, to build anything from cars to planes. This is a bundled JAR that contains Simulated, Aeronautics, and Offroad.''' #mandatory Supports multiline text
+[[dependencies."aeronautics_bundled"]] #optional
+modId = "neoforge" #mandatory
+type = "required" #mandatory Can be one of "required", "optional", "incompatible" or "discouraged"
+versionRange = "[21.1.219,)" #mandatory
+ordering = "NONE" # The order that this dependency should load in relation to your mod, required to be either 'BEFORE' or 'AFTER' if the dependency is not mandatory
+side = "BOTH" # Side this dependency is applied on - 'BOTH', 'CLIENT' or 'SERVER'
+[[dependencies."aeronautics_bundled"]]
+modId = "minecraft"
+type = "required" #mandatory Can be one of "required", "optional", "incompatible" or "discouraged"
+versionRange = "[1.21.1]"
+ordering = "NONE"
+side = "BOTH"

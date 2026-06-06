@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "create:industrial_iron_block"
+    },
+    "T": {
+      "item": "minecraft:tnt"
+    },
+    "L": {
+      "item": "minecraft:lodestone"
+    }
+  },
+  "pattern": [
+    "CTC",
+    "TLT",
+    "CTC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:underwater_mine"
+  }
+}

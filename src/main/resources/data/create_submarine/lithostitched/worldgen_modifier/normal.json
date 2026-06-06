@@ -1,4 +1,10 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "create_submarine:config_enabled",
+      "config_key": "enableDeeperOceans"
+    }
+  ],
   "type": "lithostitched:wrap_density_function",
   "target_function": "minecraft:overworld/offset",
   "wrapper_function": {

@@ -31,29 +31,34 @@ public class SubmarineDriverRegistry {
         Map<BlockPos, Claim> subClaims = CLAIMS.get(id);
         if (subClaims == null) return true;
         subClaims.remove(pos.immutable());
-        boolean anyFresh = false;
-        for (Claim c : subClaims.values()) {
-            if (tick - c.lastTick() <= STALE_TICKS) {
-                anyFresh = true;
-                break;
-            }
+        subClaims.values().removeIf(c -> isStale(c, tick));
+        if (subClaims.isEmpty()) {
+            CLAIMS.remove(id);
+            return true;
         }
-        if (subClaims.isEmpty()) CLAIMS.remove(id);
-        return !anyFresh;
+        return false;
     }
 
     private static Claim bestClaim(UUID id, long tick) {
         Map<BlockPos, Claim> subClaims = CLAIMS.get(id);
         if (subClaims == null) return null;
+        subClaims.values().removeIf(c -> isStale(c, tick));
+        if (subClaims.isEmpty()) {
+            CLAIMS.remove(id);
+            return null;
+        }
         Claim best = null;
         for (Claim c : subClaims.values()) {
-            if (tick - c.lastTick() > STALE_TICKS) continue;
             if (best == null || c.priority() > best.priority()
                     || (c.priority() == best.priority() && lex(c.pos(), best.pos()) < 0)) {
                 best = c;
             }
         }
         return best;
+    }
+
+    private static boolean isStale(Claim c, long tick) {
+        return tick < c.lastTick() || tick - c.lastTick() > STALE_TICKS;
     }
 
     private static int lex(BlockPos a, BlockPos b) {

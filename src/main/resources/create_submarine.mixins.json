@@ -9,6 +9,10 @@
     "RopeStrandHolderBehaviorMixin",
     "ServerRopeStrandMixin",
     "RapierVoxelColliderBakeryMixin",
+    "RopeWinchBlockEntityMixin",
+    "RopeConnectorBlockEntityMixin",
+    "SmartBlockEntityMixin",
+    "EntityWaterPhysicsMixin",
     "compat.SablePhysicsCrashFixMixin"
   ],
   "client": [
@@ -30,6 +34,7 @@
     "compat.SodiumBlockRendererMixin",
     "compat.VeilShaderIncludeFixMixin",
     "compat.sable.VanillaSubLevelRenderDispatcherMixin",
+    "compat.sable.SableWaterOcclusionPreProcessorMixin",
     "compat.sable.SableSnapshotPacketMixin",
     "compat.sable.SableStartTrackingPacketMixin"
   ],

@@ -70,7 +70,6 @@ public class PDAManager {
         if (text == null) {
             text = "";
         }
-        com.maxenonyme.createsubmarine.CreateSubmarine.LOGGER.info("queuePDACommand Triggered: {}", text);
         pendingText = text;
         pendingSound = sound;
         pendingAudioDurationMs = audioDurationMs;
@@ -82,7 +81,6 @@ public class PDAManager {
         if (text == null) {
             text = "";
         }
-        com.maxenonyme.createsubmarine.CreateSubmarine.LOGGER.info("startDialogue Triggered: {}", text);
         activeText = text;
         typedCharsCount = 0;
         ticksSinceFinished = 0;

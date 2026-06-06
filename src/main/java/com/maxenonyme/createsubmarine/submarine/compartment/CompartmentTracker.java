@@ -263,7 +263,7 @@ public class CompartmentTracker {
 
     @Nullable
     public static FluidState getLiedFluidState(Level level, BlockPos worldPos) {
-        return isOccluded(level, worldPos) ? Fluids.EMPTY.defaultFluidState() : null;
+        return null;
     }
 
     public static FluidState realFluidState(Level level, BlockPos pos) {

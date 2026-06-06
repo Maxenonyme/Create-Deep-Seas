@@ -31,3 +31,4 @@ replay_pid*
 /.gradle
 /bin
 /.eclipse
+/sodium_shaders

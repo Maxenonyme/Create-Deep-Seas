@@ -11,23 +11,13 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Per-dimension persistence for physics-driven plants (lianas today, other plants later).
- *
- * A plant is a chain of physics sublevels: each "segment" sublevel is anchored either to the world
- * (the root) or to its parent segment, and may carry one attachment sublevel (a fruit/seed). Sable
- * never serialises its physics joints, so on reload a segment has to rebuild every joint from
- * scratch — and the segment's own BlockEntity NBT can't be trusted for that (a segment holds one
- * BlockEntity per stacked block, only one of which is the driver). This registry is the single
- * source of truth that lets each segment recover its role and neighbours, keyed by the segment's
- * plot position, which is stable across save/load.
- */
+
 public class PlantPhysicsRegistry extends SavedData {
     private static final String NAME = "plant_physics_registry";
 
     public record PlotKey(int x, int z) {}
 
-    /** Everything a plant segment needs to rebuild itself after a reload. */
+
     public record SegmentData(
             int plotX, int plotZ,
             boolean root,

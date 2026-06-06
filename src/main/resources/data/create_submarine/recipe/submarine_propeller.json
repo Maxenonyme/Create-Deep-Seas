@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": {
+      "item": "create:propeller"
+    },
+    "I": {
+      "item": "create:industrial_iron_block"
+    },
+    "S": {
+      "item": "create:shaft"
+    }
+  },
+  "pattern": [
+    " P ",
+    " I ",
+    " S "
+  ],
+  "result": {
+    "id": "create_submarine:submarine_propeller",
+    "count": 1
+  }
+}

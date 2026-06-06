@@ -1,6 +1,7 @@
 {
   "parent": "block/block",
   "textures": {
+    "particle": "create_submarine:block/rockcutting_base",
     "base": "create_submarine:block/rockcutting_base",
     "wheel": "create_submarine:block/splinewheel"
   },

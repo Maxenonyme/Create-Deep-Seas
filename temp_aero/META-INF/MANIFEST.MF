@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Specification-Title: Create Aeronautics
+Specification-Vendor: Simulated Team
+Specification-Version: 1.2.1
+Implementation-Title: aeronautics-bundled
+Implementation-Version: 1.2.1
+Implementation-Vendor: Simulated Team
+Built-On-Minecraft: 1.21.1
+

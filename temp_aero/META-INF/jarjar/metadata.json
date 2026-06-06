@@ -1,0 +1,40 @@
+{
+  "jars": [
+    {
+      "identifier": {
+        "group": "dev.eriksonn.aeronautics",
+        "artifact": "aeronautics"
+      },
+      "version": {
+        "range": "[1.2.1,)",
+        "artifactVersion": "1.2.1"
+      },
+      "path": "META-INF/jarjar/dev.eriksonn.aeronautics.aeronautics-neoforge-1.21.1-1.2.1.jar",
+      "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "dev.ryanhcode.offroad",
+        "artifact": "offroad-neoforge-1.21.1"
+      },
+      "version": {
+        "range": "[1.2.1,)",
+        "artifactVersion": "1.2.1"
+      },
+      "path": "META-INF/jarjar/dev.ryanhcode.offroad.offroad-neoforge-1.21.1-1.2.1.jar",
+      "isObfuscated": false
+    },
+    {
+      "identifier": {
+        "group": "dev.simulated_team.simulated",
+        "artifact": "simulated"
+      },
+      "version": {
+        "range": "[1.2.1,)",
+        "artifactVersion": "1.2.1"
+      },
+      "path": "META-INF/jarjar/dev.simulated_team.simulated.simulated-neoforge-1.21.1-1.2.1.jar",
+      "isObfuscated": false
+    }
+  ]
+}

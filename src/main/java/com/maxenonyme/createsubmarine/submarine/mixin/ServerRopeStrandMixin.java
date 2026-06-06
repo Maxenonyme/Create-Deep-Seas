@@ -32,15 +32,4 @@ public abstract class ServerRopeStrandMixin implements SteelCableHolderAccessor 
         this.createsubmarine$isSteelCable = val;
     }
 
-    @Inject(method = "reattachConstraints", at = @At("TAIL"))
-    private void createsubmarine$reattachConstraints(ServerLevel level, CallbackInfo ci) {
-        if (this.constraint != null && SteelCablePhysicsSystem.isSteelCable((ServerRopeStrand) (Object) this, level)) {
-            for (ConstraintJointAxis axis : ConstraintJointAxis.ANGULAR) {
-                this.constraint.setMotor(axis, 0.0, 0.0, 100.0, false, 5.0);
-            }
-            for (ConstraintJointAxis axis : ConstraintJointAxis.LINEAR) {
-                this.constraint.setMotor(axis, 0.0, 0.0, 500.0, false, 25.0);
-            }
-        }
-    }
 }

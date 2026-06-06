@@ -50,7 +50,6 @@ public final class PermanentWaterCullingTest {
     private static final Map<UUID, Set<BlockPos>> CACHED_BLOCKS = new HashMap<>();
     private static final Map<UUID, Set<BlockPos>> CACHED_INTERIOR = new HashMap<>();
     private static final Map<UUID, Long> LAST_SCAN_TICK = new HashMap<>();
-    private static volatile boolean cameraInsideTestSub = false;
 
     private PermanentWaterCullingTest() {
     }
@@ -70,7 +69,6 @@ public final class PermanentWaterCullingTest {
             return;
         }
         updateRegions(mc);
-        cameraInsideTestSub = computeCameraInside(mc);
     }
 
     private static void updateRegions(Minecraft mc) {
@@ -97,7 +95,7 @@ public final class PermanentWaterCullingTest {
             if (id == null)
                 continue;
             seenIds.add(id);
-            
+
             if (hullTracked.contains(id)) {
                 if (TRACKED_IDS.remove(id))
                     deactivateSub(id);
@@ -155,68 +153,6 @@ public final class PermanentWaterCullingTest {
     private static void deactivateSub(UUID id) {
         SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, null);
         TRACKED_IDS.remove(id);
-    }
-
-    @SubscribeEvent
-    public static void onRenderFog(ViewportEvent.RenderFog event) {
-        if (!cameraInsideTestSub)
-            return;
-        event.setNearPlaneDistance(2.0f);
-        event.setFarPlaneDistance(40.0f);
-        event.setCanceled(true);
-    }
-
-    @SubscribeEvent
-    public static void onComputeFogColor(ViewportEvent.ComputeFogColor event) {
-        if (!cameraInsideTestSub)
-            return;
-        event.setRed(0.02f);
-        event.setGreen(0.05f);
-        event.setBlue(0.2f);
-    }
-
-    private static boolean computeCameraInside(Minecraft mc) {
-        if (TRACKED_IDS.isEmpty())
-            return false;
-        Camera camera = mc.gameRenderer.getMainCamera();
-        if (camera == null)
-            return false;
-        Vec3 cameraPos = camera.getPosition();
-        SubLevelContainer subContainer;
-        try {
-            subContainer = SubLevelContainer.getContainer(mc.level);
-        } catch (Throwable t) {
-            return false;
-        }
-        if (subContainer == null)
-            return false;
-
-        Vector3d probe = new Vector3d();
-        for (UUID id : TRACKED_IDS) {
-            Set<BlockPos> interior = CACHED_INTERIOR.get(id);
-            if (interior == null || interior.isEmpty())
-                continue;
-            SubLevel sub = subContainer.getSubLevel(id);
-            if (sub == null)
-                continue;
-
-            for (double dx = -CAMERA_PROBE_OFFSET; dx <= CAMERA_PROBE_OFFSET; dx += CAMERA_PROBE_OFFSET) {
-                for (double dy = -CAMERA_PROBE_OFFSET; dy <= CAMERA_PROBE_OFFSET; dy += CAMERA_PROBE_OFFSET) {
-                    for (double dz = -CAMERA_PROBE_OFFSET; dz <= CAMERA_PROBE_OFFSET; dz += CAMERA_PROBE_OFFSET) {
-                        probe.set(cameraPos.x + dx, cameraPos.y + dy, cameraPos.z + dz);
-                        try {
-                            sub.logicalPose().transformPositionInverse(probe);
-                        } catch (Throwable ignored) {
-                            continue;
-                        }
-                        BlockPos localPos = BlockPos.containing(probe.x, probe.y, probe.z);
-                        if (interior.contains(localPos))
-                            return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     private static boolean isAtSurface(SubLevel sub) {
@@ -430,6 +366,5 @@ public final class PermanentWaterCullingTest {
         CACHED_BLOCKS.clear();
         CACHED_INTERIOR.clear();
         LAST_SCAN_TICK.clear();
-        cameraInsideTestSub = false;
     }
 }

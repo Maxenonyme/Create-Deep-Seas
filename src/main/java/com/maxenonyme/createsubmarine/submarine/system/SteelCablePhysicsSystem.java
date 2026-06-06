@@ -74,42 +74,6 @@ public class SteelCablePhysicsSystem {
                 }
             }
         }
-
-        Map<UUID, OrientedBoundingBox3d> hulls = SubmarineHullManager.getActiveHulls();
-        if (hulls.isEmpty())
-            return;
-
-        for (Map.Entry<UUID, OrientedBoundingBox3d> entry : hulls.entrySet()) {
-            UUID id = entry.getKey();
-            if (com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.SLIDING_SUBLEVELS
-                    .contains(id)) {
-                continue;
-            }
-            OrientedBoundingBox3d obb = entry.getValue();
-            SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
-            Level parentLevel = SubLevelRegistry.getLevel(id);
-            if (sub == null || !(parentLevel instanceof ServerLevel serverLevel))
-                continue;
-
-            ServerLevelRopeManager ropeManager = ServerLevelRopeManager.getOrCreate(serverLevel);
-            if (ropeManager == null)
-                continue;
-
-            for (ServerRopeStrand strand : ropeManager.getAllStrands()) {
-                if (!strand.isActive())
-                    continue;
-                if (!isSteelCable(strand, serverLevel))
-                    continue;
-
-                List<Vector3d> points = strand.getPoints();
-                for (int i = 0; i < points.size() - 1; i++) {
-                    Vector3d a = points.get(i);
-                    Vector3d b = points.get(i + 1);
-
-                    checkSublevelCollision(sub, obb, a, b);
-                }
-            }
-        }
     }
 
     private static void collidePlayerWithCables(Player player, ServerLevel level, Vector3d pPos, SubLevelAccess sub) {
@@ -238,43 +202,6 @@ public class SteelCablePhysicsSystem {
         }
     }
 
-    private static void checkSublevelCollision(SubLevelAccess sub, OrientedBoundingBox3d obb, Vector3d a, Vector3d b) {
-        Vector3d center = obb.getPosition();
-        Vector3d c = getClosestPointOnSegment(a, b, center);
-
-        if (SubmarineHullManager.contains(obb, c.x, c.y, c.z)) {
-            Vector3d dim = obb.getDimensions();
-            Vector3d localC = new Vector3d(c.x - center.x, c.y - center.y, c.z - center.z);
-            obb.getOrientation().conjugate(new Quaterniond()).transform(localC);
-
-            double overlapX = dim.x * 0.5 - Math.abs(localC.x);
-            double overlapY = dim.y * 0.5 - Math.abs(localC.y);
-            double overlapZ = dim.z * 0.5 - Math.abs(localC.z);
-
-            double minOverlap = overlapX;
-            Vector3d localPush = new Vector3d(Math.signum(localC.x) * overlapX, 0, 0);
-
-            if (overlapY < minOverlap) {
-                minOverlap = overlapY;
-                localPush.set(0, Math.signum(localC.y) * overlapY, 0);
-            }
-            if (overlapZ < minOverlap) {
-                localPush.set(0, 0, Math.signum(localC.z) * overlapZ);
-            }
-
-            Vector3d worldPush = new Vector3d(localPush);
-            obb.getOrientation().transform(worldPush);
-
-            Object handle = SablePhysicsHelper.getHandle(sub);
-            if (handle != null) {
-                SablePhysicsHelper.wakeUp(handle);
-                double mass = SablePhysicsHelper.readMass(sub);
-                Vector3d forceVec = new Vector3d(worldPush).mul(mass * 0.05);
-                sub.logicalPose().orientation().conjugate(new Quaterniond()).transform(forceVec);
-                SablePhysicsHelper.applyLinearImpulse(handle, forceVec);
-            }
-        }
-    }
 
     private static Vector3d getClosestPointOnSegment(Vector3d a, Vector3d b, Vector3d p) {
         Vector3d ab = new Vector3d(b).sub(a);
@@ -294,7 +221,8 @@ public class SteelCablePhysicsSystem {
         }
         RopeAttachment startAttachment = strand.getAttachment(RopeAttachmentPoint.START);
         if (startAttachment != null) {
-            BlockEntity be = level.getBlockEntity(startAttachment.blockAttachment());
+            ServerLevel startLevel = CableElectrificationSystem.getLevelForAttachment(level, startAttachment);
+            BlockEntity be = startLevel.getBlockEntity(startAttachment.blockAttachment());
             if (be instanceof SmartBlockEntity smartBe) {
                 RopeStrandHolderBehavior behavior = smartBe.getBehaviour(RopeStrandHolderBehavior.TYPE);
                 if (behavior instanceof SteelCableHolderAccessor accessor && accessor.createsubmarine$isSteelCable()) {
@@ -304,7 +232,8 @@ public class SteelCablePhysicsSystem {
         }
         RopeAttachment endAttachment = strand.getAttachment(RopeAttachmentPoint.END);
         if (endAttachment != null) {
-            BlockEntity be = level.getBlockEntity(endAttachment.blockAttachment());
+            ServerLevel endLevel = CableElectrificationSystem.getLevelForAttachment(level, endAttachment);
+            BlockEntity be = endLevel.getBlockEntity(endAttachment.blockAttachment());
             if (be instanceof SmartBlockEntity smartBe) {
                 RopeStrandHolderBehavior behavior = smartBe.getBehaviour(RopeStrandHolderBehavior.TYPE);
                 if (behavior instanceof SteelCableHolderAccessor accessor && accessor.createsubmarine$isSteelCable()) {

@@ -3,6 +3,9 @@
   "values": [
     "create_submarine:ballast_tank",
     "create_submarine:iron_pressurizer",
-    "create_submarine:industrial_alarm"
+    "create_submarine:industrial_alarm",
+    "create_submarine:poulis",
+    "create_submarine:underwater_mine",
+    "create_submarine:submarine_propeller"
   ]
 }

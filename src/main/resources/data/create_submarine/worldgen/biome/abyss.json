@@ -19,6 +19,14 @@
         "minCount": 4,
         "maxCount": 6
       }
+    ],
+    "water_creature": [
+      {
+        "type": "create_submarine:cookiecutter_shark",
+        "weight": 12,
+        "minCount": 1,
+        "maxCount": 1
+      }
     ]
   },
   "spawn_costs": {},

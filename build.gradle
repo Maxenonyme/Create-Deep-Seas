@@ -110,6 +110,7 @@ dependencies {
     implementation "net.createmod.ponder:ponder-neoforge:1.0.82+mc1.21.1"
     implementation "dev.engine-room.flywheel:flywheel-neoforge-1.21.1:1.0.6"
     implementation "foundry.veil:veil-neoforge-1.21.1:3.6.2"
+    compileOnly(name: 'aeronautics-neoforge-1.21.1-1.1.3')
     localRuntime "maven.modrinth:create-aeronautics:1sv6OtSz"
     compileOnly(name: 'simulated-neoforge-1.21.1-1.1.3')
     compileOnly "maven.modrinth:sable:1.2.2+mc1.21.1"
