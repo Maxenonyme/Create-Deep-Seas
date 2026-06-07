@@ -76,3 +76,10 @@ config="abyss.mixins.json"
     versionRange="[mc1.21.1-0.6.13-neoforge]"
     ordering="NONE"
     side="CLIENT"
+
+[[dependencies.${mod_id}]]
+    modId="fusion"
+    type="optional"
+    versionRange="[1.2.12,)"
+    ordering="NONE"
+    side="CLIENT"

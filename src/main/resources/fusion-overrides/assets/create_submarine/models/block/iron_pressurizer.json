@@ -1,0 +1,9 @@
+{
+  "loader": "fusion:model",
+  "type": "connecting",
+  "render_type": "minecraft:cutout",
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "create_submarine:block/iron_connecting_glass"
+  }
+}
