@@ -5,7 +5,6 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LevelChunkMixin",
-    "LevelMixin",
     "RopeStrandHolderBehaviorMixin",
     "ServerRopeStrandMixin",
     "RapierVoxelColliderBakeryMixin",
@@ -14,12 +13,16 @@
     "SmartBlockEntityMixin",
     "EntityWaterPhysicsMixin",
     "compat.SablePhysicsCrashFixMixin",
-    "compat.sable.ServerSubLevelMixin"
+    "compat.sable.ServerSubLevelMixin",
+    "LargeWaterWheelPropulsionMixin",
+    "WaterWheelBlockEntityMixin"
   ],
   "client": [
     "ClientRopeStrandMixin",
+    "EntityPocketFogMixin",
     "FluidRenderHelperBuilderMixin",
     "FluidRenderHelperMixin",
+    "FogRendererMixin",
     "LevelRendererMixin",
     "RopeStrandRendererMixin",
     "RopeWinchRendererMixin",
@@ -33,11 +36,15 @@
     "compat.SodiumChunkRendererMixin",
     "compat.SodiumFluidRendererMixin",
     "compat.SodiumBlockRendererMixin",
+    "compat.FlywheelFogUniformsMixin",
     "compat.VeilShaderIncludeFixMixin",
+    "compat.sable.SableSubLevelBEFogMixin",
+    "compat.sable.SableSubLevelPocketFogMixin",
     "compat.sable.VanillaSubLevelRenderDispatcherMixin",
     "compat.sable.SableWaterOcclusionPreProcessorMixin",
     "compat.sable.SableSnapshotPacketMixin",
-    "compat.sable.SableStartTrackingPacketMixin"
+    "compat.sable.SableStartTrackingPacketMixin",
+    "compat.simulated.DiagramScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

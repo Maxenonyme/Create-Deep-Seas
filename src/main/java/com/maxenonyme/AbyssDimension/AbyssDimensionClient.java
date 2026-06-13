@@ -9,9 +9,9 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 
-@EventBusSubscriber(modid = "create_submarine", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = "create_abyss", bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class AbyssDimensionClient {
-    private static final ResourceLocation ABYSS_DIM = ResourceLocation.fromNamespaceAndPath("create_submarine", "abyss");
+    private static final ResourceLocation ABYSS_DIM = ResourceLocation.fromNamespaceAndPath("create_abyss", "abyss");
 
     @SubscribeEvent
     public static void onRegisterDimensionEffects(RegisterDimensionSpecialEffectsEvent event) {
@@ -21,7 +21,7 @@ public class AbyssDimensionClient {
         );
     }
 
-    @EventBusSubscriber(modid = "create_submarine", bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+    @EventBusSubscriber(modid = "create_abyss", bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
     public static class GameEvents {
 
         @SubscribeEvent

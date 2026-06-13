@@ -1,7 +1,7 @@
 package com.maxenonyme.AbyssDimension.client.model;
 
 import com.maxenonyme.AbyssDimension.entities.CookiecutterSharkEntity;
-import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.AbyssDimension.CreateAbyss;
 import net.minecraft.client.model.HierarchicalModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.ModelLayerLocation;
@@ -14,7 +14,7 @@ import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.resources.ResourceLocation;
 
 public class CookiecutterShark<T extends CookiecutterSharkEntity> extends HierarchicalModel<T> {
-    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "cookiecutter_shark"), "main");
+    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(CreateAbyss.MOD_ID, "cookiecutter_shark"), "main");
     private final ModelPart root;
 
     public CookiecutterShark(ModelPart root) {

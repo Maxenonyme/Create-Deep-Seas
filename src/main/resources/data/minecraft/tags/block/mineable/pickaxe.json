@@ -12,6 +12,7 @@
     "create_submarine:industrial_alarm",
     "create_submarine:poulis",
     "create_submarine:underwater_mine",
-    "create_submarine:submarine_propeller"
+    "create_submarine:submarine_propeller",
+    "create_submarine:arresting_hook"
   ]
 }

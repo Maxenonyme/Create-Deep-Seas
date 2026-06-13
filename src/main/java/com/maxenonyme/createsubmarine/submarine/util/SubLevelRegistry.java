@@ -79,4 +79,14 @@ public class SubLevelRegistry {
         }
         return null;
     }
+
+
+    public static UUID findUUID(Level level, BlockPos plotPos) {
+        for (Map.Entry<UUID, Level> entry : LEVELS.entrySet()) {
+            if (entry.getValue() != level) continue;
+            PlotBounds bounds = BOUNDS.get(entry.getKey());
+            if (bounds != null && !bounds.isOutside(plotPos)) return entry.getKey();
+        }
+        return null;
+    }
 }

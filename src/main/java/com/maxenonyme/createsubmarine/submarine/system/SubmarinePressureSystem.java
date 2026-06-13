@@ -81,13 +81,26 @@ public class SubmarinePressureSystem {
         return cracks != null && cracks.containsKey(plotPos);
     }
 
-    public static boolean repairCrack(UUID id, BlockPos plotPos, SubLevelAccess sub, Level oceanLevel) {
+    public static boolean repairCrack(UUID id, BlockPos plotPos, Level oceanLevel) {
         Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
         if (cracks == null || !cracks.containsKey(plotPos)) return false;
-        cracks.remove(plotPos);
-        sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
+        
+        int currentCrack = cracks.get(plotPos);
+        if (currentCrack <= 1) {
+            cracks.remove(plotPos);
+            sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
+        } else {
+            cracks.put(plotPos, currentCrack - 1);
+            Level plotLevel = SubLevelRegistry.getLevel(id);
+            int bid = plotLevel != null ? BuiltInRegistries.BLOCK.getId(plotLevel.getBlockState(plotPos).getBlock()) : 0;
+            sendCrackPacket(oceanLevel, id, plotPos, currentCrack - 1, bid);
+        }
+
         Vector3d worldVec = new Vector3d(plotPos.getX() + 0.5, plotPos.getY() + 0.5, plotPos.getZ() + 0.5);
-        sub.logicalPose().transformPosition(worldVec);
+        SubLevelAccess sub = CompartmentTracker.getSubsSnapshot().get(id);
+        if (sub != null) {
+            sub.logicalPose().transformPosition(worldVec);
+        }
         BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
         oceanLevel.playSound(null, worldPos, net.minecraft.sounds.SoundEvents.IRON_GOLEM_REPAIR,
                 SoundSource.BLOCKS, 0.6f, 1.0f + RAND.nextFloat() * 0.3f);
@@ -213,7 +226,7 @@ public class SubmarinePressureSystem {
         int crackLevel = cracks.getOrDefault(plotPos, 0) + 1;
         int blockId = BuiltInRegistries.BLOCK.getId(state.getBlock());
 
-        if (crackLevel >= 3) {
+        if (crackLevel >= 4) {
             cracks.remove(plotPos);
             sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
 
@@ -223,11 +236,7 @@ public class SubmarinePressureSystem {
                 try { soundType = state.getBlock().getSoundType(state, plotLevel, plotPos, null); } catch (Exception ignored) {}
                 oceanLevel.playSound(null, worldPos, soundType.getBreakSound(), SoundSource.BLOCKS, 1.6f, 0.65f + RAND.nextFloat() * 0.3f);
             }
-            if (oceanLevel instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.SPLASH, worldVec.x, worldVec.y + 0.5, worldVec.z, 25, 0.4, 0.1, 0.4, 0.2);
-            }
-
-            plotLevel.destroyBlock(plotPos, false);
+            plotLevel.destroyBlock(plotPos, true);
             BREACHED_PLOT.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(plotPos);
             SubLevelRegistry.PlotBounds b = SubLevelRegistry.getBounds(id);
             if (b != null) {
@@ -237,10 +246,21 @@ public class SubmarinePressureSystem {
             cracks.put(plotPos, crackLevel);
             sendCrackPacket(oceanLevel, id, plotPos, crackLevel, blockId);
             if (oceanLevel instanceof ServerLevel serverLevel) {
-                int count = crackLevel == 1 ? 5 : 12;
+                int count = crackLevel == 1 ? 5 : (crackLevel * 2);
                 serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, worldVec.x, worldVec.y, worldVec.z, count, 0.3, 0.3, 0.3, 0.05);
             }
         }
+    }
+
+    public static void onPlotBlockReplaced(Level plotLevel, BlockPos plotPos) {
+        if (CRACK_LEVELS.isEmpty()) return;
+        UUID id = SubLevelRegistry.findUUID(plotLevel, plotPos);
+        if (id == null) return;
+        Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
+        if (cracks == null || cracks.remove(plotPos) == null) return;
+        SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
+        Level oceanLevel = sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl ? sl.getLevel() : plotLevel;
+        sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
     }
 
     private static void sendCrackPacket(Level oceanLevel, UUID id, BlockPos plotPos, int crackLevel, int blockId) {

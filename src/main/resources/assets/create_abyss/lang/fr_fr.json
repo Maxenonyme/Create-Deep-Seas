@@ -1,0 +1,14 @@
+{
+  "block.create_abyss.creepvine_seed": "Graine de creepvine",
+  "block.create_abyss.submarine_liana": "Liane de sous-marin",
+  "create_abyss.command.no_sublevel_container": "Aucun conteneur de sous-niveau trouvé dans la dimension actuelle.",
+  "create_abyss.command.player_only": "Seuls les joueurs peuvent exécuter cette commande.",
+  "create_abyss.command.queue_submarine_lianas": "Apparition en file d'attente de %s lianes de sous-marin de longueur %s, à partir de votre position",
+  "create_abyss.command.spawn_liana_failed": "Échec de l'apparition des lianes de sous-marin.",
+  "create_abyss.command.spawn_liana_success": "Liane de sous-marin de longueur %s apparue avec succès",
+  "entity.create_abyss.amphistium": "Amphistium",
+  "entity.create_abyss.cookiecutter_shark": "Requin emporte-pièce",
+  "item.create_abyss.amphistium_spawn_egg": "Œuf d'apparition d'Amphistium",
+  "item.create_abyss.cookiecutter_shark_spawn_egg": "Œuf d'apparition de requin emporte-pièce",
+  "itemGroup.create_abyss.abyss_tab": "Create Abyss"
+}

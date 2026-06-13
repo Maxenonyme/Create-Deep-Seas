@@ -92,18 +92,42 @@ public class SteelCablePhysicsSystem {
                 Vector3d a = points.get(i);
                 Vector3d b = points.get(i + 1);
 
-                Vector3d c = getClosestPointOnSegment(a, b, pPos);
-                double d = pPos.distance(c);
+                Vector3d pFeet = new Vector3d(player.getX(), player.getY() + 0.2, player.getZ());
+                Vector3d pMid = new Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                Vector3d pHead = new Vector3d(player.getX(), player.getY() + player.getBbHeight() - 0.2, player.getZ());
 
-                double worldX = pPos.x;
-                double worldZ = pPos.z;
-                double worldFeetY = pPos.y - player.getBbHeight() / 2.0;
-                double horizontalDist = Math.sqrt((worldX - c.x) * (worldX - c.x) + (worldZ - c.z) * (worldZ - c.z));
-                double vertDiff = worldFeetY - c.y;
+                Vector3d cFeet = getClosestPointOnSegment(a, b, pFeet);
+                Vector3d cMid = getClosestPointOnSegment(a, b, pMid);
+                Vector3d cHead = getClosestPointOnSegment(a, b, pHead);
+
+                double dFeet = pFeet.distance(cFeet);
+                double dMid = pMid.distance(cMid);
+                double dHead = pHead.distance(cHead);
+
+                Vector3d bestP = pMid;
+                Vector3d bestC = cMid;
+                double bestD = dMid;
+
+                if (dFeet < bestD) {
+                    bestD = dFeet;
+                    bestP = pFeet;
+                    bestC = cFeet;
+                }
+                if (dHead < bestD) {
+                    bestD = dHead;
+                    bestP = pHead;
+                    bestC = cHead;
+                }
+
+                double worldX = player.getX();
+                double worldZ = player.getZ();
+                double worldFeetY = player.getY();
+                double horizontalDist = Math.sqrt((worldX - cFeet.x) * (worldX - cFeet.x) + (worldZ - cFeet.z) * (worldZ - cFeet.z));
+                double vertDiff = worldFeetY - cFeet.y;
 
                 if (horizontalDist < 0.4 && vertDiff >= -0.15 && vertDiff <= 0.45
                         && player.getDeltaMovement().y <= 0.05) {
-                    double targetWorldFeetY = c.y + 0.1;
+                    double targetWorldFeetY = cFeet.y + 0.1;
                     double pushY = targetWorldFeetY - worldFeetY;
 
                     Vector3d pushVec = new Vector3d(0, pushY, 0);
@@ -123,9 +147,9 @@ public class SteelCablePhysicsSystem {
                     continue;
                 }
 
-                double collisionLimit = 0.5;
-                if (d < collisionLimit) {
-                    Vector3d push = new Vector3d(pPos).sub(c);
+                double collisionLimit = 0.4;
+                if (bestD < collisionLimit) {
+                    Vector3d push = new Vector3d(bestP).sub(bestC);
                     double dist = push.length();
                     if (dist < 1e-6) {
                         push.set(0, 1, 0);
@@ -161,25 +185,50 @@ public class SteelCablePhysicsSystem {
     }
 
     private static void collideEntityWithCableSegment(Entity entity, Vector3d a, Vector3d b) {
-        Vector3d ePos = new Vector3d(entity.getX(), entity.getY() + entity.getBbHeight() / 2.0, entity.getZ());
-        Vector3d c = getClosestPointOnSegment(a, b, ePos);
+        double h = entity.getBbHeight();
+        double offset = Math.min(0.2, h / 3.0);
+        
+        Vector3d pFeet = new Vector3d(entity.getX(), entity.getY() + offset, entity.getZ());
+        Vector3d pMid = new Vector3d(entity.getX(), entity.getY() + h / 2.0, entity.getZ());
+        Vector3d pHead = new Vector3d(entity.getX(), entity.getY() + h - offset, entity.getZ());
 
-        double horizontalDist = Math.sqrt((ePos.x - c.x) * (ePos.x - c.x) + (ePos.z - c.z) * (ePos.z - c.z));
-        double feetY = entity.getY();
-        double vertDiff = feetY - c.y;
+        Vector3d cFeet = getClosestPointOnSegment(a, b, pFeet);
+        Vector3d cMid = getClosestPointOnSegment(a, b, pMid);
+        Vector3d cHead = getClosestPointOnSegment(a, b, pHead);
+
+        double dFeet = pFeet.distance(cFeet);
+        double dMid = pMid.distance(cMid);
+        double dHead = pHead.distance(cHead);
+
+        Vector3d bestP = pMid;
+        Vector3d bestC = cMid;
+        double bestD = dMid;
+
+        if (dFeet < bestD) {
+            bestD = dFeet;
+            bestP = pFeet;
+            bestC = cFeet;
+        }
+        if (dHead < bestD) {
+            bestD = dHead;
+            bestP = pHead;
+            bestC = cHead;
+        }
+
+        double horizontalDist = Math.sqrt((entity.getX() - cFeet.x) * (entity.getX() - cFeet.x) + (entity.getZ() - cFeet.z) * (entity.getZ() - cFeet.z));
+        double vertDiff = entity.getY() - cFeet.y;
 
         if (horizontalDist < 0.4 && vertDiff >= -0.15 && vertDiff <= 0.45 && entity.getDeltaMovement().y <= 0.05) {
-            entity.setPos(entity.getX(), c.y + 0.1, entity.getZ());
+            entity.setPos(entity.getX(), cFeet.y + 0.1, entity.getZ());
             entity.setDeltaMovement(entity.getDeltaMovement().x, 0.0, entity.getDeltaMovement().z);
             entity.setOnGround(true);
             entity.fallDistance = 0.0f;
             return;
         }
 
-        double d = ePos.distance(c);
-        double collisionLimit = 0.5;
-        if (d < collisionLimit) {
-            Vector3d push = new Vector3d(ePos).sub(c);
+        double collisionLimit = 0.4;
+        if (bestD < collisionLimit) {
+            Vector3d push = new Vector3d(bestP).sub(bestC);
             double dist = push.length();
             if (dist < 1e-6) {
                 push.set(0, 1, 0);
@@ -203,7 +252,7 @@ public class SteelCablePhysicsSystem {
     }
 
 
-    private static Vector3d getClosestPointOnSegment(Vector3d a, Vector3d b, Vector3d p) {
+    public static Vector3d getClosestPointOnSegment(Vector3d a, Vector3d b, Vector3d p) {
         Vector3d ab = new Vector3d(b).sub(a);
         Vector3d ap = new Vector3d(p).sub(a);
         double abLenSq = ab.lengthSquared();

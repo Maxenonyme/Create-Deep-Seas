@@ -1,7 +1,7 @@
 package com.maxenonyme.AbyssDimension.network;
 
+import com.maxenonyme.AbyssDimension.CreateAbyss;
 import com.maxenonyme.AbyssDimension.entities.CookiecutterSharkEntity;
-import com.maxenonyme.createsubmarine.CreateSubmarine;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -11,7 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record StruggleSharkPayload(int sharkId) implements CustomPacketPayload {
-    public static final Type<StruggleSharkPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "struggle_shark"));
+    public static final Type<StruggleSharkPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(CreateAbyss.MOD_ID, "struggle_shark"));
 
     public static final StreamCodec<FriendlyByteBuf, StruggleSharkPayload> CODEC = StreamCodec.of(
         (buf, payload) -> buf.writeVarInt(payload.sharkId()),

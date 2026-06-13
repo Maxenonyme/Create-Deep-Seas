@@ -126,6 +126,14 @@ public final class SubmarineWaterCullBuffer {
     }
 
     public static void updateSubmarineOcclusion(UUID id, Collection<BlockPos> blocks) {
+        pushOcclusion(id, blocks, true);
+    }
+
+    public static void updateOcclusionRaw(UUID id, Collection<BlockPos> blocks) {
+        pushOcclusion(id, blocks, false);
+    }
+
+    private static void pushOcclusion(UUID id, Collection<BlockPos> blocks, boolean filter) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null)
             return;
@@ -139,11 +147,11 @@ public final class SubmarineWaterCullBuffer {
             if (blocks == null || blocks.isEmpty())
                 return;
 
-            Collection<BlockPos> filtered = filterToCubes(mc.level, id, blocks);
-            if (filtered.isEmpty())
+            Collection<BlockPos> cells = filter ? filterToCubes(mc.level, id, blocks) : blocks;
+            if (cells.isEmpty())
                 return;
 
-            BoundedBitVolume3i volume = BoundedBitVolume3i.fromBlocks(filtered);
+            BoundedBitVolume3i volume = BoundedBitVolume3i.fromBlocks(cells);
             if (volume == null)
                 return;
             WaterOcclusionRegion region = container.addRegion(volume);
@@ -177,9 +185,22 @@ public final class SubmarineWaterCullBuffer {
                 continue;
             }
             BlockState state = lastChunk.getBlockState(pos);
-            if (state.isAir() || !state.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO).isEmpty())
+            if (!state.getFluidState().isEmpty())
+                continue;
+            boolean fillsCell = state.isAir()
+                    || state.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE,
+                            net.minecraft.core.BlockPos.ZERO);
+            if (fillsCell || isBuriedInShip(id, pos))
                 out.add(pos);
         }
         return out;
+    }
+
+    private static boolean isBuriedInShip(UUID id, BlockPos pos) {
+        for (net.minecraft.core.Direction dir : net.minecraft.core.Direction.values()) {
+            if (!CompartmentTracker.isWithinShip(id, pos.relative(dir)))
+                return false;
+        }
+        return true;
     }
 }

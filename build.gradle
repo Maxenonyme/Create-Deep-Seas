@@ -74,18 +74,18 @@ neoForge {
         client {
             client()
             jvmArgument '-Xmx25G'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id},${project.abyss_mod_id},${project.high_seas_mod_id}"
         }
 
         server {
             server()
             programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'neoforge.enabledGameTestNamespaces', "${project.mod_id},${project.abyss_mod_id},${project.high_seas_mod_id}"
         }
 
         data {
             data()
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+            programArguments.addAll '--mod', "${project.mod_id},${project.abyss_mod_id}", '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
         }
 
         configureEach {
@@ -139,6 +139,12 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
         mod_name               : mod_name,
         mod_license            : mod_license,
         mod_version            : mod_version,
+        abyss_mod_id           : abyss_mod_id,
+        abyss_mod_name         : abyss_mod_name,
+        abyss_mod_version      : abyss_mod_version,
+        high_seas_mod_id       : high_seas_mod_id,
+        high_seas_mod_name     : high_seas_mod_name,
+        high_seas_mod_version  : high_seas_mod_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties

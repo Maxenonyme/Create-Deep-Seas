@@ -109,7 +109,7 @@ public final class SubmarineLianaCommand {
         CommandSourceStack source = ctx.getSource();
         ServerPlayer player = source.getPlayer();
         if (player == null) {
-            source.sendFailure(Component.translatable("create_submarine.command.player_only"));
+            source.sendFailure(Component.translatable("create_abyss.command.player_only"));
             return 0;
         }
 
@@ -117,18 +117,18 @@ public final class SubmarineLianaCommand {
         ServerLevel level = source.getLevel();
         ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer.getContainer(level);
         if (container == null) {
-            source.sendFailure(Component.translatable("create_submarine.command.no_sublevel_container"));
+            source.sendFailure(Component.translatable("create_abyss.command.no_sublevel_container"));
             return 0;
         }
 
         BlockPos playerPos = player.blockPosition();
         List<ServerSubLevel> spawned = spawnLianaChain(level, container, playerPos, length);
         if (spawned == null) {
-            source.sendFailure(Component.translatable("create_submarine.command.spawn_liana_failed"));
+            source.sendFailure(Component.translatable("create_abyss.command.spawn_liana_failed"));
             return 0;
         }
 
-        source.sendSuccess(() -> Component.translatable("create_submarine.command.spawn_liana_success", length), true);
+        source.sendSuccess(() -> Component.translatable("create_abyss.command.spawn_liana_success", length), true);
         return 1;
     }
 
@@ -136,7 +136,7 @@ public final class SubmarineLianaCommand {
         CommandSourceStack source = ctx.getSource();
         ServerPlayer player = source.getPlayer();
         if (player == null) {
-            source.sendFailure(Component.translatable("create_submarine.command.player_only"));
+            source.sendFailure(Component.translatable("create_abyss.command.player_only"));
             return 0;
         }
 
@@ -145,7 +145,7 @@ public final class SubmarineLianaCommand {
         ServerLevel level = source.getLevel();
         ServerSubLevelContainer container = (ServerSubLevelContainer) SubLevelContainer.getContainer(level);
         if (container == null) {
-            source.sendFailure(Component.translatable("create_submarine.command.no_sublevel_container"));
+            source.sendFailure(Component.translatable("create_abyss.command.no_sublevel_container"));
             return 0;
         }
 
@@ -177,7 +177,7 @@ public final class SubmarineLianaCommand {
         }
 
         int count = targets.size();
-        source.sendSuccess(() -> Component.translatable("create_submarine.command.queue_submarine_lianas", count, length), true);
+        source.sendSuccess(() -> Component.translatable("create_abyss.command.queue_submarine_lianas", count, length), true);
         return 1;
     }
 
