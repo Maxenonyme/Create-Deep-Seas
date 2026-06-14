@@ -16,15 +16,8 @@ A submarine addon for the Create mod.
 [[mixins]]
 config="create_submarine.mixins.json"
 
-[[mixins]]
-config="create_submarine_abyss.mixins.json"
-
-[[dependencies.create_submarine]]
-    modId="lithostitched"
-    type="required"
-    versionRange="[1.4.8,)"
-    ordering="AFTER"
-    side="BOTH"
+# [[mixins]]
+# config="create_submarine_abyss.mixins.json"
 
 [[dependencies.create_submarine]]
     modId="neoforge"

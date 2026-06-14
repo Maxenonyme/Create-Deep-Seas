@@ -28,4 +28,8 @@ public class HullControllerBlock extends Block implements EntityBlock {
             }
         };
     }
+    @Override
+    public java.util.List<net.minecraft.world.item.ItemStack> getDrops(BlockState state, net.minecraft.world.level.storage.loot.LootParams.Builder params) {
+        return java.util.Collections.emptyList();
+    }
 }

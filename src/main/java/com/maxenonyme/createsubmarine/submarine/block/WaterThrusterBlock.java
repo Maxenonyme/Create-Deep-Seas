@@ -56,10 +56,10 @@ public class WaterThrusterBlock extends DirectionalBlock implements EntityBlock 
                 );
             case NORTH:
                 return Shapes.or(
-                    Block.box(2, 2.5, 0, 14, 15, 16),
-                    Block.box(4, 4.75, -2, 12, 12.75, 0),
-                    Block.box(5, 5.75, -4, 11, 11.75, -2),
-                    Block.box(6, 6.75, -7, 10, 10.75, -4)
+                    Block.box(2, 1, 0, 14, 13.5, 16),
+                    Block.box(4, 3.25, -2, 12, 11.25, 0),
+                    Block.box(5, 4.25, -4, 11, 10.25, -2),
+                    Block.box(6, 5.25, -7, 10, 9.25, -4)
                 );
             case SOUTH:
                 return Shapes.or(
@@ -77,10 +77,10 @@ public class WaterThrusterBlock extends DirectionalBlock implements EntityBlock 
                 );
             case WEST:
                 return Shapes.or(
-                    Block.box(0, 2.5, 2, 16, 15, 14),
-                    Block.box(-2, 4.75, 4, 0, 12.75, 12),
-                    Block.box(-4, 5.75, 5, -2, 11.75, 11),
-                    Block.box(-7, 6.75, 6, -4, 10.75, 10)
+                    Block.box(0, 1, 2, 16, 13.5, 14),
+                    Block.box(-2, 3.25, 4, 0, 11.25, 12),
+                    Block.box(-4, 4.25, 5, -2, 10.25, 11),
+                    Block.box(-7, 5.25, 6, -4, 9.25, 10)
                 );
             default:
                 return shape;

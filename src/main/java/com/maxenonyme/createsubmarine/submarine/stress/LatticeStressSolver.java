@@ -91,7 +91,7 @@ public class LatticeStressSolver {
     private int hullBlockCount;
 
     private final BoundingBox3ic bounds;
-    private final Pose3dc subLevelPose;
+    private Pose3dc subLevelPose;
     private double waterSurfaceWorldY;
 
     private final double[] volFraction;
@@ -514,22 +514,34 @@ public class LatticeStressSolver {
     private void solve(final BlockGetter level) {
         final double[] b = new double[3 * this.n];
         buildRHS(b);
+        solveCG(b);
+    }
 
+    private void solveCG(final double[] b) {
         double bNorm = 0;
         for (int k = 0; k < 3 * this.n; k++) bNorm += b[k] * b[k];
-        if (bNorm < 1e-30) return;
+        if (bNorm < 1e-30) {
+            java.util.Arrays.fill(this.u, 0.0);
+            return;
+        }
 
         final double[] r = new double[3 * this.n];
         final double[] p = new double[3 * this.n];
         final double[] Ap = new double[3 * this.n];
 
-        System.arraycopy(b, 0, r, 0, 3 * this.n);
-        double rr = dot(r, r);
+        final double tikhonovAlpha = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01) * E[0];
+
+
+        applyK(this.u, r);
+        double rr = 0;
+        for (int k = 0; k < 3 * this.n; k++) {
+            r[k] = b[k] - r[k] - tikhonovAlpha * this.u[k];
+            rr += r[k] * r[k];
+        }
 
         System.arraycopy(r, 0, p, 0, 3 * this.n);
         double rrOld = rr;
 
-        final double tikhonovAlpha = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01) * E[0];
         final int maxIter = Math.max(300, 3 * this.n);
         for (int iter = 0; iter < maxIter; iter++) {
             applyK(p, Ap);
@@ -552,6 +564,14 @@ public class LatticeStressSolver {
             for (int k = 0; k < 3 * this.n; k++) p[k] = r[k] + beta * p[k];
             rrOld = rr;
         }
+    }
+
+    public void resolve() {
+        final long t0 = System.nanoTime();
+        final double[] b = new double[3 * this.n];
+        buildRHS(b);
+        solveCG(b);
+        this.solveTimeNanos = System.nanoTime() - t0;
     }
 
     private void removeRigidBodyMode(final double[] v) {
@@ -693,6 +713,7 @@ public class LatticeStressSolver {
 
     public double getYoungsModulus(final int i) { return this.E[i]; }
     public double getYieldStress(final int i) { return this.yieldStress[i]; }
+    public double getVonMises(final int i) { return computeVonMises(i); }
     public int getExposedFaceCount(final int i) {
         BlockPos pos = this.positions[i];
         Integer eff = this.effectiveFaceCounts.get(pos);
@@ -760,8 +781,9 @@ public class LatticeStressSolver {
         return result;
     }
 
-    public void refreshWaterDepths(final double newWaterSurfaceWorldY) {
+    public void refreshWaterDepths(final double newWaterSurfaceWorldY, final Pose3dc currentPose) {
         this.waterSurfaceWorldY = newWaterSurfaceWorldY;
+        if (currentPose != null) this.subLevelPose = currentPose;
         if (!Double.isFinite(this.waterSurfaceWorldY)) {
             java.util.Arrays.fill(this.blockWaterDepths, 0.0);
             return;
@@ -775,6 +797,10 @@ public class LatticeStressSolver {
             if (worldMinY >= this.waterSurfaceWorldY) continue;
             this.blockWaterDepths[i] = this.waterSurfaceWorldY - worldMinY;
         }
+    }
+
+    public void refreshWaterDepths(final double newWaterSurfaceWorldY) {
+        refreshWaterDepths(newWaterSurfaceWorldY, null);
     }
 
     private double computeBlockMinWorldY(final int x, final int y, final int z, final Vector3d tmp, final Vector3d worldPos) {
@@ -839,6 +865,13 @@ public class LatticeStressSolver {
             }
         }
         return dist;
+    }
+
+    public double getStressRatio(final int i) {
+        if (this.blockWaterDepths[i] <= 0) return 0;
+        final double vm = computeVonMises(i);
+        if (vm <= 1e-30) return 0;
+        return vm / this.yieldStress[i];
     }
 
     public double[] getStressDistribution(final double waterDepth, final double[] crush) {

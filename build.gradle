@@ -1,32 +1,11 @@
 plugins {
     id 'java-library'
-    id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
-    id 'com.modrinth.minotaur' version '2.+'
-    id 'io.github.themrmilchmann.curseforge-publish' version '0.6.1'
 }
 
 tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
-}
-
-def modrinthToken = providers.environmentVariable("MODRINTH_TOKEN").orNull?.trim()
-def curseforgeToken = providers.environmentVariable("CURSEFORGE_TOKEN").orNull?.trim()
-def envFile = file(".env")
-if (envFile.exists()) {
-    envFile.eachLine { line ->
-        if (line.contains(":")) {
-            def parts = line.split(":", 2)
-            def key = parts[0].trim()
-            def val = parts[1].trim()
-            if (key == "modrinth" && (modrinthToken == null || modrinthToken.isEmpty())) {
-                modrinthToken = val
-            } else if (key == "curseforge" && (curseforgeToken == null || curseforgeToken.isEmpty())) {
-                curseforgeToken = val
-            }
-        }
-    }
 }
 
 version = mod_version
@@ -91,6 +70,7 @@ neoForge {
     runs {
         client {
             client()
+            jvmArgument '-Xmx25G'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
@@ -164,19 +144,6 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/repo"
-        }
-    }
-}
-
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
@@ -199,51 +166,8 @@ task printClasspath {
 task runBatchSolver(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.maxenonyme.createsubmarine.submarine.stress.BatchSolverRunner'
-    // Avoid loading NeoForge mods by disabling them
     systemProperty 'neoforge.enableModLoading', 'false'
 }
 
 def changelogFile = file("changelog.md")
 def changelogText = changelogFile.exists() ? changelogFile.text : "No changelog provided."
-
-modrinth {
-    token = modrinthToken
-    projectId = "mva5q4qZ" 
-    versionNumber = "${project.version}"
-    versionName = "Create Deep Seas ${project.version}"
-    versionType = "alpha" 
-    uploadFile = tasks.jar
-    gameVersions = ["1.21.1"]
-    loaders = ["neoforge"]
-    changelog = changelogText
-    syncBodyFrom = file("README.md").exists() ? file("README.md").text : null
-
-    dependencies {
-        required.project("create")
-    }
-}
-
-tasks.named("modrinth").configure {
-    dependsOn(tasks.named("build"))
-}
-
-
-curseforge {
-    apiToken = curseforgeToken
-
-    publications {
-        register("curseForge") {
-            projectId = "1533137" 
-            artifacts.register("main") {
-                from(tasks.jar)
-                displayName = "Create Deep Seas ${project.version}"
-                releaseType = "ALPHA"
-                changelog = changelogText
-            }
-        }
-    }
-}
-
-tasks.matching { it.name == "publishCurseForgePublicationToCurseForge" }.configureEach {
-    dependsOn(tasks.named("build"))
-}

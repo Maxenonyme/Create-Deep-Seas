@@ -39,5 +39,6 @@
   "create_submarine.ponder.water_thruster.text_2": "Подключение к источнику воды и передача кинетической энергии приведут к его активации.",
   "create_submarine.ponder.water_thruster.text_3": "Чем больше давление и скорость, тем быстрее вы передвигаетесь!",
   "create_submarine.ponder.water_thruster.text_4": "Эта цистерна обеспечивает водой, необходимой для работы двигателя.",
-  "block.create_submarine.glass_pressurizer": "Стеклянный Герметик"
+  "block.create_submarine.glass_pressurizer": "Стеклянный Герметик",
+  "item.create_submarine.phycological_membrane": "Фикологическая мембрана"
 }

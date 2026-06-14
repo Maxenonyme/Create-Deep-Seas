@@ -30,6 +30,7 @@ public class DefaultMaterialProperties {
         DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("smooth_basalt"), new double[]{1.0, 0.5});
         DIRECTIONAL_MODIFIERS.put(ResourceLocation.withDefaultNamespace("mushroom_stem"), new double[]{1.0, 0.5});
 
+
         PROPERTIES.put(ResourceLocation.withDefaultNamespace("iron_block"), new double[]{2.00e11, 2.50e8, 0.29});
         PROPERTIES.put(ResourceLocation.withDefaultNamespace("raw_iron_block"), new double[]{2.00e11, 2.00e8, 0.29});
 

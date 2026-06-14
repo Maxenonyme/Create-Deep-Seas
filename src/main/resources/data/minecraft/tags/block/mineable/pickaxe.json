@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "create_submarine:creative_oxygenator",
+    "create_submarine:ballast_tank",
+    "create_submarine:ballast_vent",
+    "create_submarine:oxygene_diffuser",
+    "create_submarine:electrolyzer",
+    "create_submarine:water_thruster",
+    "create_submarine:iron_pressurizer",
+    "create_submarine:copper_pressurizer",
+    "create_submarine:industrial_alarm"
+  ]
+}

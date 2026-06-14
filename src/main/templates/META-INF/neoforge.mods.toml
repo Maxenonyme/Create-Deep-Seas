@@ -17,6 +17,9 @@ A submarine addon for the Create mod.
 config="create_submarine.mixins.json"
 
 [[mixins]]
+config="abyss.mixins.json"
+
+[[mixins]]
 config="create_submarine_abyss.mixins.json"
 
 [[dependencies.${mod_id}]]

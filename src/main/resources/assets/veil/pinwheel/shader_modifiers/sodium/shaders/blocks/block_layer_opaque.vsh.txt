@@ -1,5 +1,1 @@
-#version 330
-#priority 0
-// Override of Veil's test_shaders pack which declares attribute 0 as uvec4.
-// Sodium 0.6.13 changed it to uvec2 = uvec4/uvec2 mismatch spams the log
-// and may break shader compilation. Empty modifier = no-op.
+#version 330 #priority 0 // Override of Veil's test_shaders pack which declares attribute 0 as uvec4. // Sodium 0.6.13 changed it to uvec2 = uvec4/uvec2 mismatch spams the log // and may break shader compilation. Empty modifier = no-op.

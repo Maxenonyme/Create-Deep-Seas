@@ -4,7 +4,8 @@
 	"credit": "Made with Blockbench",
 	"texture_size": [128, 128],
 	"textures": {
-		"0": "create_submarine:block/electrolyzer/electrolyzer"
+		"0": "create_submarine:block/electrolyzer/electrolyzer",
+		"particle": "create_submarine:block/electrolyzer/electrolyzer"
 	},
 	"elements": [
 		{

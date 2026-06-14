@@ -37,6 +37,10 @@ public final class SubmarineLifecycleHandler {
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
 
+        PacketDistributor.sendToPlayer(player,
+                new com.maxenonyme.createsubmarine.submarine.network.HullConfigSyncPayload(
+                        com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig.getValues()));
+
         for (Map.Entry<UUID, SubLevelAccess> entry : SubLevelRegistry.getAll().entrySet()) {
             UUID subId = entry.getKey();
 

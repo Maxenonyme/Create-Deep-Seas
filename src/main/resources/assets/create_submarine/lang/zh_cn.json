@@ -50,5 +50,6 @@
   "create_submarine.ponder.water_thruster.text_3": "压力越高、转速越快，推进速度就越快！",
   "create_submarine.ponder.water_thruster.text_4": "这个水罐会为推进提供所需的水。",
 
-  "block.create_submarine.glass_pressurizer": "玻璃加压器"
+  "block.create_submarine.glass_pressurizer": "玻璃加压器",
+  "item.create_submarine.phycological_membrane": "藻类薄膜"
 }

@@ -382,9 +382,7 @@ public class StressCommand {
             };
             final String[] matNames = {"oak","iron","diamond"};
 
-            // Shape definitions: (label, evaluator, bounds)
-            // Each evaluates function(x,y,z) -> boolean (is solid)
-            // Using a simple box-centered approach
+            //for testing
             final int S = 10; // base size
 
             for (int mi = 0; mi < materials.length; mi++) {
@@ -459,8 +457,7 @@ public class StressCommand {
                     }, 0, 0, 0, 9, source);
             }
 
-            // Verify surface detection: compare hull blocks to expected surface
-            // For each shape, count hull blocks vs theoretical surface
+            //for testing
             source.sendSuccess(() -> Component.literal("Test battery complete! Results written to: " +
                 outputFile.getAbsolutePath()), false);
         } catch (java.io.IOException e) {

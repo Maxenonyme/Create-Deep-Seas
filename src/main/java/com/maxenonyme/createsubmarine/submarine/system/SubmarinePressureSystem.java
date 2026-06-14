@@ -66,6 +66,20 @@ public class SubmarinePressureSystem {
         return CRACK_LEVELS;
     }
 
+    public static int getCachedDepth(UUID id) {
+        return CACHED_WATER_DEPTH.getOrDefault(id, 0);
+    }
+
+    public static boolean isBreached(UUID id) {
+        Set<BlockPos> breached = BREACHED_PLOT.get(id);
+        return breached != null && !breached.isEmpty();
+    }
+
+    public static int getCrackCount(UUID id) {
+        Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
+        return cracks == null ? 0 : cracks.size();
+    }
+
     public static boolean hasCrack(UUID id, BlockPos plotPos) {
         Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
         return cracks != null && cracks.containsKey(plotPos);
@@ -99,7 +113,8 @@ public class SubmarinePressureSystem {
             for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
                 if (SubLevelRegistry.getAll().containsKey(ssl.getUniqueId())) continue;
                 final SubLevelStressAnalyzer analyzer = SubLevelStressAnalyzer.getOrCreate(level);
-                final int waterDepth = measureWaterDepth(level, ssl.getUniqueId(), ssl.logicalPose().position());
+                final int seaLevel = level.getSeaLevel();
+                final int waterDepth = (int) Math.max(0, seaLevel - ssl.logicalPose().position().y());
                 if (waterDepth <= 0) continue;
                 analyzer.checkAndBreak(ssl, waterDepth, ssl.getLevel());
             }
@@ -113,13 +128,16 @@ public class SubmarinePressureSystem {
         SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
         if (bounds == null) return;
 
-        // Use the plot level for ocean water detection - for submarines in the overworld,
-        // this IS the overworld level (not the sublevel's internal plot dimension).
         Level oceanLevel = plotLevel;
 
         Vector3dc subCenter = sub.logicalPose().position();
-        int waterDepth = measureWaterDepth(oceanLevel, id, subCenter);
+        int surfaceY = measureSurfaceY(oceanLevel, subCenter);
+        int waterDepth = surfaceY == Integer.MIN_VALUE ? 0 : surfaceY - (int) Math.round(subCenter.y());
         CACHED_WATER_DEPTH.put(id, waterDepth);
+        if (surfaceY == Integer.MIN_VALUE) {
+            BREACHED_PLOT.remove(id);
+            return;
+        }
 
         // Run stress analysis (tickRefresh is handled by onGlobalServerTick)
         if (oceanLevel instanceof ServerLevel serverLevel) {
@@ -134,14 +152,12 @@ public class SubmarinePressureSystem {
             return;
         }
 
+        if (SubmarineSinkingSystem.isCrashing(id)) return;
+
         Set<BlockPos> breached = BREACHED_PLOT.get(id);
-        if (breached != null && !breached.isEmpty() && !hasAnySealedCompartment(id)) {
-            BREACHED_PLOT.remove(id);
-            SubmarineSinkingSystem.onCrashed(id, sub, plotLevel, bounds);
-            return;
-        }
 
         boolean[] creakPlayed = { false };
+        int[] breakBudget = { 4 };
         long volume = (long) (bounds.maxX() - bounds.minX() + 1) * (bounds.maxY() - bounds.minY() + 1) * (bounds.maxZ() - bounds.minZ() + 1);
         int samples = (int) Math.min(250, Math.max(15, volume / 150));
 
@@ -156,50 +172,41 @@ public class SubmarinePressureSystem {
             if (propOpt.isEmpty()) continue;
             HullStrengthConfig.HullProperty prop = propOpt.get();
 
-            if (waterDepth <= prop.maxWaterDepth()) continue;
-
-            applyPressure(id, plotLevel, oceanLevel, sub, plotPos, state, prop, creakPlayed);
+            applyPressure(id, plotLevel, oceanLevel, sub, plotPos, state, prop, surfaceY, creakPlayed, breakBudget);
         }
     }
 
-    private static int measureWaterDepth(Level level, UUID id, Vector3dc subCenter) {
+    private static int measureSurfaceY(Level level, Vector3dc subCenter) {
         int x = (int) Math.round(subCenter.x());
         int z = (int) Math.round(subCenter.z());
+        int startY = (int) Math.round(subCenter.y());
+        int seaLevel = level.getSeaLevel();
 
-        net.minecraft.world.phys.AABB aabb = CompartmentTracker.getWorldAABB(id);
-        int startY = aabb != null
-                ? (int) Math.ceil(aabb.maxY) + 1
-                : (int) Math.round(subCenter.y());
+        int surfaceY = Integer.MIN_VALUE;
+        int top = Math.min(startY + MAX_WATER_SCAN, level.getMaxBuildHeight());
+        net.minecraft.world.level.chunk.ChunkAccess chunk = level.getChunk(
+                x >> 4, z >> 4,
+                net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false);
+        if (chunk == null)
+            return Integer.MIN_VALUE;
 
+        BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         try {
-            if (!level.getFluidState(new BlockPos(x, startY, z)).is(net.minecraft.tags.FluidTags.WATER)
-                && !level.getFluidState(new BlockPos(x, startY, z)).is(net.minecraft.tags.FluidTags.LAVA)) {
-                return 0;
-            }
-        } catch (Exception ignored) {
-            return 0;
-        }
-
-        int highestWaterY = startY;
-        try {
-            for (int y = startY; y < Math.min(startY + MAX_WATER_SCAN, level.getMaxBuildHeight()); y++) {
-                BlockState state = level.getBlockState(new BlockPos(x, y, z));
-                if (state.getFluidState().is(net.minecraft.tags.FluidTags.WATER)
-                        || state.getFluidState().is(net.minecraft.tags.FluidTags.LAVA)) {
-                    highestWaterY = y;
-                } else if (state.isAir() && y >= level.getSeaLevel()) {
+            for (int y = startY; y < top; y++) {
+                m.set(x, y, z);
+                if (CompartmentTracker.realFluidState(chunk, m).is(net.minecraft.tags.FluidTags.WATER)
+                        || CompartmentTracker.realFluidState(chunk, m).is(net.minecraft.tags.FluidTags.LAVA)) {
+                    surfaceY = y;
+                } else if (y >= seaLevel) {
                     break;
                 }
             }
         } catch (Exception ignored) {}
 
-        int measuredDepth = highestWaterY - startY + 1;
-        int seaLevelDepth = level.getSeaLevel() - startY;
-
-        return Math.max(measuredDepth, seaLevelDepth);
+        return surfaceY;
     }
 
-    private static void applyPressure(UUID id, Level plotLevel, Level oceanLevel, SubLevelAccess sub, BlockPos plotPos, BlockState state, HullStrengthConfig.HullProperty prop, boolean[] creakPlayed) {
+    private static void applyPressure(UUID id, Level plotLevel, Level oceanLevel, SubLevelAccess sub, BlockPos plotPos, BlockState state, HullStrengthConfig.HullProperty prop, int surfaceY, boolean[] creakPlayed, int[] breakBudget) {
         CompartmentDetector.Component comp = CompartmentTracker.findCompartmentAdjacent(id, plotPos);
         if (comp == null) return;
         if (CompartmentTracker.isCompromised(id, comp.anchor())) return;
@@ -218,6 +225,11 @@ public class SubmarinePressureSystem {
 
         Vector3d worldVec = new Vector3d(plotPos.getX() + 0.5, plotPos.getY() + 0.5, plotPos.getZ() + 0.5);
         sub.logicalPose().transformPosition(worldVec);
+
+        int depth = surfaceY - (int) Math.floor(worldVec.y);
+        if (depth <= prop.maxWaterDepth()) return;
+
+        if (RAND.nextFloat() >= prop.implosionChance()) return;
         BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
 
         if (!creakPlayed[0]) {
@@ -228,11 +240,6 @@ public class SubmarinePressureSystem {
                 creakPlayed[0] = true;
             }
         }
-        if (oceanLevel instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, worldVec.x, worldVec.y, worldVec.z, 3, 0.3, 0.3, 0.3, 0.01);
-        }
-
-        if (RAND.nextFloat() >= prop.implosionChance()) return;
 
         Map<BlockPos, Integer> cracks = CRACK_LEVELS.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
         int crackLevel = cracks.getOrDefault(plotPos, 0) + 1;
@@ -242,15 +249,22 @@ public class SubmarinePressureSystem {
             cracks.remove(plotPos);
             sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
 
-            SoundType soundType = SoundType.STONE;
-            try { soundType = state.getBlock().getSoundType(state, plotLevel, plotPos, null); } catch (Exception ignored) {}
-            oceanLevel.playSound(null, worldPos, soundType.getBreakSound(), SoundSource.BLOCKS, 1.6f, 0.65f + RAND.nextFloat() * 0.3f);
+            if (breakBudget[0] > 0) {
+                breakBudget[0]--;
+                SoundType soundType = SoundType.STONE;
+                try { soundType = state.getBlock().getSoundType(state, plotLevel, plotPos, null); } catch (Exception ignored) {}
+                oceanLevel.playSound(null, worldPos, soundType.getBreakSound(), SoundSource.BLOCKS, 1.6f, 0.65f + RAND.nextFloat() * 0.3f);
+            }
             if (oceanLevel instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(ParticleTypes.SPLASH, worldVec.x, worldVec.y + 0.5, worldVec.z, 25, 0.4, 0.1, 0.4, 0.2);
             }
 
             plotLevel.destroyBlock(plotPos, false);
             BREACHED_PLOT.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(plotPos);
+            SubLevelRegistry.PlotBounds b = SubLevelRegistry.getBounds(id);
+            if (b != null) {
+                SubmarineSinkingSystem.onCrashed(id, sub, plotLevel, b);
+            }
         } else {
             cracks.put(plotPos, crackLevel);
             sendCrackPacket(oceanLevel, id, plotPos, crackLevel, blockId);

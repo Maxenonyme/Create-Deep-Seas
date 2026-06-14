@@ -177,8 +177,7 @@ public class BatchSolverRunner {
             ));
         }
 
-        // 10. torus  (major R = max(w,d)/4 ≈ s/2, minor mr = h/2)
-        //     w = h = d ≈ 2*(R+mr)+1  → R = (w-h)/2, mr = (h-1)/2
+        //for testing
         list.add(new ShapeDef("torus", s -> {
             int mr = Math.max(1, s / 8);
             int R = s / 2;

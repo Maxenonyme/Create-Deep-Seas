@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "W": {
+      "item": "minecraft:green_wool"
+    },
+    "P": {
+      "item": "create_submarine:phycological_membrane"
+    }
+  },
+  "pattern": [
+    "WWW",
+    "WPW",
+    "WWW"
+  ],
+  "result": {
+    "count": 1,
+    "id": "create_submarine:floater",
+    "components": {
+      "minecraft:block_state": {
+        "color": "green"
+      },
+      "minecraft:custom_model_data": 14
+    }
+  }
+}

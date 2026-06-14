@@ -159,8 +159,9 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     final Long prevHash = this.previousStructureHashes.get(id);
                     if (oldSolver != null && prevHash != null && prevHash == currentHash) {
                         this.needsRecompute.put(id, false);
-                        oldSolver.refreshWaterDepths(getWaterSurfaceWorldY(ssl));
+                        oldSolver.refreshWaterDepths(getWaterSurfaceWorldY(ssl), ssl.logicalPose());
                         oldSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(ssl));
+                        oldSolver.resolve();
                         this.cachedCrushDepths.put(id, oldSolver.computeCrushDepth());
                         continue;
                     }
@@ -467,71 +468,8 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             }
         }
 
-        if (brokeAny) {
-            destroyDisconnectedFragments(solver, plotLevel);
-        }
-
         this.totalCheckTimeNanos += System.nanoTime() - t0;
         return brokeAny;
-    }
-
-    private void destroyDisconnectedFragments(final LatticeStressSolver solver, final Level plotLevel) {
-        final int n = solver.blockCount();
-        if (n <= 1) return;
-
-        final int[] remaining = new int[n];
-        int rc = 0;
-        for (int i = 0; i < n; i++) {
-            if (!plotLevel.getBlockState(solver.getPosition(i)).isAir()) {
-                remaining[rc++] = i;
-            }
-        }
-        if (rc <= 1) return;
-
-        final boolean[] assigned = new boolean[rc];
-        int bestComponentSize = 0;
-        final boolean[] keep = new boolean[rc];
-
-        for (int start = 0; start < rc; start++) {
-            if (assigned[start]) continue;
-
-            final java.util.ArrayDeque<Integer> queue = new java.util.ArrayDeque<>();
-            queue.addLast(start);
-            assigned[start] = true;
-            final int[] component = new int[rc];
-            int compSize = 0;
-            component[compSize++] = start;
-
-            while (!queue.isEmpty()) {
-                final BlockPos a = solver.getPosition(remaining[queue.removeFirst()]);
-                for (int t = 0; t < rc; t++) {
-                    if (assigned[t]) continue;
-                    final BlockPos b = solver.getPosition(remaining[t]);
-                    final int dx = Math.abs(a.getX() - b.getX());
-                    final int dy = Math.abs(a.getY() - b.getY());
-                    final int dz = Math.abs(a.getZ() - b.getZ());
-                    if (dx <= 1 && dy <= 1 && dz <= 1 && dx + dy + dz > 0) {
-                        assigned[t] = true;
-                        queue.addLast(t);
-                        component[compSize++] = t;
-                    }
-                }
-            }
-
-            if (compSize > bestComponentSize) {
-                bestComponentSize = compSize;
-                java.util.Arrays.fill(keep, false);
-                for (int k = 0; k < compSize; k++) {
-                    keep[component[k]] = true;
-                }
-            }
-        }
-
-        for (int t = 0; t < rc; t++) {
-            if (!keep[t]) {
-                plotLevel.setBlock(solver.getPosition(remaining[t]), Blocks.AIR.defaultBlockState(), 3);
-            }
-        }
     }
 
     private boolean breakBlock(final Level plotLevel, final BlockPos pos, final UUID id, final LatticeStressSolver solver) {

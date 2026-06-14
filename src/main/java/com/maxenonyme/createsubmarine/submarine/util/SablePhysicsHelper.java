@@ -11,12 +11,15 @@ public class SablePhysicsHelper {
 
     private static final double DEFAULT_MASS = 1000.0;
 
+    private static final Vector3d ZERO_VEC = new Vector3d(0, 0, 0);
+
     private static Method ofMethod;
     private static Method isValid;
     private static Method setAsleep;
     private static Method getLinearVelocity;
     private static Method applyLinearImpulse;
     private static Method applyAngularImpulse;
+    private static Method addLinearAndAngularVelocity;
     private static Method getMassTracker;
     private static Method getMass;
     private static boolean initialized;
@@ -35,8 +38,7 @@ public class SablePhysicsHelper {
                 else if (p == 1 && "applyLinearImpulse".equals(name)) applyLinearImpulse = m;
                 else if (p == 1 && "applyAngularImpulse".equals(name)) applyAngularImpulse = m;
                 else if (p == 1 && "setAsleep".equals(name)) setAsleep = m;
-            }
-            if (ofMethod == null || isValid == null) {
+                else if (p == 2 && "addLinearAndAngularVelocity".equals(name)) addLinearAndAngularVelocity = m;
             }
         } catch (ClassNotFoundException e) {
         }
@@ -73,10 +75,24 @@ public class SablePhysicsHelper {
         } catch (ReflectiveOperationException ignored) {}
     }
 
+    public static void setAsleep(Object handle, boolean asleep) {
+        if (handle == null || setAsleep == null) return;
+        try {
+            setAsleep.invoke(handle, asleep);
+        } catch (ReflectiveOperationException ignored) {}
+    }
+
     public static void applyLinearImpulse(Object handle, Vector3d force) {
         if (handle == null || applyLinearImpulse == null) return;
         try {
             applyLinearImpulse.invoke(handle, force);
+        } catch (ReflectiveOperationException ignored) {}
+    }
+
+    public static void addLinearVelocity(Object handle, Vector3d velocity) {
+        if (handle == null || addLinearAndAngularVelocity == null) return;
+        try {
+            addLinearAndAngularVelocity.invoke(handle, velocity, ZERO_VEC);
         } catch (ReflectiveOperationException ignored) {}
     }
 

@@ -1,7 +1,1 @@
-{
-  "variants": {
-    "": {
-      "model": "create_submarine:block/glass_pressurizer"
-    }
-  }
-}
+{   "variants": {     "": {       "model": "create_submarine:block/glass_pressurizer"     }   } }

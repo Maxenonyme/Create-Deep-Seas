@@ -33,6 +33,7 @@ public class CompartmentDetector {
         Set<BlockPos> activeInternal;
         Set<BlockPos> activeHull;
         boolean activeSealed;
+        boolean chunksMissing = false;
         BlockPos activeAnchor;
         Deque<BlockPos> activeQueue;
         boolean done = false;
@@ -125,6 +126,8 @@ public class CompartmentDetector {
                     } else {
                         st.solidBlocks.add(start);
                     }
+                } else {
+                    st.chunksMissing = true;
                 }
             }
 
@@ -157,7 +160,7 @@ public class CompartmentDetector {
             }
             BlockState nextState = getStateInPlot(st.plot, next, st.cache);
             if (nextState == null) {
-                st.activeSealed = false;
+                st.chunksMissing = true;
                 continue;
             }
             if (isPermeable(nextState)) {

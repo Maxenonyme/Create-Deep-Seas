@@ -177,7 +177,7 @@ public final class SubmarineWaterCullBuffer {
                 continue;
             }
             BlockState state = lastChunk.getBlockState(pos);
-            if (state.isAir() || state.isCollisionShapeFullBlock(lastChunk, pos))
+            if (state.isAir() || !state.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO).isEmpty())
                 out.add(pos);
         }
         return out;

@@ -177,7 +177,8 @@ public class HullStrengthConfig {
         map.put("create_submarine:ballast_tank",        new HullProperty(230, 0.04f));
         map.put("create_submarine:ballast_vent",        new HullProperty(220, 0.05f));
         map.put("create_submarine:water_thruster",      new HullProperty(220, 0.05f));
-        map.put("create_submarine:glass_pressurizer",   new HullProperty(200, 0.06f));
+        map.put("create_submarine:iron_pressurizer",    new HullProperty(200, 0.06f));
+        map.put("create_submarine:copper_pressurizer",  new HullProperty(200, 0.06f));
         map.put("create_submarine:electrolyzer",        new HullProperty(200, 0.06f));
         map.put("create_submarine:oxygene_diffuser",    new HullProperty(180, 0.07f));
         map.put("create_submarine:industrial_alarm",    new HullProperty(160, 0.08f));
@@ -209,5 +210,28 @@ public class HullStrengthConfig {
 
     private static float clamp(float v) {
         return Math.max(0f, Math.min(1f, v));
+    }
+
+    public static Map<String, HullProperty> getValues() {
+        return new TreeMap<>(values);
+    }
+
+    public static void applySynced(Map<String, HullProperty> synced) {
+        values = new HashMap<>(synced);
+        resolvedCache.clear();
+    }
+
+    public static void update(String key, int maxWaterDepth, float implosionChance) {
+        HullProperty prop = new HullProperty(maxWaterDepth, clamp(implosionChance));
+        values.put(key, prop);
+        Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(key));
+        if (block != null) {
+            resolvedCache.put(block, prop);
+        }
+    }
+
+    public static void save() {
+        Map<String, HullProperty> sorted = new TreeMap<>(values);
+        writeJson(CONFIG_PATH, sorted);
     }
 }

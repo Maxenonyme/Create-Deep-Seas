@@ -56,8 +56,14 @@ public final class SodiumWaterOcclusionBridge {
         if (!u.hasOcclusion())
             return;
 
-        if (!translucentPass || !WaterOcclusionRenderer.isEnabled()) {
+        if (!translucentPass) {
             GL20.glUniform1f(u.enabled, 0.0f);
+            return;
+        }
+
+        if (!WaterOcclusionRenderer.isEnabled()) {
+            GL20.glUniform1f(u.enabled, 0.0f);
+            setPixelPerfect(false);
             return;
         }
 
@@ -67,12 +73,14 @@ public final class SodiumWaterOcclusionBridge {
             AdvancedFbo far = acc.createsubmarine$getFarBuffer();
             if (close == null || far == null) {
                 GL20.glUniform1f(u.enabled, 0.0f);
+                setPixelPerfect(false);
                 return;
             }
             AdvancedFboTextureAttachment closeDepth = close.getDepthTextureAttachment();
             AdvancedFboTextureAttachment farDepth = far.getDepthTextureAttachment();
             if (closeDepth == null || farDepth == null) {
                 GL20.glUniform1f(u.enabled, 0.0f);
+                setPixelPerfect(false);
                 return;
             }
 
@@ -91,13 +99,17 @@ public final class SodiumWaterOcclusionBridge {
                 GL20.glUniform2f(u.screenSize, (float) window.getWidth(), (float) window.getHeight());
             }
             GL20.glUniform1f(u.enabled, 1.0f);
-            if (!PIXEL_PERFECT_ACTIVE) {
-                PIXEL_PERFECT_ACTIVE = true;
-
-                SubmarineWaterCullBuffer.invalidateAllPoseCaches();
-            }
+            setPixelPerfect(true);
         } catch (Throwable t) {
             GL20.glUniform1f(u.enabled, 0.0f);
+            setPixelPerfect(false);
         }
+    }
+
+    private static void setPixelPerfect(boolean active) {
+        if (active == PIXEL_PERFECT_ACTIVE)
+            return;
+        PIXEL_PERFECT_ACTIVE = active;
+        SubmarineWaterCullBuffer.invalidateAllPoseCaches();
     }
 }

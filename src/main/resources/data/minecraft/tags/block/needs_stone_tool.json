@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "create_submarine:ballast_vent",
+    "create_submarine:oxygene_diffuser",
+    "create_submarine:electrolyzer",
+    "create_submarine:water_thruster",
+    "create_submarine:copper_pressurizer"
+  ]
+}

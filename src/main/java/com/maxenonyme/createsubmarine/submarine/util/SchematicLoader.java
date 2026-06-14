@@ -20,17 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Reads Sponge schematic v2 (.schem) files and provides them as a BlockGetter
- * for use with LatticeStressSolver's test battery.
- *
- * Format: NBT compound with:
- *   - Version (int) = 2
- *   - DataVersion (int)
- *   - Width, Height, Length (short)
- *   - Palette (Compound: block-state-string -> int)
- *   - BlockData (byte array, XZY order: index = (y*Length + z)*Width + x)
- */
+//for testing
 public class SchematicLoader {
 
     public record SchematicData(

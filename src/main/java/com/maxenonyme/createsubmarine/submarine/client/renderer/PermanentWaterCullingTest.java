@@ -38,8 +38,11 @@ import java.util.UUID;
 public final class PermanentWaterCullingTest {
 
     public static boolean isEnabled() {
-        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.ENABLE_PERMANENT_WATER_CULLING_TEST
-                .get();
+        try {
+            return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.ENABLE_PERMANENT_WATER_CULLING_TEST.get();
+        } catch (IllegalStateException e) {
+            return false;
+        }
     }
 
     private static final int UPDATE_INTERVAL_TICKS = 40;
@@ -96,9 +99,7 @@ public final class PermanentWaterCullingTest {
             if (id == null)
                 continue;
             seenIds.add(id);
-
-            // HullController/OxygenDiffuser scans take priority — skipping avoids two
-            // conflicting Sable regions for the same sub (root of the through-glass bug).
+            
             if (hullTracked.contains(id)) {
                 if (TRACKED_IDS.remove(id))
                     deactivateSub(id);

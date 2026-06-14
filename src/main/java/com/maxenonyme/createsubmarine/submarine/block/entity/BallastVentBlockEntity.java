@@ -2,6 +2,7 @@ package com.maxenonyme.createsubmarine.submarine.block.entity;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
 import com.maxenonyme.createsubmarine.submarine.block.BallastVentBlock;
+import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import dev.ryanhcode.sable.companion.SableCompanion;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
@@ -73,7 +74,13 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
 
         float absSpeed = Math.abs(speed);
         int baseTransferRate = (int) (absSpeed * 50.0f);
-        int transferRate = (int) (baseTransferRate * speedMultiplier);
+        double rateMult = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.BALLAST_TRANSFER_RATE_MULTIPLIER
+                .get();
+        int transferRate = (int) (baseTransferRate * speedMultiplier * rateMult);
+
+        // It doesn't want to work :(
+        int minRateForFullTransfer = (int) Math.ceil((double) totalCapacity / 600.0);
+        transferRate = Math.max(transferRate, minRateForFullTransfer);
 
         if (transferRate <= 0)
             return;
@@ -178,7 +185,8 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
         Direction shaftFace = myState.getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite();
 
         for (Direction dir : Direction.values()) {
-            if (dir == shaftFace) continue;
+            if (dir == shaftFace)
+                continue;
             boolean isHole = myState.getValue(BallastVentBlock.propertyForDirection(dir));
 
             if (!isHole) {
@@ -267,8 +275,13 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
         Vector3d worldPos = new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
         sub.logicalPose().transformPosition(worldPos);
         BlockPos wPos = BlockPos.containing(worldPos.x, worldPos.y, worldPos.z);
-        Level parentLevel = level.getServer() != null ? level.getServer().getLevel(level.dimension()) : level;
-        return parentLevel.getFluidState(wPos).is(FluidTags.WATER);
+        Level parentLevel = SubLevelRegistry.getLevel(sub.getUniqueId());
+        if (parentLevel == null && sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl) {
+            parentLevel = sl.getLevel();
+        }
+        if (parentLevel == null)
+            return false;
+        return com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.realFluidState(parentLevel, wPos).is(FluidTags.WATER);
     }
 
     @Override

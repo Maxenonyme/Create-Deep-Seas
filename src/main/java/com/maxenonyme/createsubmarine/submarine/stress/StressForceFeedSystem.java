@@ -9,12 +9,16 @@ import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.neoforge.event.ForgeSablePostPhysicsTickEvent;
+import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertyHelper;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -27,8 +31,21 @@ import java.util.*;
 public class StressForceFeedSystem {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("StressForceFeed");
-    private static final Map<UUID, Long> lastBroadcastUHash = new HashMap<>();
+    private static final Map<UUID, Long> lastBroadcastTime = new HashMap<>();
     private static final Map<UUID, Integer> arrowLogTick = new HashMap<>();
+    private static final Map<UUID, StressSnapshot> lastStressState = new HashMap<>();
+
+    private static final double STRESS_CHANGE_REL_TOLERANCE = 0.01;
+    private static final double CRUSH_CHANGE_REL_TOLERANCE = 0.05;
+
+    private record StressSnapshot(
+        double maxRatio,
+        double meanRatio,
+        double minCrush,
+        long time
+    ) {}
+
+    
 
     public static final ResourceLocation STRESS_ID = ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "stress");
     public static final ResourceLocation INTERNAL_STRESS_ID = ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "internal_stresses");
@@ -64,13 +81,15 @@ public class StressForceFeedSystem {
         final var container = SubLevelContainer.getContainer(level);
         if (!(container instanceof final ServerSubLevelContainer sslc)) return;
 
+        final double timeStep = event.getTimeStep();
+
         for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
             if (ssl.isRemoved()) continue;
-            recordForSubLevel(ssl);
+            recordForSubLevel(ssl, timeStep);
         }
     }
 
-    public static void recordForSubLevel(final ServerSubLevel ssl) {
+    public static void recordForSubLevel(final ServerSubLevel ssl, final double timeStep) {
         final ForceGroup stressGroup = getStressForceGroup();
         final ForceGroup internalGroup = getInternalStressForceGroup();
         final ForceGroup buoyancyGroup = getBuoyancyForceGroup();
@@ -83,7 +102,8 @@ public class StressForceFeedSystem {
         if (solver == null || solver.blockCount() == 0) return;
 
         final double freshWaterSurface = SubLevelStressAnalyzer.getWaterSurfaceWorldY(ssl);
-        solver.refreshWaterDepths(freshWaterSurface);
+        solver.refreshWaterDepths(freshWaterSurface, ssl.logicalPose());
+        solver.resolve();
 
         if (!ssl.isTrackingIndividualQueuedForces()) {
             ssl.enableIndividualQueuedForcesTracking(true);
@@ -95,13 +115,69 @@ public class StressForceFeedSystem {
 
         final double[] stressDist = solver.getStressDistribution();
         final int n = solver.blockCount();
-        final int totalArrows = recordFaceForces(solver, queued, stressDist, n)
-                              + recordInternalForces(solver, internalQueued, n, stressDist);
 
-        // Record buoyancy force from Java-side computation using solver blocks
-        if (buoyancyGroup != null) {
-            recordBuoyancyForce(ssl, buoyancyGroup, solver, freshWaterSurface);
+        // Log stress UPDATES (only when the distribution changes significantly)
+        {
+            double maxRatio = 0, sumRatio = 0;
+            int worstRatioIdx = -1;
+            for (int i = 0; i < n; i++) {
+                if (stressDist[i] > maxRatio) { maxRatio = stressDist[i]; worstRatioIdx = i; }
+                sumRatio += stressDist[i];
+            }
+            final double meanRatio = sumRatio / n;
+            final double[] crush = solver.computeCrushDepth();
+            final int worstIdx = (int) crush[n];
+            final double minCrush = worstIdx >= 0 ? crush[worstIdx] : Double.POSITIVE_INFINITY;
+
+            final UUID subId = ssl.getUniqueId();
+            final StressSnapshot prev = lastStressState.get(subId);
+            final StressSnapshot cur = new StressSnapshot(maxRatio, meanRatio, minCrush, ssl.getLevel().getGameTime());
+
+            if (prev == null) {
+                final String vmYieldInfo = worstRatioIdx >= 0
+                    ? String.format(" vm=%.2e yield=%.2e E=%.2e",
+                        solver.getVonMises(worstRatioIdx), solver.getYieldStress(worstRatioIdx), solver.getYoungsModulus(worstRatioIdx))
+                    : "";
+                LOGGER.info("STRESS INIT ssl={}: max={} mean={} crush={} bounds={} blocks={} hull={}{}",
+                    subId.toString().substring(0, 8),
+                    String.format("%.4f", maxRatio * 100),
+                    String.format("%.4f", meanRatio * 100),
+                    String.format("%.1f", minCrush),
+                    solver.getBounds(), n, solver.hullBlockCount(), vmYieldInfo);
+                lastStressState.put(subId, cur);
+            } else {
+                final double dMaxRel = prev.maxRatio > 0 ? Math.abs(maxRatio - prev.maxRatio) / prev.maxRatio : Math.abs(maxRatio - prev.maxRatio);
+                final double dMeanRel = prev.meanRatio > 0 ? Math.abs(meanRatio - prev.meanRatio) / prev.meanRatio : Math.abs(meanRatio - prev.meanRatio);
+                final double dCrushRel = Double.isFinite(prev.minCrush) && prev.minCrush > 0
+                    ? Math.abs(minCrush - prev.minCrush) / prev.minCrush : Double.NaN;
+                if (dMaxRel > STRESS_CHANGE_REL_TOLERANCE || dMeanRel > STRESS_CHANGE_REL_TOLERANCE
+                        || (Double.isFinite(dCrushRel) && dCrushRel > CRUSH_CHANGE_REL_TOLERANCE)) {
+                    final String vmYieldInfo = worstRatioIdx >= 0
+                        ? String.format(" vm=%.2e yield=%.2e", solver.getVonMises(worstRatioIdx), solver.getYieldStress(worstRatioIdx))
+                        : "";
+                    LOGGER.info("STRESS UPDATE ssl={}: max={} (was {}) mean={} (was {}) crush={} (was {}) bounds={} blocks={} hull={}{}",
+                        subId.toString().substring(0, 8),
+                        String.format("%.4f%%", maxRatio * 100),
+                        String.format("%.4f%%", prev.maxRatio * 100),
+                        String.format("%.4f%%", meanRatio * 100),
+                        String.format("%.4f%%", prev.meanRatio * 100),
+                        String.format("%.1f", minCrush),
+                        Double.isFinite(prev.minCrush) ? String.format("%.1f", prev.minCrush) : "inf",
+                        solver.getBounds(), n, solver.hullBlockCount(), vmYieldInfo);
+                    lastStressState.put(subId, cur);
+                }
+            }
         }
+
+        final int totalArrows = recordFaceForces(solver, queued, stressDist, n)
+                              + recordInternalForces(solver, internalQueued, n, stressDist, timeStep);
+
+        // Record actual lift from Sable's FloatingBlockMaterial system
+        if (buoyancyGroup != null) {
+            recordBuoyancyForce(ssl, buoyancyGroup, solver, timeStep);
+        }
+
+        checkStructuralFailure(ssl, solver, analyzer);
 
         if (totalArrows > 0) {
             final UUID subId = ssl.getUniqueId();
@@ -115,14 +191,11 @@ public class StressForceFeedSystem {
 
         {
             final UUID subId = ssl.getUniqueId();
-            final double[] u = solver.getU();
-            long hash = 0;
-            for (int k = 0; k < u.length; k += Math.max(1, u.length / 64)) {
-                hash = 31L * hash + Double.doubleToLongBits(u[k]);
-            }
-            final Long prev = lastBroadcastUHash.get(subId);
-            if (prev == null || prev != hash) {
-                lastBroadcastUHash.put(subId, hash);
+            final long gameTime = ssl.getLevel().getGameTime();
+            final Long lastTime = lastBroadcastTime.get(subId);
+            // Debounce to at most once per 20 ticks (1 second)
+            if (lastTime == null || gameTime - lastTime >= 20) {
+                lastBroadcastTime.put(subId, gameTime);
                 try {
                     BlockPos stressCenterLocal = solver.getStressCenter();
                     BoundingBox3ic bounds = solver.getBounds();
@@ -145,46 +218,113 @@ public class StressForceFeedSystem {
         }
     }
 
-    private static void recordBuoyancyForce(final ServerSubLevel ssl, final ForceGroup buoyancyGroup,
-                                             final LatticeStressSolver solver, final double waterSurface) {
+    private static void checkStructuralFailure(final ServerSubLevel ssl, final LatticeStressSolver solver,
+                                                final SubLevelStressAnalyzer analyzer) {
         final int n = solver.blockCount();
-        final BoundingBox3ic bounds = solver.getBounds();
+        if (n <= 1) return;
 
-        double totalForce = 0;
-        double wx = 0, wy = 0, wz = 0;
+        final Level plotLevel = ssl.getLevel();
+        boolean brokeAny = false;
+        int brokeCount = 0;
 
-        final double densityMultiplier = SubLevelStressAnalyzer.getFluidDensityMultiplier(ssl);
-
+        // Log top stress ratios for debugging
+        double maxRatio = 0;
+        int maxIdx = -1;
         for (int i = 0; i < n; i++) {
-            final BlockPos pos = solver.getPosition(i);
-            final int worldY = bounds.minY() + pos.getY();
-            if (worldY >= waterSurface) continue;
-
-            // Each full block contributes 10.5 N upward (matching Rust's 10.5 * volume * strength)
-            // Scaled by fluid density multiplier (1.0 for water, 3.1 for lava)
-            final double f = 10.5 * densityMultiplier;
-            totalForce += f;
-            final double cx = pos.getX() + 0.5;
-            final double cy = pos.getY() + 0.5;
-            final double cz = pos.getZ() + 0.5;
-            wx += f * cx;
-            wy += f * cy;
-            wz += f * cz;
+            final double r = solver.getStressRatio(i);
+            if (r > maxRatio) { maxRatio = r; maxIdx = i; }
+        }
+        if (maxRatio > 0.5) {
+            final BlockPos pos = solver.getPosition(maxIdx);
+            final BlockState state = plotLevel.getBlockState(pos);
+            LOGGER.debug("checkStructuralFailure ssl={}: n={} maxRatio={} at {} (block={})",
+                ssl.getUniqueId().toString().substring(0, 8), n,
+                String.format("%.4f", maxRatio), pos.toShortString(),
+                state.getBlock().getName().getString());
         }
 
-        if (totalForce < 1e-6) return;
+        for (int i = 0; i < n; i++) {
+            final double ratio = solver.getStressRatio(i);
+            if (ratio < 1.0) continue;
 
-        final QueuedForceGroup queued = ssl.getOrCreateQueuedForceGroup(buoyancyGroup);
-        if (queued == null) return;
+            final BlockPos pos = solver.getPosition(i);
+            final BlockState state = plotLevel.getBlockState(pos);
+            if (state.isAir()) continue;
 
-        final Vector3d center = new Vector3d(wx / totalForce, wy / totalForce, wz / totalForce);
-        final Vector3d force = new Vector3d(0, totalForce, 0);
-        queued.recordPointForce(center, force);
-        //commented out spam
-        //LOGGER.debug("Recorded buoyancy force {} N at center ({}, {}, {}) for ssl={}",
-        //    String.format("%.0f", totalForce),
-        //    String.format("%.1f", center.x), String.format("%.1f", center.y), String.format("%.1f", center.z),
-        //    ssl.getUniqueId().toString().substring(0, 8));
+            final double waterDepth = solver.getBlockWaterDepth(i);
+            final String matName = state.getBlock().getName().getString();
+            final double yield = solver.getYieldStress(i);
+
+            LOGGER.warn("BLOCK FAILURE at {}: material={} stressRatio={} depth={} yield={} E={}",
+                pos.toShortString(), matName, String.format("%.4f", ratio),
+                String.format("%.1f", waterDepth), String.format("%.2e", yield),
+                String.format("%.2e", solver.getYoungsModulus(i)));
+
+            plotLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+            brokeAny = true;
+            brokeCount++;
+        }
+
+        if (brokeAny) {
+            final BoundingBox3ic b = solver.getBounds();
+            LOGGER.warn("STRUCTURAL FAILURE in {}: {} block(s) broke, bounds=[{},{},{}]-[{},{},{}] blocks={} hull={}",
+                ssl.getUniqueId().toString().substring(0, 8), brokeCount,
+                b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ(),
+                solver.blockCount(), solver.hullBlockCount());
+            analyzer.markDirty(ssl);
+        }
+    }
+
+    private static void recordBuoyancyForce(final ServerSubLevel ssl, final ForceGroup group, final LatticeStressSolver solver, final double timeStep) {
+        final double SABLE_BUOYANCY_CONST = 10.5;
+
+        double totalBuoyancy = 0;
+        double sumX = 0, sumY = 0, sumZ = 0;
+        final int n = solver.blockCount();
+        final int hullCount = solver.hullBlockCount();
+        int counted = 0;
+
+        for (int i = 0; i < n; i++) {
+            final double waterDepth = solver.getBlockWaterDepth(i);
+            if (waterDepth <= 0) continue;
+
+            if (!solver.isHullBlock(i)) continue;
+
+            final double submergedFrac = Math.min(Math.max(waterDepth, 0), 1);
+
+            final BlockPos pos = solver.getPosition(i);
+            final BlockState state = ssl.getLevel().getBlockState(pos);
+            final double blockVolume = PhysicsBlockPropertyHelper.getVolume(state);
+
+            final double b = SABLE_BUOYANCY_CONST * blockVolume * submergedFrac;
+            if (b <= 0) continue;
+
+            totalBuoyancy += b;
+            sumX += b * (pos.getX() + 0.5);
+            sumY += b * (pos.getY() + 0.5);
+            sumZ += b * (pos.getZ() + 0.5);
+            counted++;
+        }
+
+        if (totalBuoyancy <= 0) {
+            LOGGER.debug("buoyancy: n={} hull={} total=0 (no underwater hull blocks)", n, hullCount);
+            return;
+        }
+
+        LOGGER.trace("buoyancy: n={} hull={} counted={} total={}",
+            n, hullCount, counted, String.format("%.1f", totalBuoyancy));
+
+        // Multiply by timeStep (impulse convention) so ForceTrackingDispatcher's division recovers correct force
+        final double recordedBuoyancy = totalBuoyancy * timeStep;
+
+        final Vector3d localUp = new Vector3d(0, recordedBuoyancy, 0);
+        ssl.logicalPose().orientation().transformInverse(localUp);
+
+        final QueuedForceGroup queued = ssl.getOrCreateQueuedForceGroup(group);
+        queued.recordPointForce(
+            new Vector3d(sumX / totalBuoyancy, sumY / totalBuoyancy, sumZ / totalBuoyancy),
+            localUp
+        );
     }
 
     private static int recordFaceForces(final LatticeStressSolver solver, final QueuedForceGroup queued,
@@ -281,7 +421,7 @@ public class StressForceFeedSystem {
     }
 
     private static int recordInternalForces(final LatticeStressSolver solver, final QueuedForceGroup queued,
-                                             final int n, final double[] stressDist) {
+                                             final int n, final double[] stressDist, final double timeStep) {
         final double[] u = solver.getU();
         final int[] dx = LatticeStressSolver.getDX();
         final int[] dy = LatticeStressSolver.getDY();
@@ -337,14 +477,16 @@ public class StressForceFeedSystem {
             final double netMag = Math.sqrt(netX * netX + netY * netY + netZ * netZ);
             if (netMag < 1e-6) continue;
 
-            final double arrowMag = Math.min(frac * maxForce * 0.2, maxForce * 0.1);
-            if (arrowMag < 0.01) continue;
+            // Uniform scale preserves Newton's 3rd law cancellation; 1e6 N → ~8000 displayed
+            final double UNIFORM_SCALE = 0.008;
+            final double recordedMag = netMag * UNIFORM_SCALE * timeStep;
+            if (recordedMag < 0.01) continue;
 
             final double cx = pi.getX() + 0.5;
             final double cy = pi.getY() + 0.5;
             final double cz = pi.getZ() + 0.5;
 
-            final double scale = arrowMag / netMag;
+            final double scale = recordedMag / netMag;
             queued.recordPointForce(new Vector3d(cx, cy, cz),
                 new Vector3d(netX * scale, netY * scale, netZ * scale));
             arrows++;

@@ -6,5 +6,21 @@
                 "stream": false
             }
         ]
+    },
+    "leviathan_class_detected": {
+        "sounds": [
+            {
+                "name": "create_submarine:leviathan_class_detected",
+                "stream": true
+            }
+        ]
+    },
+    "reaper_leviathan_roars": {
+        "sounds": [
+            {
+                "name": "create_submarine:reaper-leviathan-roars",
+                "stream": false
+            }
+        ]
     }
 }
