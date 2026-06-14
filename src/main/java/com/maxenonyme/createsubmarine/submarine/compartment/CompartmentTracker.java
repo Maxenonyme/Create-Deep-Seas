@@ -160,25 +160,6 @@ public class CompartmentTracker {
         return SUBS.get(id);
     }
 
-    public static boolean isSubmarine(UUID id) {
-        return SUBS.containsKey(id);
-    }
-
-    public static Set<BlockPos> computeVisualUnion(CompartmentDetector.Result result) {
-        Set<BlockPos> visual = new HashSet<>();
-        boolean anySealed = false;
-        for (CompartmentDetector.Component c : result.components()) {
-            if (!c.sealed()) continue;
-            anySealed = true;
-            visual.addAll(c.internal());
-            visual.addAll(c.hull());
-        }
-        if (anySealed && result.solidBlocks() != null) {
-            visual.addAll(result.solidBlocks());
-        }
-        return visual;
-    }
-
     public static AABB getWorldAABB(UUID id) {
         return WORLD_AABB.get(id);
     }

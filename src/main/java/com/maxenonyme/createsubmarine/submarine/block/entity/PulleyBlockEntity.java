@@ -1,7 +1,7 @@
 package com.maxenonyme.createsubmarine.submarine.block.entity;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.block.PoulisBlock;
+import com.maxenonyme.createsubmarine.submarine.block.PulleyBlock;
 import com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem;
 import dev.ryanhcode.sable.api.block.BlockEntitySubLevelActor;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
@@ -18,7 +18,7 @@ import org.joml.Vector3d;
 import org.joml.Quaterniond;
 import java.util.List;
 
-public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLevelActor {
+public class PulleyBlockEntity extends BlockEntity implements BlockEntitySubLevelActor {
 
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     private static double getMaxSlideSpeed() {
@@ -27,17 +27,16 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
 
     public static final java.util.Set<java.util.UUID> SLIDING_SUBLEVELS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-    private static final java.util.Map<java.util.UUID, java.util.Set<PoulisBlockEntity>> SLIDERS_BY_SUBLEVEL = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<java.util.UUID, java.util.Set<PulleyBlockEntity>> SLIDERS_BY_SUBLEVEL = new java.util.concurrent.ConcurrentHashMap<>();
 
     public float clientWheelAngle = 0f;
     public long clientLastNanos = 0L;
 
-
     private int stressTicks = 0;
     private transient boolean lastTickClampedAndConnected = false;
 
-    public PoulisBlockEntity(BlockPos pos, BlockState state) {
-        super(CreateSubmarine.POULIS_BE.get(), pos, state);
+    public PulleyBlockEntity(BlockPos pos, BlockState state) {
+        super(CreateSubmarine.PULLEY_BE.get(), pos, state);
     }
 
     public float getHeat() {
@@ -53,13 +52,13 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         if (this.level != null && !this.level.isClientSide) {
             dev.ryanhcode.sable.companion.SubLevelAccess sub = dev.ryanhcode.sable.companion.SableCompanion.INSTANCE.getContaining(this.level, this.worldPosition);
             if (sub != null) {
-                java.util.Set<PoulisBlockEntity> peers = SLIDERS_BY_SUBLEVEL.get(sub.getUniqueId());
+                java.util.Set<PulleyBlockEntity> peers = SLIDERS_BY_SUBLEVEL.get(sub.getUniqueId());
                 if (peers != null) {
                     peers.remove(this);
                 }
                 boolean anyConnected = false;
                 if (peers != null) {
-                    for (PoulisBlockEntity peer : peers) {
+                    for (PulleyBlockEntity peer : peers) {
                         if (peer != this && !peer.isRemoved() && peer.lastTickClampedAndConnected) {
                             anyConnected = true;
                             break;
@@ -75,9 +74,9 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
 
     private void updateSlidingStatus(ServerSubLevel subLevel) {
         boolean anyConnected = false;
-        java.util.Set<PoulisBlockEntity> peers = SLIDERS_BY_SUBLEVEL.get(subLevel.getUniqueId());
+        java.util.Set<PulleyBlockEntity> peers = SLIDERS_BY_SUBLEVEL.get(subLevel.getUniqueId());
         if (peers != null) {
-            for (PoulisBlockEntity peer : peers) {
+            for (PulleyBlockEntity peer : peers) {
                 if (peer.isRemoved()) continue;
                 if (peer.lastTickClampedAndConnected) {
                     anyConnected = true;
@@ -97,10 +96,10 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         if (subLevel.getPlot() == null) return;
 
         BlockState state = getBlockState();
-        if (!state.hasProperty(PoulisBlock.FACING)) return;
-        net.minecraft.core.Direction facing = state.getValue(PoulisBlock.FACING);
+        if (!state.hasProperty(PulleyBlock.FACING)) return;
+        net.minecraft.core.Direction facing = state.getValue(PulleyBlock.FACING);
 
-        java.util.Set<PoulisBlockEntity> peers = SLIDERS_BY_SUBLEVEL.computeIfAbsent(subLevel.getUniqueId(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+        java.util.Set<PulleyBlockEntity> peers = SLIDERS_BY_SUBLEVEL.computeIfAbsent(subLevel.getUniqueId(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet());
         peers.removeIf(peer -> {
             if (peer == null || peer.isRemoved() || peer.getLevel() == null) {
                 return true;
@@ -118,10 +117,10 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         net.minecraft.core.Direction wheelDir = facing.getAxis().isHorizontal() ? facing.getClockWise() : net.minecraft.core.Direction.EAST;
         localSnapPoint.add(wheelDir.getStepX() * 0.95, wheelDir.getStepY() * 0.95, wheelDir.getStepZ() * 0.95);
 
-        PoulisBlockEntity partner = findClampPartner(subLevel);
+        PulleyBlockEntity partner = findClampPartner(subLevel);
         if (partner == null) {
-            if (state.hasProperty(PoulisBlock.CONNECTED) && state.getValue(PoulisBlock.CONNECTED)) {
-                level.setBlock(worldPosition, state.setValue(PoulisBlock.CONNECTED, false), 3);
+            if (state.hasProperty(PulleyBlock.CONNECTED) && state.getValue(PulleyBlock.CONNECTED)) {
+                level.setBlock(worldPosition, state.setValue(PulleyBlock.CONNECTED, false), 3);
             }
             float oldHeat = getHeat();
             this.stressTicks = Math.max(0, this.stressTicks - 2);
@@ -173,14 +172,12 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
 
         boolean isConnected = (closestPoint != null && closestDistSq < 16.0);
 
-
-
-        if (state.hasProperty(PoulisBlock.CONNECTED) && state.getValue(PoulisBlock.CONNECTED) != isConnected) {
-            level.setBlock(worldPosition, state.setValue(PoulisBlock.CONNECTED, isConnected), 3);
+        if (state.hasProperty(PulleyBlock.CONNECTED) && state.getValue(PulleyBlock.CONNECTED) != isConnected) {
+            level.setBlock(worldPosition, state.setValue(PulleyBlock.CONNECTED, isConnected), 3);
         }
         BlockState partnerState = partner.getBlockState();
-        if (partnerState.hasProperty(PoulisBlock.CONNECTED) && partnerState.getValue(PoulisBlock.CONNECTED) != isConnected) {
-            partner.getLevel().setBlock(partner.getBlockPos(), partnerState.setValue(PoulisBlock.CONNECTED, isConnected), 3);
+        if (partnerState.hasProperty(PulleyBlock.CONNECTED) && partnerState.getValue(PulleyBlock.CONNECTED) != isConnected) {
+            partner.getLevel().setBlock(partner.getBlockPos(), partnerState.setValue(PulleyBlock.CONNECTED, isConnected), 3);
         }
 
         double speed = 0.0;
@@ -215,7 +212,7 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
 
             boolean isPrimary = true;
             if (peers != null) {
-                for (PoulisBlockEntity peer : peers) {
+                for (PulleyBlockEntity peer : peers) {
                     if (peer == this || peer.isRemoved()) continue;
                     if (peer.lastTickClampedAndConnected) {
                         if (peer.getBlockPos().compareTo(this.worldPosition) < 0) {
@@ -227,9 +224,9 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
             }
 
             if (isPrimary) {
-                PoulisBlockEntity secondary = null;
+                PulleyBlockEntity secondary = null;
                 if (peers != null) {
-                    for (PoulisBlockEntity peer : peers) {
+                    for (PulleyBlockEntity peer : peers) {
                         if (peer != this && peer != partner && !peer.isRemoved() && peer.lastTickClampedAndConnected) {
                             secondary = peer;
                             break;
@@ -386,18 +383,18 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         this.stressTicks = tag.getInt("StressTicks");
     }
 
-    private PoulisBlockEntity findClampPartner(ServerSubLevel subLevel) {
+    private PulleyBlockEntity findClampPartner(ServerSubLevel subLevel) {
         BlockState state = getBlockState();
-        if (!state.hasProperty(PoulisBlock.FACING)) return null;
-        net.minecraft.core.Direction facing = state.getValue(PoulisBlock.FACING);
+        if (!state.hasProperty(PulleyBlock.FACING)) return null;
+        net.minecraft.core.Direction facing = state.getValue(PulleyBlock.FACING);
         net.minecraft.core.Direction wheelDir = facing.getAxis().isHorizontal() ? facing.getClockWise() : net.minecraft.core.Direction.EAST;
         BlockPos partnerPos = worldPosition.relative(wheelDir, 2);
         if (level == null) return null;
         BlockEntity be = level.getBlockEntity(partnerPos);
-        if (be instanceof PoulisBlockEntity partner && !partner.isRemoved()) {
+        if (be instanceof PulleyBlockEntity partner && !partner.isRemoved()) {
             BlockState partnerState = partner.getBlockState();
-            if (partnerState.hasProperty(PoulisBlock.FACING)) {
-                net.minecraft.core.Direction partnerFacing = partnerState.getValue(PoulisBlock.FACING);
+            if (partnerState.hasProperty(PulleyBlock.FACING)) {
+                net.minecraft.core.Direction partnerFacing = partnerState.getValue(PulleyBlock.FACING);
                 net.minecraft.core.Direction partnerWheelDir = partnerFacing.getAxis().isHorizontal() ? partnerFacing.getClockWise() : net.minecraft.core.Direction.EAST;
                 if (partnerWheelDir == wheelDir.getOpposite()) {
                     return partner;
@@ -452,12 +449,12 @@ public class PoulisBlockEntity extends BlockEntity implements BlockEntitySubLeve
         }
     }
 
-    private static Vector3d getLocalSnapPoint(PoulisBlockEntity be) {
+    private static Vector3d getLocalSnapPoint(PulleyBlockEntity be) {
         BlockState state = be.getBlockState();
-        if (!state.hasProperty(PoulisBlock.FACING)) {
+        if (!state.hasProperty(PulleyBlock.FACING)) {
             return new Vector3d(be.getBlockPos().getX() + 0.5, be.getBlockPos().getY() + 0.75, be.getBlockPos().getZ() + 0.5);
         }
-        net.minecraft.core.Direction facing = state.getValue(PoulisBlock.FACING);
+        net.minecraft.core.Direction facing = state.getValue(PulleyBlock.FACING);
         net.minecraft.core.Direction wheelDir = facing.getAxis().isHorizontal() ? facing.getClockWise() : net.minecraft.core.Direction.EAST;
         return new Vector3d(be.getBlockPos().getX() + 0.5, be.getBlockPos().getY() + 0.75, be.getBlockPos().getZ() + 0.5)
             .add(wheelDir.getStepX() * 0.95, wheelDir.getStepY() * 0.95, wheelDir.getStepZ() * 0.95);

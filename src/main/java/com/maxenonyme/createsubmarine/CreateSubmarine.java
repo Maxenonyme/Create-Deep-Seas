@@ -129,6 +129,13 @@ public class CreateSubmarine {
         public static final net.neoforged.neoforge.registries.DeferredHolder<net.minecraft.world.effect.MobEffect, net.minecraft.world.effect.MobEffect> SUFFOCATION = MOB_EFFECTS
                         .register("suffocation",
                                         SuffocationEffect::new);
+        public static final Supplier<Block> BAROMETER = BLOCKS.register("barometer",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.BarometerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS).noOcclusion()));
+        public static final Supplier<Item> BAROMETER_ITEM = ITEMS.register("barometer",
+                        () -> new net.minecraft.world.item.BlockItem(BAROMETER.get(), new net.minecraft.world.item.Item.Properties()));
+        public static final Supplier<BlockEntityType<com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity>> BAROMETER_BE = BLOCK_ENTITIES.register(
+                        "barometer",
+                        () -> BlockEntityType.Builder.of(com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity::new, BAROMETER.get()).build(null));
         public static final Supplier<Block> CREATIVE_OXYGENATOR = BLOCKS.register("creative_oxygenator",
                         () -> new HullControllerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OBSIDIAN)));
         public static final Supplier<Item> CREATIVE_OXYGENATOR_ITEM = ITEMS.register("creative_oxygenator",
@@ -247,13 +254,13 @@ public class CreateSubmarine {
         public static final Supplier<Item> STEEL_CABLE = ITEMS.register("steel_cable",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(new net.minecraft.world.item.Item.Properties()));
 
-        public static final Supplier<Block> POULIS = BLOCKS.register("poulis",
-                        () -> new PoulisBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().noOcclusion()));
-        public static final Supplier<Item> POULIS_ITEM = ITEMS.register("poulis",
-                        () -> new net.minecraft.world.item.BlockItem(POULIS.get(), new Item.Properties()));
-        public static final Supplier<BlockEntityType<PoulisBlockEntity>> POULIS_BE = BLOCK_ENTITIES.register(
-                        "poulis",
-                        () -> BlockEntityType.Builder.of(PoulisBlockEntity::new, POULIS.get()).build(null));
+        public static final Supplier<Block> PULLEY = BLOCKS.register("pulley",
+                        () -> new PulleyBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().noOcclusion()));
+        public static final Supplier<Item> PULLEY_ITEM = ITEMS.register("pulley",
+                        () -> new net.minecraft.world.item.BlockItem(PULLEY.get(), new Item.Properties()));
+        public static final Supplier<BlockEntityType<PulleyBlockEntity>> PULLEY_BE = BLOCK_ENTITIES.register(
+                        "pulley",
+                        () -> BlockEntityType.Builder.of(PulleyBlockEntity::new, PULLEY.get()).build(null));
 
         public static final Supplier<Block> ARRESTING_HOOK = BLOCKS.register("arresting_hook",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.ArrestingHookBlock(
@@ -300,6 +307,7 @@ public class CreateSubmarine {
                 modEventBus.addListener(this::onConfigLoaded);
                 modEventBus.addListener(this::registerPayloads);
                 NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onServerTick);
+                NeoForge.EVENT_BUS.addListener(SubmarinePressureSystem::onBlockBroken);
                 NeoForge.EVENT_BUS.addListener(SubmarineSinkingSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(SubmarineInteractionSystem::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.system.SteelCablePhysicsSystem::onServerTick);
@@ -472,12 +480,14 @@ public class CreateSubmarine {
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
                         tabItems.add(STEEL_CABLE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
-                        tabItems.add(POULIS_ITEM::get);
-                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "poulis"), subSection);
+                        tabItems.add(PULLEY_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "pulley"), subSection);
                         tabItems.add(UNDERWATER_MINE_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "underwater_mine"), subSection);
                         tabItems.add(SUBMARINE_PROPELLER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine_propeller"), subSection);
+                        tabItems.add(BAROMETER_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "barometer"), subSection);
                         tabItems.add(ARRESTING_HOOK_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "arresting_hook"), subSection);
                 } catch (Exception ignored) {

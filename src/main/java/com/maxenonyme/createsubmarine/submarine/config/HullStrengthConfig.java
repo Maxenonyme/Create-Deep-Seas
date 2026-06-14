@@ -182,6 +182,7 @@ public class HullStrengthConfig {
         map.put("create_submarine:electrolyzer",        new HullProperty(200, 0.06f));
         map.put("create_submarine:oxygene_diffuser",    new HullProperty(180, 0.07f));
         map.put("create_submarine:industrial_alarm",    new HullProperty(160, 0.08f));
+        map.put("create_submarine:barometer",           new HullProperty(200, 0.05f));
     }
 
     private static void writeJson(Path path, Map<String, HullProperty> data) {

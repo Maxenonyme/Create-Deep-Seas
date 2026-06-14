@@ -30,8 +30,8 @@ public class SubmarinePonderScenes {
                 helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "water_thruster"))
                                 .addStoryBoard("water_thruster", SubmarinePonderScenes::waterThruster);
 
-                helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "poulis"))
-                                .addStoryBoard("steel_cable", SubmarinePonderScenes::poulis);
+                helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "pulley"))
+                                .addStoryBoard("steel_cable", SubmarinePonderScenes::pulley);
 
                 helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "steel_cable"))
                                 .addStoryBoard("steel_cable", SubmarinePonderScenes::steelCable)
@@ -470,10 +470,10 @@ public class SubmarinePonderScenes {
                 scene.markAsFinished();
         }
 
-        public static void poulis(SceneBuilder builder, SceneBuildingUtil util) {
+        public static void pulley(SceneBuilder builder, SceneBuildingUtil util) {
                 CreateSceneBuilder scene = new CreateSceneBuilder(builder);
 
-                scene.title("poulis", "Pulley");
+                scene.title("pulley", "Pulley");
                 scene.configureBasePlate(0, 0, 13);
                 scene.scaleSceneView(0.65f);
 
@@ -499,12 +499,12 @@ public class SubmarinePonderScenes {
                 net.minecraft.core.BlockPos posA = util.grid().at(1, 3, 2);
                 net.minecraft.core.BlockPos posB = util.grid().at(3, 3, 2);
                 scene.world().setBlock(posA,
-                        CreateSubmarine.POULIS.get().defaultBlockState()
-                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PoulisBlock.FACING, Direction.NORTH),
+                        CreateSubmarine.PULLEY.get().defaultBlockState()
+                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PulleyBlock.FACING, Direction.NORTH),
                         false);
                 scene.world().setBlock(posB,
-                        CreateSubmarine.POULIS.get().defaultBlockState()
-                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PoulisBlock.FACING, Direction.SOUTH),
+                        CreateSubmarine.PULLEY.get().defaultBlockState()
+                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PulleyBlock.FACING, Direction.SOUTH),
                         false);
 
                 ElementLink<WorldSectionElement> pulleySection = scene.world().showIndependentSection(
@@ -529,10 +529,10 @@ public class SubmarinePonderScenes {
                 scene.world().moveSection(pulleySection, new net.minecraft.world.phys.Vec3(8, 0, 0), 100);
                 for (int i = 0; i < 100; i++) {
                         scene.world().modifyBlockEntity(posA,
-                                com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.class,
+                                com.maxenonyme.createsubmarine.submarine.block.entity.PulleyBlockEntity.class,
                                 be -> be.clientWheelAngle += anglePerTick);
                         scene.world().modifyBlockEntity(posB,
-                                com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.class,
+                                com.maxenonyme.createsubmarine.submarine.block.entity.PulleyBlockEntity.class,
                                 be -> be.clientWheelAngle += anglePerTick);
                         scene.idle(1);
                 }

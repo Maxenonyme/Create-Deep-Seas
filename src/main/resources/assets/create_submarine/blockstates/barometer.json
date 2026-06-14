@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "create_submarine:block/barometer"
+    },
+    "facing=east": {
+      "model": "create_submarine:block/barometer",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "create_submarine:block/barometer",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "create_submarine:block/barometer",
+      "y": 270
+    }
+  }
+}

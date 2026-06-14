@@ -1,7 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.block;
-
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity;
+import com.maxenonyme.createsubmarine.submarine.block.entity.PulleyBlockEntity;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -19,8 +18,8 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
-public class PoulisBlock extends DirectionalBlock implements EntityBlock {
-    public static final MapCodec<PoulisBlock> CODEC = simpleCodec(PoulisBlock::new);
+public class PulleyBlock extends DirectionalBlock implements EntityBlock {
+    public static final MapCodec<PulleyBlock> CODEC = simpleCodec(PulleyBlock::new);
     public static final BooleanProperty CONNECTED = BooleanProperty.create("connected");
 
     @Override
@@ -28,7 +27,7 @@ public class PoulisBlock extends DirectionalBlock implements EntityBlock {
         return CODEC;
     }
 
-    public PoulisBlock(Properties properties) {
+    public PulleyBlock(Properties properties) {
         super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(CONNECTED, false));
     }
@@ -47,7 +46,7 @@ public class PoulisBlock extends DirectionalBlock implements EntityBlock {
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new PoulisBlockEntity(pos, state);
+        return new PulleyBlockEntity(pos, state);
     }
 
     @Override

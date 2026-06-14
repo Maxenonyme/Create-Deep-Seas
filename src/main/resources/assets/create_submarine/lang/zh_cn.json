@@ -59,9 +59,9 @@
 "block.create_submarine.floater": "浮力筒",
 "item.create_submarine.floater.tooltip.summary": "使船只能够浮在\n水面。",
 
-"create_submarine.ponder.poulis.header": "滑轮",
-"create_submarine.ponder.poulis.text_1": "用缆绳点击面对面的两个滑轮\n以连接到模拟装置。",
-"create_submarine.ponder.poulis.text_2": "此模拟装置随后将\n跟随缆绳移动。",
+"create_submarine.ponder.pulley.header": "滑轮",
+"create_submarine.ponder.pulley.text_1": "用缆绳点击面对面的两个滑轮\n以连接到模拟装置。",
+"create_submarine.ponder.pulley.text_2": "此模拟装置随后将\n跟随缆绳移动。",
 
 "item.create_submarine.steel_cable": "钢制缆绳",
 
@@ -132,7 +132,7 @@
 "item.create_submarine.phycological_membrane": "藻类薄膜",
 "item.create_submarine.phycological_membrane.tooltip.summary": "可充气。",
 
-"block.create_submarine.poulis": "滑轮",
+"block.create_submarine.pulley": "滑轮",
 
 "entity.create_submarine.amphistium": "类比目鱼",
 "item.create_submarine.amphistium_spawn_egg": "类比目鱼刷怪蛋",
@@ -210,5 +210,15 @@
 "create_submarine.lithostitched_missing.download": "下载Lithostitched",
 
 "create_submarine.configuration.enableAbyssDimension": "启用渊海维度",
-"create_submarine.configuration.enableAbyssDimension.tooltip": "启用渊海维度。\n需要安装“Lithostitched”模组。"
+"create_submarine.configuration.enableAbyssDimension.tooltip": "启用渊海维度。\n需要安装“Lithostitched”模组。",
+"create_submarine.command.findhole.not_in_submarine": "您必须在潜艇内或其上方。",
+"create_submarine.command.findhole.world_not_loaded": "潜艇世界未加载。",
+"create_submarine.command.findhole.failed_local_pos": "无法计算玩家的本地位置。",
+"create_submarine.command.findhole.must_be_inside": "您必须处于潜艇区域内。",
+"create_submarine.command.findhole.too_large": "潜艇区域太大，无法扫描。",
+"create_submarine.command.findhole.sealed": "潜艇已完全密封！未检测到任何漏洞。",
+"create_submarine.command.findhole.outside": "无法找到有效的封闭空间。您处于潜艇外部。",
+"create_submarine.command.findhole.detected_count": "检测到 %s 个漏洞",
+"create_submarine.command.findhole.entry": "本地: [%s, %s, %s] -> 世界: [%s, %s, %s]",
+"create_submarine.command.findhole.more": "... 以及另外 %s 个漏洞。"
 }

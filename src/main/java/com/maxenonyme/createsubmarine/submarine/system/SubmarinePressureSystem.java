@@ -280,4 +280,57 @@ public class SubmarinePressureSystem {
         }
         return false;
     }
+
+    /** Lowest max-depth among exterior-facing hull blocks: the pressure that ruptures this sub first. */
+    public static int getWeakestHullDepth(UUID subId, Level plotLevel) {
+        int weakest = Integer.MAX_VALUE;
+        for (CompartmentDetector.Component comp : CompartmentTracker.getCompartments(subId)) {
+            for (BlockPos bp : comp.hull()) {
+                boolean facesExterior = false;
+                for (Direction dir : Direction.values()) {
+                    if (!CompartmentTracker.isWithinShip(subId, bp.relative(dir))) {
+                        facesExterior = true;
+                        break;
+                    }
+                }
+                if (!facesExterior) continue;
+                BlockState state = plotLevel.getBlockState(bp);
+                // Non-full shapes (pumps, etc.) are meant to open the hull to the sea for
+                // decompression chambers, so they don't count as a weak point.
+                if (!state.isCollisionShapeFullBlock(plotLevel, bp)) continue;
+                Optional<HullStrengthConfig.HullProperty> prop = HullStrengthConfig.getFor(state);
+                if (prop.isPresent() && prop.get().maxWaterDepth() < weakest) {
+                    weakest = prop.get().maxWaterDepth();
+                }
+            }
+        }
+        return weakest == Integer.MAX_VALUE ? -1 : weakest;
+    }
+
+    /** Mirrors the barometer's "Warning"/"Critical" band: at or past 75% of the weakest hull's limit. */
+    public static boolean isUnderHighPressure(UUID id, Level plotLevel) {
+        int depth = getCachedDepth(id);
+        if (depth <= 0) return false;
+        int weakest = getWeakestHullDepth(id, plotLevel);
+        if (weakest == -1) return false;
+        return depth >= weakest * 0.75;
+    }
+
+    /**
+     * Global rule: breaking a block by hand while the barometer reads Warning (or worse) is the last
+     * straw. The already-overstressed hull gives way and the sub goes down as if it had been breached.
+     */
+    public static void onBlockBroken(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (!(event.getLevel() instanceof Level level) || level.isClientSide()) return;
+        if (com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DISABLE_IMPLOSION.get()) return;
+
+        UUID id = SubLevelRegistry.findUUID(level, event.getPos());
+        if (id == null || SubmarineSinkingSystem.isCrashing(id)) return;
+        if (!isUnderHighPressure(id, level)) return;
+
+        SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
+        SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
+        if (sub == null || bounds == null) return;
+        SubmarineSinkingSystem.onCrashed(id, sub, level, bounds);
+    }
 }

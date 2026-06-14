@@ -126,14 +126,6 @@ public final class SubmarineWaterCullBuffer {
     }
 
     public static void updateSubmarineOcclusion(UUID id, Collection<BlockPos> blocks) {
-        pushOcclusion(id, blocks, true);
-    }
-
-    public static void updateOcclusionRaw(UUID id, Collection<BlockPos> blocks) {
-        pushOcclusion(id, blocks, false);
-    }
-
-    private static void pushOcclusion(UUID id, Collection<BlockPos> blocks, boolean filter) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null)
             return;
@@ -147,11 +139,11 @@ public final class SubmarineWaterCullBuffer {
             if (blocks == null || blocks.isEmpty())
                 return;
 
-            Collection<BlockPos> cells = filter ? filterToCubes(mc.level, id, blocks) : blocks;
-            if (cells.isEmpty())
+            Collection<BlockPos> filtered = filterToCubes(mc.level, id, blocks);
+            if (filtered.isEmpty())
                 return;
 
-            BoundedBitVolume3i volume = BoundedBitVolume3i.fromBlocks(cells);
+            BoundedBitVolume3i volume = BoundedBitVolume3i.fromBlocks(filtered);
             if (volume == null)
                 return;
             WaterOcclusionRegion region = container.addRegion(volume);
