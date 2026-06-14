@@ -277,19 +277,11 @@ public class SubmarinePressureSystem {
 
     private static void sendCrackPacket(Level oceanLevel, UUID id, BlockPos plotPos, int crackLevel, int blockId) {
         if (!(oceanLevel instanceof ServerLevel sl)) return;
-        SubCrackPayload payload = new SubCrackPayload(id, plotPos, crackLevel, blockId);
+        SubCrackPayload payload = new SubCrackPayload(id, plotPos, crackLevel);
         for (net.minecraft.server.level.ServerPlayer player : sl.players()) {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, payload);
         }
     }
 
-    private static boolean hasAnySealedCompartment(UUID id) {
-        List<CompartmentDetector.Component> comps = KNOWN_SEALED.get(id);
-        if (comps == null || comps.isEmpty()) return true;
 
-        for (CompartmentDetector.Component c : comps) {
-            if (c.sealed() && !CompartmentTracker.isCompromised(id, c.anchor())) return true;
-        }
-        return false;
-    }
 }

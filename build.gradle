@@ -115,6 +115,7 @@ dependencies {
         }
     }
     localRuntime "maven.modrinth:lithostitched:1.4.8-neoforge-1.21"
+    localRuntime "maven.modrinth:spark:1.10.124-neoforge"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

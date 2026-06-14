@@ -68,6 +68,14 @@ public class CreateSubmarine {
                         .register("abyss_depth_multiplier",
                                         () -> com.maxenonyme.createsubmarine.abyss.AbyssDepthMultiplier.CODEC);
 
+        public static final Supplier<com.mojang.serialization.MapCodec<com.maxenonyme.createsubmarine.worldgen.SeafloorHeightFunction>> SEAFLOOR_HEIGHT = DENSITY_FUNCTIONS
+                        .register("seafloor_height",
+                                        () -> com.maxenonyme.createsubmarine.worldgen.SeafloorHeightFunction.CODEC);
+
+        public static final Supplier<com.mojang.serialization.MapCodec<com.maxenonyme.createsubmarine.worldgen.SeafloorNoiseFunction>> SEAFLOOR_NOISE = DENSITY_FUNCTIONS
+                        .register("seafloor_noise",
+                                        () -> com.maxenonyme.createsubmarine.worldgen.SeafloorNoiseFunction.CODEC);
+
         public static final net.neoforged.neoforge.registries.DeferredHolder<FluidType, FluidType> OXYGEN_TYPE = FLUID_TYPES
                         .register("oxygen",
                                         () -> new FluidType(net.neoforged.neoforge.fluids.FluidType.Properties.create()
@@ -101,6 +109,10 @@ public class CreateSubmarine {
         public static final net.neoforged.neoforge.registries.DeferredHolder<net.minecraft.world.level.material.Fluid, net.minecraft.world.level.material.FlowingFluid> OXYGEN = FLUIDS
                         .register("oxygen", () -> new net.neoforged.neoforge.fluids.BaseFlowingFluid.Source(
                                         makeOxygenProperties()));
+
+        public static final net.minecraft.tags.TagKey<net.minecraft.world.level.material.Fluid> OXYGEN_TAG = net.minecraft.tags.TagKey.create(
+                net.minecraft.core.registries.Registries.FLUID,
+                ResourceLocation.fromNamespaceAndPath(MOD_ID, "oxygen"));
 
         public static final net.neoforged.neoforge.registries.DeferredHolder<net.minecraft.world.level.material.Fluid, net.minecraft.world.level.material.FlowingFluid> OXYGEN_FLOWING = FLUIDS
                         .register("oxygen_flowing", () -> new net.neoforged.neoforge.fluids.BaseFlowingFluid.Flowing(
@@ -279,8 +291,14 @@ public class CreateSubmarine {
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.stress.StressCommand::register);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.LianaLODOptimizer::onServerTick);
                 NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.worldgen.WorldgenLianaHandler::onChunkLoad);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.AbyssDimension.worldgen.WorldgenLianaHandler::onChunkUnload);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.AbyssDimension.worldgen.WorldgenLianaHandler::onServerTick);
                 NeoForge.EVENT_BUS.addListener(
                                 com.maxenonyme.createsubmarine.submarine.system.SubmarineInfoCommand::register);
+                NeoForge.EVENT_BUS.addListener(
+                                com.maxenonyme.createsubmarine.submarine.system.SubmarineAbyssCommand::register);
                 NeoForge.EVENT_BUS.addListener(
                                 com.maxenonyme.AbyssDimension.system.SubmarineLianaCommand::register);
                 NeoForge.EVENT_BUS.addListener(

@@ -17,7 +17,6 @@ import org.joml.Vector3d;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
-import java.util.stream.Collectors;
 
 public class LatticeStressSolver {
 
@@ -89,6 +88,7 @@ public class LatticeStressSolver {
     private final int[] exposedFaceCount;
     private final boolean[] isHullBlock;
     private int hullBlockCount;
+    private final int[] faceBlockCounts;
 
     private final BoundingBox3ic bounds;
     private Pose3dc subLevelPose;
@@ -139,6 +139,7 @@ public class LatticeStressSolver {
         this.exposedFaceCount = exposedFaceCount;
         this.isHullBlock = isHullBlock;
         this.hullBlockCount = hullBlockCount;
+        this.faceBlockCounts = new int[6];
         this.bounds = bounds;
         this.structureHash = structureHash;
         this.subLevelPose = null;
@@ -288,6 +289,31 @@ public class LatticeStressSolver {
                 this.isHullBlock[i] = true;
                 this.hullBlockCount++;
             }
+        }
+
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+        for (int i = 0; i < this.n; i++) {
+            if (!this.isHullBlock[i]) continue;
+            BlockPos p = this.positions[i];
+            if (p.getX() < minX) minX = p.getX();
+            if (p.getX() > maxX) maxX = p.getX();
+            if (p.getY() < minY) minY = p.getY();
+            if (p.getY() > maxY) maxY = p.getY();
+            if (p.getZ() < minZ) minZ = p.getZ();
+            if (p.getZ() > maxZ) maxZ = p.getZ();
+        }
+        this.faceBlockCounts = new int[]{0, 0, 0, 0, 0, 0};
+        for (int i = 0; i < this.n; i++) {
+            if (!this.isHullBlock[i]) continue;
+            BlockPos p = this.positions[i];
+            if (p.getX() == maxX) this.faceBlockCounts[0]++;
+            if (p.getX() == minX) this.faceBlockCounts[1]++;
+            if (p.getY() == maxY) this.faceBlockCounts[2]++;
+            if (p.getY() == minY) this.faceBlockCounts[3]++;
+            if (p.getZ() == maxZ) this.faceBlockCounts[4]++;
+            if (p.getZ() == minZ) this.faceBlockCounts[5]++;
         }
 
         this.u = new double[3 * this.n];
@@ -529,7 +555,9 @@ public class LatticeStressSolver {
         final double[] p = new double[3 * this.n];
         final double[] Ap = new double[3 * this.n];
 
-        final double tikhonovAlpha = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01) * E[0];
+        final double tikhonovAlpha = this.n > 0
+            ? cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01) * E[0]
+            : 0.0;
 
 
         applyK(this.u, r);
@@ -665,6 +693,7 @@ public class LatticeStressSolver {
 
     public int blockCount() { return this.n; }
     public int hullBlockCount() { return this.hullBlockCount; }
+    public int[] getFaceBlockCounts() { return this.faceBlockCounts; }
     public boolean isHullBlock(final int i) { return this.isHullBlock[i]; }
     public boolean isFaceExposed(final int i, final int dir) {
         return dir >= 0 && dir < 6 && i >= 0 && i < this.n && this.neighbors[i][dir] < 0;

@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 public class ElectrolyzerBlockEntity extends BlockEntity {
     public final FluidTank waterTank = new FluidTank(4000, fluid -> fluid.getFluid().isSame(Fluids.WATER));
     public final FluidTank oxygenTank = new FluidTank(4000,
-            fluid -> fluid.getFluid().isSame(CreateSubmarine.OXYGEN.get()));
+            fluid -> fluid.getFluid().builtInRegistryHolder().is(CreateSubmarine.OXYGEN_TAG));
     public final EnergyStorage energyStorage = new EnergyStorage(10000, 1000, 1000);
 
     public final IFluidHandler combinedFluidHandler = new IFluidHandler() {
@@ -52,7 +52,7 @@ public class ElectrolyzerBlockEntity extends BlockEntity {
 
         @Override
         public @NotNull FluidStack drain(FluidStack resource, FluidAction action) {
-            if (resource.getFluid().isSame(CreateSubmarine.OXYGEN.get()))
+            if (resource.getFluid().builtInRegistryHolder().is(CreateSubmarine.OXYGEN_TAG))
                 return oxygenTank.drain(resource, action);
             return FluidStack.EMPTY;
         }

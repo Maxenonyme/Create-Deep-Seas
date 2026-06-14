@@ -3,7 +3,6 @@ import com.maxenonyme.createsubmarine.CreateSubmarine;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import dev.ryanhcode.sable.companion.SableCompanion;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
-import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -30,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.UUID;
 public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleInformation {
     private static final int    CAPACITY        = 8000;
     private static final double MAX_ACCEL_LIMIT = 0.2;
@@ -245,60 +243,100 @@ public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleIn
 
         BlockPos parentPos = BlockPos.containing(worldPos.x, worldPos.y, worldPos.z);
         double localWaterSurfaceY = -999.0;
+        double fluidMultiplier = 0.0;
 
         net.minecraft.world.level.material.FluidState fluidState = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.realFluidState(parentLevel, parentPos);
         if (fluidState.is(net.minecraft.tags.FluidTags.WATER)) {
+            fluidMultiplier = 1.0;
             float h = fluidState.getHeight(parentLevel, parentPos);
             localWaterSurfaceY = parentPos.getY() + h + countWaterAbove(parentLevel, parentPos);
+        } else if (fluidState.is(net.minecraft.tags.FluidTags.LAVA)) {
+            fluidMultiplier = 4.0;
         } else {
             BlockPos belowPos = parentPos.below();
             net.minecraft.world.level.material.FluidState belowFluid = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.realFluidState(parentLevel, belowPos);
             if (belowFluid.is(net.minecraft.tags.FluidTags.WATER)) {
+                fluidMultiplier = 1.0;
                 float h = belowFluid.getHeight(parentLevel, belowPos);
                 localWaterSurfaceY = belowPos.getY() + h + countWaterAbove(parentLevel, belowPos);
+            } else if (belowFluid.is(net.minecraft.tags.FluidTags.LAVA)) {
+                fluidMultiplier = 4.0;
             }
         }
 
         double depth = localWaterSurfaceY - (worldPos.y - 0.5);
         boolean isUnderWater = (depth > 0.0);
 
-        if (!isUnderWater) return;
+        if (isUnderWater) {
+            double submergedRatio = Math.max(0.0, Math.min(1.0, depth));
 
-        double submergedRatio = Math.max(0.0, Math.min(1.0, depth));
+            double baseTarget = (0.5 - fillRatio) * 4.0;
+            double distanceToSurface = localWaterSurfaceY - worldPos.y;
+            double targetVelY;
+            if (baseTarget > 0) {
+                targetVelY = Math.max(-0.1, Math.min(baseTarget, distanceToSurface));
+            } else {
+                targetVelY = baseTarget;
+            }
 
-        double baseTarget = (0.5 - fillRatio) * 4.0;
-        double distanceToSurface = localWaterSurfaceY - worldPos.y;
-        double targetVelY;
-        if (baseTarget > 0) {
-            targetVelY = Math.max(-0.1, Math.min(baseTarget, distanceToSurface));
-        } else {
-            targetVelY = baseTarget;
+            double perceivedVelY = Math.max(-0.2, currentVelY);
+            double errorY = targetVelY - perceivedVelY;
+            double mass = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.readMass(sub);
+
+            int clusterSize = be.getCluster().size();
+            double forceMult = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.BALLAST_FORCE_MULTIPLIER.get();
+            double forceToApply = ((errorY * mass * 0.16 * forceMult) * submergedRatio) / clusterSize;
+
+            double ballastMaxForce = (4000.0 * mass * forceMult) / clusterSize;
+            forceToApply = Math.max(-ballastMaxForce, Math.min(ballastMaxForce, forceToApply));
+
+            if (Double.isFinite(forceToApply)) {
+                applyForce(sub, forceToApply);
+            }
         }
 
-        double perceivedVelY = Math.max(-0.2, currentVelY);
-        double errorY = targetVelY - perceivedVelY;
-        double mass = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.readMass(sub);
-
-        int clusterSize = be.getCluster().size();
-        double forceMult = com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.BALLAST_FORCE_MULTIPLIER.get();
-        double forceToApply = ((errorY * mass * 0.16 * forceMult) * submergedRatio) / clusterSize;
-
-        double ballastMaxForce = (4000.0 * mass * forceMult) / clusterSize;
-        forceToApply = Math.max(-ballastMaxForce, Math.min(ballastMaxForce, forceToApply));
-
-        if (Double.isFinite(forceToApply)) {
-            applyForce(sub, forceToApply);
-        }
-
-        if (subId != null && !TICK_TOTAL_FORCE.containsKey(subId)) {
+        if (subId != null && !TICK_TOTAL_FORCE.containsKey(subId) && fluidMultiplier > 0) {
             TICK_TOTAL_FORCE.put(subId, 1.0);
             if (handle != null && currentVel != null) {
+                double mass = com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.readMass(sub);
                 double dragCoefficient = 0.035;
-                double dragX = -currentVel.x() * mass * dragCoefficient;
-                double dragZ = -currentVel.z() * mass * dragCoefficient;
-                if (Math.abs(dragX) > 0.01 || Math.abs(dragZ) > 0.01) {
-                    Vector3d dragVec = new Vector3d(dragX, 0, dragZ);
-                    sub.logicalPose().orientation().conjugate(new org.joml.Quaterniond()).transform(dragVec);
+
+                org.joml.Quaterniond conjOri = new org.joml.Quaterniond(sub.logicalPose().orientation()).conjugate();
+                Vector3d velLocal = new Vector3d(currentVel);
+                conjOri.transform(velLocal);
+                double speed = Math.sqrt(velLocal.x() * velLocal.x() + velLocal.y() * velLocal.y() + velLocal.z() * velLocal.z());
+
+                double dragLocalX, dragLocalY, dragLocalZ;
+
+                int[] faceCounts = null;
+                if (parentLevel instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                    var analyzer = com.maxenonyme.createsubmarine.submarine.stress.SubLevelStressAnalyzer.INSTANCES.get(serverLevel);
+                    if (analyzer != null) {
+                        var solver = analyzer.getSolver(subId);
+                        if (solver != null) faceCounts = solver.getFaceBlockCounts();
+                    }
+                }
+
+                if (faceCounts != null) {
+                    int totalFaces = faceCounts[0] + faceCounts[1] + faceCounts[2] + faceCounts[3] + faceCounts[4] + faceCounts[5];
+                    double avgFaceArea = Math.max(totalFaces / 6.0, 1.0);
+
+                    double coeffLocalX = dragCoefficient * fluidMultiplier * (velLocal.x() > 0 ? faceCounts[0] : faceCounts[1]) / avgFaceArea;
+                    double coeffLocalY = dragCoefficient * fluidMultiplier * (velLocal.y() > 0 ? faceCounts[2] : faceCounts[3]) / avgFaceArea;
+                    double coeffLocalZ = dragCoefficient * fluidMultiplier * (velLocal.z() > 0 ? faceCounts[4] : faceCounts[5]) / avgFaceArea;
+
+                    dragLocalX = -velLocal.x() * speed * mass * coeffLocalX;
+                    dragLocalY = -velLocal.y() * speed * mass * coeffLocalY;
+                    dragLocalZ = -velLocal.z() * speed * mass * coeffLocalZ;
+                } else {
+                    dragLocalX = -velLocal.x() * speed * mass * dragCoefficient * fluidMultiplier;
+                    dragLocalY = -velLocal.y() * speed * mass * dragCoefficient * fluidMultiplier;
+                    dragLocalZ = -velLocal.z() * speed * mass * dragCoefficient * fluidMultiplier;
+                }
+
+                if (Math.abs(dragLocalX) > 0.01 || Math.abs(dragLocalY) > 0.01 || Math.abs(dragLocalZ) > 0.01) {
+                    Vector3d dragVec = new Vector3d(dragLocalX, dragLocalY, dragLocalZ);
+                    sub.logicalPose().orientation().transform(dragVec);
                     com.maxenonyme.createsubmarine.submarine.util.SablePhysicsHelper.applyLinearImpulse(handle, dragVec);
                 }
             }

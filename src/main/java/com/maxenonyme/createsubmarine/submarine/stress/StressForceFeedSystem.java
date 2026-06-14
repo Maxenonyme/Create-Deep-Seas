@@ -211,8 +211,7 @@ public class StressForceFeedSystem {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Failed to broadcast stress center for ssl={}: {}",
-                        subId.toString().substring(0, 8), e.toString());
+                    LOGGER.error("Failed to broadcast stress center for ssl={}", subId.toString().substring(0, 8), e);
                 }
             }
         }

@@ -1,0 +1,248 @@
+================================================================================
+CREATE DEEP SEAS — COMPLETE FEATURE INVENTORY (from 142K-line compaction file)
+================================================================================
+Derived from 3 major chat sessions + merge session.
+Last updated: from compaction file ending line 142613
+
+================================================================================
+SESSION 1: TERRAIN / ABYSS DIMENSION / SEAfloor GENERATION
+(Session ses_185cbeee0ffeAGmDGUh7mSFtKd — May 31-Jun 1)
+================================================================================
+
+[JAVA FILES — verify all exist]
+[ ] SeafloorHeightFunction.java — Custom density function, maps continentalness
+    to three height zones (plains 50-200, shelf 200-500, shallows 500-680).
+    Uses smoothstep transitions. Density formula: (blockY - targetHeight) / 200.
+    Takes Holder<DensityFunction> continentalness parameter.
+    Eventually modified to share tile cache via SeafloorGenerator.
+
+[ ] SeafloorNoiseFunction.java — Custom density function returning raw noise
+    value c (range [-1,1]) from SeafloorGenerator. Uses getNoiseAt().
+    Registered as create_submarine:seafloor_noise.
+    NOTE: Later REWIRED — continents slot changed from seafloor_noise back to
+    minecraft:noise reading create_submarine:abyss. May have been deleted.
+
+[ ] SeafloorGenerator.java — Major terrain gen class. Features:
+    - Zone-dependent erosion via fbmErodedWithZone()
+    - Shared tile cache (sharedHeightCache + sharedNoiseCache via ConcurrentHashMap)
+    - TileData record, getOrGenerateTile(), getNoiseAt(), computeTileData()
+    - fbmErodedWithZone(): Plains(c<-0.15) erosion=3.5/4octaves,
+      Shelf(|c|<0.15) erosion=2.0/6octaves,
+      Shallows(c>0.15) erosion=0.3/4octaves
+    - SHELF_VARIATION: 35→100, shelf_detail_octaves: 3→6, terrain_octaves: 4→6
+    - subductionTrench() — V-shaped trench generation (trench depth multiplier
+      uses 1.0 - smoothstep for proper V-shape)
+    - SHELF_BOUNDARY changed to |c|/0.15 (was wider)
+
+[ ] AbyssDepthMultiplier.java — density function for abyss depth scaling
+
+[ ] OceanDepthOffset.java — density function for overworld trench support,
+    amplitude modifiers for normal/amplified/large_biomes world types.
+
+[ ] WorldgenLianaHandler.java — (WAS MENTIONED AS NEVER COMMITTED — verify)
+
+[JSON FILES]
+[ ] dimension/abyss.json — Dimension definition, abyss dimension
+[ ] dimension_type/abyss.json — Dimension type with custom noise settings
+[ ] worldgen/noise_settings/abyss.json — Noise settings (sea_level: 700,
+    min_y: 0, height: 768, size_horizontal: 1, size_vertical: 2).
+    noise_router uses seafloor_height for final_density and
+    initial_density_without_jaggedness, minecraft:noise for continents.
+    surface_rule has layered biome-specific surfaces (mud/gravel/sand/magma).
+[ ] worldgen/noise/abyss.json — Noise definition, amplitudes changed to
+    [0.125, 0.125, 0.125, 0.125] so output ~[-0.5, 0.5]
+[ ] worldgen/biome/abyss_plains.json
+[ ] worldgen/biome/abyss_continental_shelf.json
+[ ] worldgen/biome/abyss_shallows.json
+[ ] configured_feature/abyss_fossil.json (or fossil.json) — bone_block fossil
+    with stone overlay, using minecraft:fossil type
+[ ] placed_feature/abyss_fossil.json (or fossil_abyss.json) — rarity 48,
+    uniform height 40-200
+[ ] worldgen_modifier/normal.json — OceanDepthOffset amplitude modifier
+[ ] worldgen_modifier/amplified.json
+[ ] worldgen_modifier/large_biomes.json
+
+[Bug fixes from this session]
+- Biome-terrain mismatch: continents noise used different amplitudes → fixed
+  by making continents use the same noise source as terrain
+- Continental shelf biome was unreachable (offset +0.1 made it always lose
+  in squared-distance biome selection) → changed all offsets to 0, targets
+  to ±0.30, shelf occupies |c| < 0.15
+- minecraft:nether_fossil is a configured_feature not a placed_feature →
+  created custom placed_feature
+- Fossil JSON parse errors: fossil_structures must be array, not string;
+  overlay → overlay_structures
+
+================================================================================
+SESSION 2: FOSSILS / LIANA / TRENCHES / WORLD DETAILS
+(Session ses_1779ea959ffeZUvaEzpXpKZ6ot — June 2-3)
+================================================================================
+
+[ ] Fossil placed_features added to biome JSONs (abyss_plains gets fossils)
+[ ] Liana physics fixes — WorldgenLianaHandler with re-scan mechanism
+[ ] Trench fix: subductionTrench() depth multiplier inverted
+    (was 0 at center → now max at center via 1.0 - smoothstep)
+[ ] Maybe: Trilinear interpolation for mountainous peaks (requested but status unclear)
+
+================================================================================
+SESSION 3: STRESS ANALYSIS / SOLVER / PYTHON BATTERY
+(Session ses_1b239fd47ffeJTMwcvZUQPxcV2 — May 22-24)
+================================================================================
+
+[JAVA FILES]
+[ ] LatticeStressSolver.java — Full LSM solver with:
+    - buildRHS (legacy + non-legacy paths)
+    - solveCG with warm-start
+    - computeVonMises, getStressRatio, computeCrushDepth
+    - getYoungsModulus, getYieldStress, getVonMises (public accessor added)
+    - directional grain factor
+    - rhoG field
+    - Tikhonov regularization
+
+[ ] StressForceFeedSystem.java — Tick handler:
+    - checkStructuralFailure() — breaks blocks at von Mises ≥ yield
+    - STRESS INIT/UPDATE logging with STRESS_CHANGE_TOLERANCE
+    - StressCenterPayload broadcasting (spams DEBUG — should be removed)
+    - recordFaceForces / recordInternalForces
+
+[ ] DefaultMaterialProperties.java — DIRECTIONAL_MODIFIERS map,
+    getDirectionalFactor(). Yield stress values (oak log: 50 MPa, etc.)
+
+[ ] SubLevelStressAnalyzer.java — Stress analysis for sublevels.
+    Lava fluid density multiplier support. Periodic SubmarineStress logger.
+
+[ ] SubmarineInfoCommand.java — /submarine info debug command (127 lines)
+
+[ ] StressCommand.java — Extended with /stress command, crush depth query
+
+[ ] BatchSolverRunner.java — Java batch stress test framework
+
+[ ] FloaterTuning.java — Config class for floater tuning
+
+[OTHER FILES]
+[ ] stress_test_battery.py — Offline Python battery: 468 geometry variants
+    × materials → 1508 results in ~860s
+[ ] stress_analysis.xlsx — Excel output from Python battery
+
+[OPEN ISSUES — UNRESOLVED]
+[X] Solver stress vs actual breaking: solver reports ~16% (8 MPa) but blocks
+    break at ~20 blocks depth. Root cause: blocks likely break from Sable's
+    native disconnection physics, NOT from checkStructuralFailure.
+[X] CG warm-start oscillation: u reused across ticks causes 8-16% per-tick
+    on stationary structures, flooding logs with ~30 STRESS UPDATE lines/sec
+[X] 12% calibration gap between Python solver and Java batch CSV unresolved
+[X] checkStructuralFailure never fires (max ratio ~16%, needs 100%)
+[X] Non-legacy buildRHS uses dot+0.5 orientation factor — creates non-
+    hydrostatic pressure distribution (bottom 1.5x, sides 0.5x, top 0x)
+
+================================================================================
+MERGE SESSION: cogfly-test INTEGRATION
+(Session ses_13aec4cbfffe15ddAhYQ7zmnOR — June 14)
+================================================================================
+
+[MERGE RESULT — commit 1b493c0]
+[ ] Branches merged: main + Experimental + cogfly-test → cogfly-test
+[ ] 141 files changed, 4854 insertions, 722 deletions
+
+[ABYSS DIMENSION FILES — from Experimental]
+[ ] AbyssDimensionClient.java (55 lines)
+[ ] LianaRegistry.java (26 lines)
+[ ] CreepvineSeedBlock.java (36 lines)
+[ ] SubmarineLianaBlock.java (92 lines) — physics-enabled underwater vine
+[ ] SubmarineLianaBlockEntity.java (545 lines) — full physics state
+[ ] AbyssSpecialEffects.java (21 lines)
+[ ] CameraShake.java (60 lines)
+[ ] PDAManager.java (305 lines) + gui/pda.png texture
+[ ] AbyssSpecialEffectsMixin.java (16 lines)
+[ ] LightTextureMixin.java (29 lines)
+[ ] LianaLODOptimizer.java (158 lines)
+[ ] PlantPhysicsRegistry.java (128 lines)
+[ ] SubmarineLianaCommand.java (545 lines)
+
+[BLOCKS / ITEMS]
+[ ] FloaterBlock.java + FloaterBlockEntity.java — 16 dye-colour variants
+[ ] PhycologicalMembraneItem.java (29 lines)
+[ ] PressurizerItem.java (30 lines) — base class
+[ ] Copper/iron/glass pressurizer variants
+[ ] HullControllerBlock.java extended
+[ ] ElectrolyzerBlock.java modified
+[ ] BallastTankBlockEntity.java modified (114 lines changed)
+[ ] BallastVentBlockEntity.java modified
+[ ] WaterThrusterBlock.java modified
+
+[CLIENT UI]
+[ ] DeepSeasWelcomeScreen.java (115 lines)
+[ ] HullStrengthConfigScreen.java (250 lines)
+[ ] HullConfigEditPayload.java (72 lines)
+[ ] HullConfigSyncPayload.java (51 lines)
+[ ] PermanentWaterCullingTest.java modified
+[ ] SodiumWaterOcclusionBridge.java — sodium occlusion fix
+[ ] SubmarineWaterCullBuffer.java modified
+[ ] VeilShaderIncludeFixMixin.java — Veil shader include fix
+
+[SYSTEMS]
+[ ] SubmarinePressureSystem.java reworked (110 lines changed)
+[ ] SableSnapshotQueue.java modified
+[ ] SableSnapshotPacketMixin.java modified (50 lines)
+[ ] SableStartTrackingPacketMixin.java modified (38 lines)
+[ ] SubmarineLifecycleHandler.java extended
+[ ] SubmarineSinkingSystem.java extended
+[ ] SablePhysicsHelper.java modified
+[ ] SchematicLoader.java modified
+[ ] CompartmentDetector.java modified
+[ ] CompartmentTracker.java modified
+
+[CONFIG]
+[ ] FloaterTuning.java (63 lines)
+[ ] HullStrengthConfig.java modified
+[ ] SubmarineConfig.java modified
+
+[LOOT TABLES]
+[ ] ballast_tank.json, ballast_vent.json, copper_pressurizer.json,
+    electrolyzer.json, industrial_alarm.json, iron_pressurizer.json,
+    oxygene_diffuser.json, water_thruster.json, glass_pressurizer.json
+    — all loot tables added
+
+[MISC]
+[ ] Tool tags: pickaxe.json, needs_diamond_tool.json, needs_iron_tool.json,
+    needs_stone_tool.json
+[ ] Sounds: leviathan_class_detected.ogg, reaper-leviathan-roars.ogg
+[ ] Lang: en_us.json (33 lines changed), fr_fr.json, ru_ru.json, zh_cn.json
+[ ] All blockstates, models, textures for pressurizers, creepvine seeds, liana
+[ ] Sable library: 1.1.3 → 1.2.2
+
+[CreateSubmarine.java registration changes]
+[ ] DENSITY_FUNCTIONS DeferredRegister
+[ ] OCEAN_DEPTH_OFFSET registered
+[ ] ABYSS_DEPTH_MULTIPLIER registered
+[ ] SEAFLOOR_HEIGHT registered (may have been removed when SeafloorHeightFunction
+    was rewritten)
+[ ] SEAFLOOR_NOISE registered (may have been removed when noise router rewired)
+[ ] All block/item/BE registrations for new blocks
+
+================================================================================
+FINAL STATE (from compaction_agent output at end of file)
+================================================================================
+
+Changes made in last segment:
+1. Added getVonMises(int i) public accessor to LatticeStressSolver
+2. Added vm=... yield=... info to STRESS UPDATE/INIT logs (worst block details)
+3. Added DEBUG log in checkStructuralFailure() for blocks >50% stress ratio
+4. Build compiles SUCCESSFULLY
+
+Confirmed from logs:
+- solver max stress: ~16% (8 MPa von Mises vs 50 MPa yield for oak)
+- blocks=354 never drops → checkStructuralFailure never fires
+- dfe5e979 structure oscillates 7-16% every tick
+- No BLOCK FAILURE messages
+- SubmarineStress logger shows consistent stressRange values
+
+Still NEEDS FIXING:
+1. Remove StressCenterPayload DEBUG spam (flooding log)
+2. Fix CG warm-start oscillation (zero u before resolve for cold start)
+3. Investigate why blocks break (Sable physics vs our stress system)
+4. 12% Python/Java calibration gap
+
+================================================================================
+END OF FEATURE INVENTORY
+================================================================================

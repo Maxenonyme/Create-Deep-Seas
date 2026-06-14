@@ -27,15 +27,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SubLevelStressAnalyzer implements SubLevelObserver {
 
-    static final Object2ObjectOpenHashMap<ServerLevel, SubLevelStressAnalyzer> INSTANCES = new Object2ObjectOpenHashMap<>();
-    private static final Random RAND = new Random();
+    public static final Object2ObjectOpenHashMap<ServerLevel, SubLevelStressAnalyzer> INSTANCES = new Object2ObjectOpenHashMap<>();
     private static final Logger LOGGER = LoggerFactory.getLogger("SubmarineStress");
     private static final Map<UUID, Double> cachedWaterSurfaceY = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> lastWaterScanTick = new ConcurrentHashMap<>();
@@ -106,6 +104,10 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
         return getOrCreateSolver(subLevel);
     }
 
+    public LatticeStressSolver getSolver(final UUID subId) {
+        return this.solvers.get(subId);
+    }
+
     public boolean hasSolver(final ServerSubLevel subLevel) {
         final LatticeStressSolver s = this.solvers.get(subLevel.getUniqueId());
         return s != null && s.blockCount() > 0;
@@ -134,7 +136,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     continue;
                 }
 
-                final int count = this.tickCounter.merge(id, 1, Integer::sum);
+                final int count = this.tickCounter.merge(id, 1, (a, b) -> (a + b) % 1000);
                 final boolean alreadyTracked = this.solvers.containsKey(id);
 
                 if (!alreadyTracked) {

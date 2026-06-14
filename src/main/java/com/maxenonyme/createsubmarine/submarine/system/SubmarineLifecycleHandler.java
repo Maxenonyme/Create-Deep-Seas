@@ -54,7 +54,7 @@ public final class SubmarineLifecycleHandler {
             if (cracks == null) continue;
             for (Map.Entry<BlockPos, Integer> c : cracks.entrySet()) {
                 PacketDistributor.sendToPlayer(player,
-                        new SubCrackPayload(subId, c.getKey(), c.getValue(), 0));
+                        new SubCrackPayload(subId, c.getKey(), c.getValue()));
             }
         }
     }

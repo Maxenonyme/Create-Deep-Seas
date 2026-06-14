@@ -41,7 +41,7 @@ public class OxygeneDiffuserBlockEntity extends BlockEntity implements IHaveGogg
     private static final int STARTUP_TICKS  = 100;
 
     public final FluidTank oxygenTank = new FluidTank(TANK_CAPACITY,
-            fluid -> fluid.getFluid().isSame(CreateSubmarine.OXYGEN.get())) {
+            fluid -> fluid.getFluid().builtInRegistryHolder().is(CreateSubmarine.OXYGEN_TAG)) {
         @Override
         protected void onContentsChanged() {
             setChanged();

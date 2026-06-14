@@ -28,9 +28,7 @@
     "vein_ridged": 0.0,
     "vein_gap": 0.0,
     "gravity": 0.0,
-    "initial_density_without_jaggedness": {
-      "type": "create_submarine:seafloor_height"
-    },
+    "initial_density_without_jaggedness": 0.0,
     "final_density": {
       "type": "create_submarine:seafloor_height"
     },

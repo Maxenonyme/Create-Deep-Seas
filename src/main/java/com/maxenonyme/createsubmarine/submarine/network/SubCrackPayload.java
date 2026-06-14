@@ -11,7 +11,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel, int blockId) implements CustomPacketPayload {
+public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel) implements CustomPacketPayload {
     public static final Type<SubCrackPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "sub_crack"));
 
@@ -19,14 +19,13 @@ public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel, int 
             SubCrackPayload::write, SubCrackPayload::new);
 
     public SubCrackPayload(FriendlyByteBuf buf) {
-        this(buf.readUUID(), buf.readBlockPos(), buf.readInt(), buf.readInt());
+        this(buf.readUUID(), buf.readBlockPos(), buf.readInt());
     }
 
     public void write(FriendlyByteBuf buf) {
         buf.writeUUID(subId);
         buf.writeBlockPos(plotPos);
         buf.writeInt(crackLevel);
-        buf.writeInt(blockId);
     }
 
     @Override
@@ -36,6 +35,6 @@ public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel, int 
 
     public static void handle(SubCrackPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> SubLevelCrackRenderer.updateCrack(
-                payload.subId(), payload.plotPos(), payload.crackLevel(), payload.blockId()));
+                payload.subId(), payload.plotPos(), payload.crackLevel(), 0));
     }
 }
