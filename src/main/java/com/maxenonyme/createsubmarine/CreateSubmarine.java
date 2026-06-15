@@ -8,6 +8,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -239,6 +240,24 @@ public class CreateSubmarine {
                                         .isViewBlocking((state, level, pos) -> false)));
         public static final Supplier<Item> GLASS_PRESSURIZER_ITEM = ITEMS.register("glass_pressurizer",
                         () -> new net.minecraft.world.item.BlockItem(GLASS_PRESSURIZER.get(), new Item.Properties()));
+        public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister
+                        .create(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE, MOD_ID);
+        public static final Supplier<EntityType<com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerEntity>> SONAR_PINGER_ENTITY = ENTITY_TYPES
+                        .register("sonar_pinger", () -> EntityType.Builder
+                                        .<com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerEntity>of(
+                                                        com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerEntity::new,
+                                                        net.minecraft.world.entity.MobCategory.MISC)
+                                        .setShouldReceiveVelocityUpdates(false)
+                                        .sized(0.5F, 0.5F)
+                                        .build(CreateSubmarine.MOD_ID + ":sonar_pinger"));
+        public static final Supplier<Item> SONAR_PINGER_ITEM = ITEMS.register("sonar_pinger",
+                        () -> new com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerItem(
+                                        new Item.Properties().rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+
+        public static final Supplier<Item> PURGE_STAFF = ITEMS.register("purge_staff",
+                        () -> new com.maxenonyme.createsubmarine.submarine.item.purge_staff.PurgeStaffItem(
+                                        new Item.Properties().rarity(net.minecraft.world.item.Rarity.EPIC).stacksTo(1)));
+
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
@@ -279,6 +298,7 @@ public class CreateSubmarine {
                 FLUIDS.register(modEventBus);
                 MENUS.register(modEventBus);
                 DENSITY_FUNCTIONS.register(modEventBus);
+                ENTITY_TYPES.register(modEventBus);
                 modEventBus.addListener(this::onCommonSetup);
                 modEventBus.addListener(this::onConfigLoaded);
                 modEventBus.addListener(this::registerPayloads);
@@ -358,6 +378,18 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.network.HullConfigEditPayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.HullConfigEditPayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.HullConfigEditPayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.SonarOpenPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.SonarOpenPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.SonarOpenPayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.SonarScanPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.SonarScanPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.SonarScanPayload::handle);
+                registrar.playToServer(
+                                com.maxenonyme.createsubmarine.submarine.network.SonarConfigPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.SonarConfigPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.SonarConfigPayload::handle);
         }
 
         private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
@@ -447,6 +479,10 @@ public class CreateSubmarine {
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "floater"), subSection);
                         tabItems.add(PHYCOLOGICAL_MEMBRANE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
+                        tabItems.add(SONAR_PINGER_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "sonar_pinger"), subSection);
+                        tabItems.add(PURGE_STAFF::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "purge_staff"), subSection);
                 } catch (Exception ignored) {
                 }
         }

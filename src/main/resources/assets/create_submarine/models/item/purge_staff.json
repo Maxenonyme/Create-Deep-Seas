@@ -1,0 +1,41 @@
+{
+    "parent": "create_submarine:item/custom_rendered",
+    "textures": {
+        "particle": "create_submarine:item/purge_staff/staffmaintexture"
+    },
+    "display": {
+        "thirdperson_righthand": {
+            "rotation": [0, 0, 0],
+            "translation": [0, -4.175, 0],
+            "scale": [0.8, 0.8, 0.8]
+        },
+        "thirdperson_lefthand": {
+            "rotation": [0, 0, 0],
+            "translation": [0, -4.175, 0],
+            "scale": [0.8, 0.8, 0.8]
+        },
+        "firstperson_righthand": {
+            "rotation": [0, 0, 0],
+            "translation": [0, -2, 0],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        "firstperson_lefthand": {
+            "rotation": [0, 0, 0],
+            "translation": [0, -2, 0],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        "ground": {
+            "translation": [0, 0.5, 0],
+            "scale": [0.25, 0.25, 0.25]
+        },
+        "gui": {
+            "rotation": [0, 0, 0],
+            "translation": [0, -2.767, 0],
+            "scale": [0.6, 0.6, 0.6]
+        },
+        "fixed": {
+            "translation": [0, -2, 0],
+            "scale": [0.5, 0.5, 0.5]
+        }
+    }
+}

@@ -92,6 +92,8 @@
   "create_submarine.welcome.message": "It's strongly recommended to set up your Deep Seas preferences before you dive in — hull strength, propulsion, ocean depth and more can all be tuned to your liking.",
   "create_submarine.welcome.configure": "Configure the mod",
   "create_submarine.welcome.dismiss": "Maybe later",
+  "item.create_submarine.sonar_pinger": "Sonar Pinger",
+  "item.create_submarine.purge_staff": "Purge Staff",
   "item.create_submarine.phycological_membrane": "Phycological Membrane",
   "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air.",
   "biome.create_submarine.abyss_plains": "Abyssal Plain",

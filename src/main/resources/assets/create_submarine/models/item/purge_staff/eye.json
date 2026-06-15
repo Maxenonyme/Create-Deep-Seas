@@ -1,0 +1,77 @@
+{
+  "gui_light": "front",
+  "textures": {
+    "0": "create_submarine:item/purge_staff/heartofthesea",
+    "particle": "create_submarine:item/purge_staff/heartofthesea"
+  },
+  "elements": [
+    {
+      "from": [
+        -1.3,
+        24.5,
+        -1.3
+      ],
+      "to": [
+        1.3,
+        27.1,
+        1.3
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            5,
+            5
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            0,
+            5,
+            5,
+            10
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            5,
+            0,
+            10,
+            5
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            5,
+            5,
+            10,
+            10
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            0,
+            10,
+            5,
+            15
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            10,
+            0,
+            15,
+            5
+          ],
+          "texture": "#0"
+        }
+      }
+    }
+  ]
+}

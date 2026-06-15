@@ -8,6 +8,7 @@ import com.maxenonyme.createsubmarine.submarine.client.WatermarkOverlay;
 import com.maxenonyme.createsubmarine.submarine.client.renderer.AllPartialModels;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import com.maxenonyme.createsubmarine.submarine.gui.ElectrolyzerScreen;
+import com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerRenderer;
 import com.maxenonyme.createsubmarine.submarine.ponder.SubmarinePonderPlugin;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import com.simibubi.create.content.kinetics.base.SingleAxisRotatingVisual;
@@ -66,6 +67,9 @@ public final class CreateSubmarineClient {
         event.registerBlockEntityRenderer(
                 CreateSubmarine.ELECTROLYZER_BE.get(),
                 ElectrolyzerBlockEntityRenderer::new);
+        event.registerEntityRenderer(
+                CreateSubmarine.SONAR_PINGER_ENTITY.get(),
+                ctx -> new SonarPingerRenderer(ctx));
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

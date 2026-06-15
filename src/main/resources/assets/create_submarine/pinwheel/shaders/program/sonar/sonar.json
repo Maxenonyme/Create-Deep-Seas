@@ -1,0 +1,6 @@
+{
+  "vertex": "create_submarine:sonar/sonar",
+  "fragment": "create_submarine:sonar/sonar",
+  "textures": {
+  }
+}

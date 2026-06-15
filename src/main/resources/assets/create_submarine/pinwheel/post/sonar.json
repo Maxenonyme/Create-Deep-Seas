@@ -1,0 +1,11 @@
+{
+  "stages": [
+    {
+      "type": "veil:blit",
+      "shader": "create_submarine:sonar/sonar",
+      "in": "create_submarine:sonar",
+      "out": "create_submarine:sonar_final",
+      "clear": false
+    }
+  ]
+}

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 public class BallastTankBlockEntity extends BlockEntity implements IHaveGoggleInformation {
     private static final int    CAPACITY        = 8000;
     private static final double MAX_ACCEL_LIMIT = 0.2;
