@@ -406,6 +406,8 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.system.SubmarineLifecycleHandler::onLevelUnload);
                 NeoForge.EVENT_BUS.addListener(
                                 com.maxenonyme.createsubmarine.submarine.system.SubmarineLifecycleHandler::onPlayerLoggedIn);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.fluid.SubLevelFluidSimulation::onServerTick);
+                NeoForge.EVENT_BUS.addListener(com.maxenonyme.createsubmarine.submarine.fluid.SubLevelFluidCommand::onRegisterCommands);
 
                 modEventBus.addListener(this::registerCapabilities);
 

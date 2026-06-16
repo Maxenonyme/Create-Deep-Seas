@@ -283,5 +283,109 @@ public class SubmarinePressureSystem {
         }
     }
 
+    public static BlockState getActualBlockState(Level level, BlockPos pos, BlockState originalState) {
+        net.minecraft.world.level.block.entity.BlockEntity be = level.getBlockEntity(pos);
+        if (be != null) {
+            ResourceLocation id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (id != null && id.getPath().contains("copycat")) {
+                net.minecraft.nbt.CompoundTag nbt = be.saveWithFullMetadata(level.registryAccess());
+                if (nbt.contains("Material")) {
+                    BlockState mat = net.minecraft.nbt.NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), nbt.getCompound("Material"));
+                    if (mat != null && !mat.isAir()) return mat;
+                }
+                if (nbt.contains("material_data")) {
+                    net.minecraft.nbt.CompoundTag data = nbt.getCompound("material_data");
+                    for (String key : data.getAllKeys()) {
+                        net.minecraft.nbt.CompoundTag itemTag = data.getCompound(key);
+                        if (itemTag.contains("material")) {
+                            BlockState mat = net.minecraft.nbt.NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), itemTag.getCompound("material"));
+                            if (mat != null && !mat.isAir()) return mat;
+                        }
+                    }
+                }
+            }
+        }
+        return originalState;
+    }
 
+    public static int getWeakestHullDepth(UUID subId, Level plotLevel) {
+        int weakest = Integer.MAX_VALUE;
+        for (CompartmentDetector.Component comp : CompartmentTracker.getCompartments(subId)) {
+            if (!comp.sealed() || CompartmentTracker.isCompromised(subId, comp.anchor()))
+                continue;
+            for (BlockPos bp : comp.hull()) {
+                boolean facesExterior = false;
+                for (Direction dir : Direction.values()) {
+                    if (!CompartmentTracker.isWithinShip(subId, bp.relative(dir))) {
+                        facesExterior = true;
+                        break;
+                    }
+                }
+                if (!facesExterior) continue;
+                BlockState state = plotLevel.getBlockState(bp);
+                if (!state.isCollisionShapeFullBlock(plotLevel, bp)) continue;
+                BlockState strengthState = getActualBlockState(plotLevel, bp, state);
+                Optional<HullStrengthConfig.HullProperty> prop = HullStrengthConfig.getFor(strengthState);
+                if (prop.isPresent() && prop.get().maxWaterDepth() < weakest) {
+                    weakest = prop.get().maxWaterDepth();
+                }
+            }
+        }
+        return weakest == Integer.MAX_VALUE ? -1 : weakest;
+    }
+
+    public static boolean isUnderHighPressure(UUID id, Level plotLevel) {
+        int depth = getCachedDepth(id);
+        if (depth <= 0) return false;
+        int weakest = getWeakestHullDepth(id, plotLevel);
+        if (weakest == -1) return false;
+        return depth >= weakest * 0.80;
+    }
+
+    public static void onBlockBroken(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (!(event.getLevel() instanceof Level level) || level.isClientSide())
+            return;
+        if (com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DISABLE_IMPLOSION.get())
+            return;
+        if (event.getPlayer() != null && event.getPlayer().isCreative())
+            return;
+
+        UUID id = SubLevelRegistry.findUUID(level, event.getPos());
+        if (id == null || SubmarineSinkingSystem.isCrashing(id))
+            return;
+        if (!isUnderHighPressure(id, level))
+            return;
+
+        CompartmentDetector.Component comp = CompartmentTracker.findCompartmentAdjacent(id, event.getPos());
+        if (comp == null || !comp.hull().contains(event.getPos()))
+            return;
+
+        boolean facesExterior = false;
+        for (Direction dir : Direction.values()) {
+            if (!CompartmentTracker.isWithinShip(id, event.getPos().relative(dir))) {
+                facesExterior = true;
+                break;
+            }
+        }
+        if (!facesExterior) return;
+
+        SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
+        SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
+        if (sub == null || bounds == null) return;
+        SubmarineSinkingSystem.onCrashed(id, sub, level, bounds);
+    }
+
+    public static void onPlotBlockReplaced(Level plotLevel, BlockPos plotPos) {
+        if (CRACK_LEVELS.isEmpty())
+            return;
+        UUID id = SubLevelRegistry.findUUID(plotLevel, plotPos);
+        if (id == null)
+            return;
+        Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
+        if (cracks == null || cracks.remove(plotPos) == null)
+            return;
+        SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
+        Level oceanLevel = sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl ? sl.getLevel() : plotLevel;
+        sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
+    }
 }

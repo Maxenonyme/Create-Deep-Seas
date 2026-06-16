@@ -443,29 +443,6 @@ public class CompartmentTracker {
         return section.getBlockState(pos.getX() & 15, y & 15, pos.getZ() & 15).getFluidState();
     }
 
-    public static FluidState realFluidState(Level level, BlockPos pos) {
-        int y = pos.getY();
-        if (y < level.getMinBuildHeight() || y >= level.getMaxBuildHeight())
-            return Fluids.EMPTY.defaultFluidState();
-        net.minecraft.world.level.chunk.ChunkAccess chunk = level.getChunk(
-                pos.getX() >> 4, pos.getZ() >> 4,
-                net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false);
-        if (chunk == null)
-            return Fluids.EMPTY.defaultFluidState();
-        return realFluidState(chunk, pos);
-    }
-
-    public static FluidState realFluidState(net.minecraft.world.level.chunk.ChunkAccess chunk, BlockPos pos) {
-        int y = pos.getY();
-        int idx = chunk.getSectionIndex(y);
-        if (idx < 0 || idx >= chunk.getSections().length)
-            return Fluids.EMPTY.defaultFluidState();
-        net.minecraft.world.level.chunk.LevelChunkSection section = chunk.getSection(idx);
-        if (section == null || section.hasOnlyAir())
-            return Fluids.EMPTY.defaultFluidState();
-        return section.getBlockState(pos.getX() & 15, y & 15, pos.getZ() & 15).getFluidState();
-    }
-
     @Nullable
     public static CompartmentDetector.Component findCompartmentAdjacent(UUID id, BlockPos plotPos) {
         List<CompartmentDetector.Component> comps = COMPARTMENTS.get(id);

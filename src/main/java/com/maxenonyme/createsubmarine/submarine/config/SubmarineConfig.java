@@ -5,17 +5,24 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public class SubmarineConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue DISABLE_IMPLOSION;
+    public static final ModConfigSpec.IntValue OXYGEN_MAX_FILL_BLOCKS;
     public static final ModConfigSpec.IntValue GLOBAL_MAX_DEPTH_CAP;
     public static final ModConfigSpec.DoubleValue IMPLOSION_CHANCE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue MAX_DEPTH_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue BALLAST_FORCE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue BALLAST_TRANSFER_RATE_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue WATER_THRUSTER_POWER_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue SUBMARINE_PROPELLER_POWER_MULTIPLIER;
+    public static final ModConfigSpec.DoubleValue PULLEY_MAX_SLIDE_SPEED;
+    public static final ModConfigSpec.IntValue STEEL_CABLE_MAX_LENGTH;
     public static final ModConfigSpec.BooleanValue ENABLE_PERMANENT_WATER_CULLING_TEST;
     public static final ModConfigSpec.BooleanValue ENABLE_ABYSS_GENERATION;
+    public static final ModConfigSpec.BooleanValue ENABLE_BOAT_WATER_CULLING;
     public static final ModConfigSpec.BooleanValue ENABLE_DEEPER_OCEANS;
     public static final ModConfigSpec.IntValue DEEPER_OCEANS_DEPTH;
-    public static final ModConfigSpec.BooleanValue WELCOME_SCREEN_SEEN;
+    public static ModConfigSpec.BooleanValue WELCOME_SCREEN_SEEN;
+    public static final ModConfigSpec.BooleanValue DISABLE_STARTUP_SCREENS;
+    public static ModConfigSpec.ConfigValue<String> IGNORED_UPDATE_VERSION;
 
     public static final ModConfigSpec.DoubleValue COHERENCE_THRESHOLD_ANALYTICAL;
     public static final ModConfigSpec.DoubleValue COHERENCE_THRESHOLD_CORRECTED;
@@ -39,6 +46,11 @@ public class SubmarineConfig {
         DISABLE_IMPLOSION = builder
                 .comment("Disable all hull implosion damage from pressure.")
                 .define("disableImplosion", false);
+        OXYGEN_MAX_FILL_BLOCKS = builder
+                .comment("Maximum size, in blocks, of a creation that oxygen diffusers can scan and fill with breathable air.",
+                        "Raise this if air pockets stop working on very large ships.",
+                        "WARNING: large values make the air scan use more memory and take longer to finish.")
+                .defineInRange("oxygenMaxFillBlocks", 500_000, 1_000, 10_000_000);
         builder.pop();
 
         builder.push("shapeClassifier");
@@ -149,6 +161,18 @@ public class SubmarineConfig {
                 .comment("Multiplier on water thruster thrust output.",
                         "Lower = weaker propulsion, higher = stronger.")
                 .defineInRange("waterThrusterPowerMultiplier", 6.0, 0.1, 50.0);
+        SUBMARINE_PROPELLER_POWER_MULTIPLIER = builder
+                .comment("Multiplier on Submarine Propeller thrust and airflow output.",
+                        "Lower = weaker propulsion, higher = stronger.")
+                .defineInRange("submarinePropellerPowerMultiplier", 3.0, 0.1, 50.0);
+        PULLEY_MAX_SLIDE_SPEED = builder
+                .comment("Maximum sliding speed of a pulley along a steel cable (blocks/s).",
+                        "Above this speed the pulley starts overheating.")
+                .defineInRange("pulleyMaxSlideSpeed", 24.0, 1.0, 200.0);
+        STEEL_CABLE_MAX_LENGTH = builder
+                .comment("Maximum length of a steel cable in blocks (distance between its two attachment points).",
+                        "Very long cables can cause server lag; lower this on servers.")
+                .defineInRange("steelCableMaxLength", 1000, 1, 1000000);
         builder.pop();
 
         builder.push("experimental");
@@ -159,6 +183,9 @@ public class SubmarineConfig {
                 .comment("Generate Abyss biome pockets and the deeper ocean trenches that go with them.",
                         "Off = vanilla ocean depth, no Abyss biome.")
                 .define("enableAbyssGeneration", true);
+        ENABLE_BOAT_WATER_CULLING = builder
+                .comment("Experimental: hide the ocean surface seen inside floating boats (sub-levels without an oxygen system).")
+                .define("enableBoatWaterCulling", false);
         ENABLE_DEEPER_OCEANS = builder
                 .comment("Deepen the ocean floor below vanilla.",
                         "Off = vanilla ocean depth. Set the amount with deeperOceansDepth.")
@@ -171,10 +198,23 @@ public class SubmarineConfig {
         builder.pop();
 
         builder.push("client");
-        WELCOME_SCREEN_SEEN = builder
-                .comment("Internal: set to true once the Deep Seas welcome screen has been acknowledged.",
-                        "Set back to false to show the welcome screen again on the next main menu.")
-                .define("welcomeScreenSeen", false);
+        DISABLE_STARTUP_SCREENS = builder
+                .comment("Disable all Deep Seas startup UI screens (Welcome screen and Update notifications).",
+                        "Highly recommended to set this to TRUE if you are creating a modpack to avoid annoying your players.")
+                .define("disableStartupScreens", false);
+        if (!net.neoforged.fml.loading.FMLEnvironment.production) {
+                WELCOME_SCREEN_SEEN = builder
+                                .comment("Internal: set to true once the Deep Seas welcome screen has been acknowledged.",
+                                                "Set back to false to show the welcome screen again on the next main menu.")
+                                .define("welcomeScreenSeen", false);
+                IGNORED_UPDATE_VERSION = builder
+                                .comment("Internal: stores the version string of the last update notification dismissed by the user.",
+                                                "If the online version matches this, the update screen will not be shown.")
+                                .define("ignoredUpdateVersion", "");
+        } else {
+                WELCOME_SCREEN_SEEN = null;
+                IGNORED_UPDATE_VERSION = null;
+        }
         builder.pop();
 
         SPEC = builder.build();

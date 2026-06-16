@@ -130,6 +130,12 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
         mod_name               : mod_name,
         mod_license            : mod_license,
         mod_version            : mod_version,
+        abyss_mod_id           : "create_abyss",
+        abyss_mod_name         : "Create Abyss",
+        abyss_mod_version      : mod_version,
+        high_seas_mod_id       : "create_high_seas",
+        high_seas_mod_name     : "Create High Seas",
+        high_seas_mod_version  : mod_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties

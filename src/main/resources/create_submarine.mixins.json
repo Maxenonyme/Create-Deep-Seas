@@ -4,6 +4,7 @@
   "package": "com.maxenonyme.createsubmarine.submarine.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "LevelMixin",
     "LevelChunkMixin",
     "RopeStrandHolderBehaviorMixin",
     "ServerRopeStrandMixin",
