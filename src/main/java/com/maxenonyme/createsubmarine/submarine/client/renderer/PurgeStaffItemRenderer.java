@@ -34,18 +34,21 @@ public class PurgeStaffItemRenderer extends CustomRenderedItemModelRenderer {
 
         renderer.render(AllPartialModels.PURGE_STAFF_CORE.get(), Sheets.cutoutBlockSheet(), light);
 
+        float pivotY = 25.8F / 16F - 0.5F;
+
         ms.pushPose();
+        ms.translate(-0.5F, pivotY, -0.5F);
         ms.mulPose(Axis.YP.rotationDegrees(worldTime * 15));
+        ms.translate(0.5F, -pivotY, 0.5F);
         renderer.render(AllPartialModels.PURGE_STAFF_CASING.get(), Sheets.cutoutBlockSheet(), light);
         ms.popPose();
 
         ms.pushPose();
-        float eyeY = 1.1125F;
-        ms.translate(0, eyeY, 0);
+        ms.translate(-0.5F, pivotY, -0.5F);
         ms.mulPose(Axis.YP.rotationDegrees(worldTime * 30));
         float pulse = 1.0F + (float) (java.lang.Math.sin(worldTime * 3.0) * 0.1);
         ms.scale(pulse, pulse, pulse);
-        ms.translate(0, -eyeY, 0);
+        ms.translate(0.5F / pulse, -pivotY / pulse, 0.5F / pulse);
         renderer.render(AllPartialModels.PURGE_STAFF_EYE.get(), Sheets.cutoutBlockSheet(), LightTexture.FULL_BRIGHT);
         ms.popPose();
     }
