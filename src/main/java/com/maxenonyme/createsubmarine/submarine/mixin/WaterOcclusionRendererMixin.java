@@ -14,6 +14,6 @@ public class WaterOcclusionRendererMixin {
 
                 return src.replace(
                                 "waterDepth > closeDepth && waterDepth < farDepth",
-                                "closeDepth < 1.0 && waterDepth > closeDepth && waterDepth < farDepth - 0.000");
+                                "closeDepth < 1.0 && waterDepth > closeDepth && waterDepth < farDepth");
         }
 }

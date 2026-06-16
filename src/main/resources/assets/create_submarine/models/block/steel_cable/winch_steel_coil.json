@@ -1,0 +1,23 @@
+{
+	"format_version": "1.9.0",
+	"credit": "Made with Blockbench",
+	"parent": "minecraft:block/block",
+	"textures": {
+		"1": "create_submarine:block/steel_cable/winch_steel_coil",
+		"particle": "create_submarine:block/steel_cable/winch_steel_coil"
+	},
+	"elements": [
+		{
+			"name": "rope",
+			"from": [3, 3, 3],
+			"to": [13, 13, 13],
+			"rotation": {"angle": 0, "axis": "z", "origin": [8, 8, 8]},
+			"faces": {
+				"north": {"uv": [13, 12, 3, 2], "rotation": 180, "texture": "#1"},
+				"south": {"uv": [13, 12, 3, 2], "texture": "#1"},
+				"up": {"uv": [3, 0, 13, 10], "rotation": 180, "texture": "#1"},
+				"down": {"uv": [3, 0, 13, 10], "rotation": 180, "texture": "#1"}
+			}
+		}
+	]
+}

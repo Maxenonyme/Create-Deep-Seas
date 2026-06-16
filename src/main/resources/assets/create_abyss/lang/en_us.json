@@ -1,0 +1,14 @@
+{
+  "block.create_abyss.creepvine_seed": "Creepvine Seed",
+  "block.create_abyss.submarine_liana": "Submarine Liana",
+  "create_abyss.command.no_sublevel_container": "No sublevel container found in the current dimension.",
+  "create_abyss.command.player_only": "Only players can execute this command.",
+  "create_abyss.command.queue_submarine_lianas": "Queued spawning of %s submarine lianas of length %s, starting from your position",
+  "create_abyss.command.spawn_liana_failed": "Failed to spawn submarine lianas.",
+  "create_abyss.command.spawn_liana_success": "Successfully spawned a submarine liana of length %s",
+  "entity.create_abyss.amphistium": "Amphistium",
+  "entity.create_abyss.cookiecutter_shark": "Cookiecutter Shark",
+  "item.create_abyss.amphistium_spawn_egg": "Amphistium Spawn Egg",
+  "item.create_abyss.cookiecutter_shark_spawn_egg": "Cookiecutter Shark Spawn Egg",
+  "itemGroup.create_abyss.abyss_tab": "Create Abyss"
+}

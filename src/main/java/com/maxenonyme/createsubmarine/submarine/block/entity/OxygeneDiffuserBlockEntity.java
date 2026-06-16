@@ -2,6 +2,7 @@ package com.maxenonyme.createsubmarine.submarine.block.entity;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
 import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
+import com.maxenonyme.createsubmarine.submarine.system.SubmarineDriverRegistry;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.foundation.utility.CreateLang;
@@ -87,6 +88,12 @@ public class OxygeneDiffuserBlockEntity extends BlockEntity implements IHaveGogg
             be.currentSubLevelId = sub.getUniqueId();
             long gameTick = level.getGameTime();
 
+            boolean owner = SubmarineDriverRegistry.claim(be.currentSubLevelId, pos, SubmarineDriverRegistry.OXYGEN_DIFFUSER, gameTick);
+            be.activeTicks++;
+            if (!owner) {
+                return;
+            }
+
             if (!level.isClientSide) {
                 if (gameTick % CONSUME_EVERY == 0) {
                     be.oxygenTank.drain(new FluidStack(CreateSubmarine.OXYGEN.get(), CONSUME_AMOUNT),
@@ -94,8 +101,6 @@ public class OxygeneDiffuserBlockEntity extends BlockEntity implements IHaveGogg
                     be.setChanged();
                 }
             }
-
-            be.activeTicks++;
 
             if (be.activeTicks < STARTUP_TICKS) {
                 if (!level.isClientSide && level instanceof ServerLevel serverLevel && gameTick % 4 == 0) {
@@ -149,12 +154,15 @@ public class OxygeneDiffuserBlockEntity extends BlockEntity implements IHaveGogg
 
     private void cleanup() {
         if (currentSubLevelId != null) {
-            com.maxenonyme.createsubmarine.submarine.system.SubmarineHullManager.removeHull(currentSubLevelId);
-            if (level != null && !level.isClientSide) {
-                SubLevelRegistry.unregister(currentSubLevelId);
-                com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.clearSubmarine(currentSubLevelId);
+            long tick = level != null ? level.getGameTime() : 0L;
+            if (SubmarineDriverRegistry.release(currentSubLevelId, worldPosition, tick)) {
+                com.maxenonyme.createsubmarine.submarine.system.SubmarineHullManager.removeHull(currentSubLevelId);
+                if (level != null && !level.isClientSide) {
+                    SubLevelRegistry.unregister(currentSubLevelId);
+                    com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.clearSubmarine(currentSubLevelId);
+                }
+                CompartmentTracker.remove(currentSubLevelId);
             }
-            CompartmentTracker.remove(currentSubLevelId);
         }
         currentSubLevelId = null;
         subLevelRegistered = false;

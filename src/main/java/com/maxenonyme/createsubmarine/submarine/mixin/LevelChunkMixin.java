@@ -3,7 +3,6 @@ import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraft.world.level.material.FluidState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,10 +14,14 @@ public abstract class LevelChunkMixin {
         BlockState lied = CompartmentTracker.getLiedBlockState(((LevelChunk) (Object) this).getLevel(), pos);
         if (lied != null) cir.setReturnValue(lied);
     }
-    @Inject(method = "getFluidState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/material/FluidState;", at = @At("HEAD"), cancellable = true)
-    private void createsubmarine$onGetFluidState(BlockPos pos, CallbackInfoReturnable<FluidState> cir) {
-        if (com.maxenonyme.createsubmarine.submarine.util.CompatUtil.isSodiumLoaded()) return;
-        FluidState lied = CompartmentTracker.getLiedFluidState(((LevelChunk) (Object) this).getLevel(), pos);
-        if (lied != null) cir.setReturnValue(lied);
+    @Inject(method = "setBlockState", at = @At("RETURN"))
+    private void createsubmarine$onSetBlockState(BlockPos pos, BlockState state, boolean isMoving, CallbackInfoReturnable<BlockState> cir) {
+        BlockState old = cir.getReturnValue();
+        if (old == null) return;
+        net.minecraft.world.level.Level level = ((LevelChunk) (Object) this).getLevel();
+        CompartmentTracker.onPlotBlockChanged(level, pos);
+        if (!level.isClientSide && old.getBlock() != state.getBlock()) {
+            com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.onPlotBlockReplaced(level, pos);
+        }
     }
 }

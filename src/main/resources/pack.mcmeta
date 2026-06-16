@@ -1,0 +1,9 @@
+{
+  "pack": {
+    "pack_format": 34,
+    "description": "Create Deep Seas Resources"
+  },
+  "fusion": {
+    "overrides_folder": "fusion-overrides"
+  }
+}

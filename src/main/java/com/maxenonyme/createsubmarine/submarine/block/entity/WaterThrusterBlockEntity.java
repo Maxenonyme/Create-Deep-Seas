@@ -42,7 +42,7 @@ public class WaterThrusterBlockEntity extends BlockEntity implements BlockEntity
         boolean changed = be.thrustMagnitude != drained;
         be.thrustMagnitude = drained;
 
-        if (be.thrustMagnitude > 0) {
+        if (be.thrustMagnitude > 0 && level.getGameTime() % 4 == 0) {
             be.spawnWaterParticles();
         }
         if (changed) {
@@ -108,7 +108,7 @@ public class WaterThrusterBlockEntity extends BlockEntity implements BlockEntity
         double vy = facing.getStepY() * 1.5;
         double vz = facing.getStepZ() * 1.5;
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 2; i++) {
             double rx = (level.random.nextDouble() - 0.5) * 0.05;
             double ry = (level.random.nextDouble() - 0.5) * 0.05;
             double rz = (level.random.nextDouble() - 0.5) * 0.05;
@@ -123,15 +123,15 @@ public class WaterThrusterBlockEntity extends BlockEntity implements BlockEntity
 
         serverLevel.sendParticles(ParticleTypes.SPLASH,
                 ox, oy, oz,
-                4,
+                1,
                 0.1, 0.1, 0.1,
                 0.8
         );
 
-        if (level.random.nextFloat() < 0.4f) {
+        if (level.random.nextFloat() < 0.1f) {
              serverLevel.sendParticles(ParticleTypes.GUST,
                 ox, oy, oz,
-                2, 0, 0, 0, 0.2
+                1, 0, 0, 0, 0.2
             );
         }
     }

@@ -20,7 +20,7 @@ public abstract class SodiumShaderLoaderMixin {
             "        float _csubCloseDepth = texture(SableCloseSampler, gl_FragCoord.xy / ScreenSize).r;\n" +
             "        float _csubFarDepth = texture(SableFarSampler, gl_FragCoord.xy / ScreenSize).r;\n" +
             "        float _csubFragDepth = gl_FragCoord.z;\n" +
-            "        if (_csubFragDepth > _csubCloseDepth && _csubFragDepth < _csubFarDepth) { discard; }\n" +
+            "        if (_csubCloseDepth < 1.0 && _csubFragDepth > _csubCloseDepth && _csubFragDepth < _csubFarDepth) { discard; }\n" +
             "    }\n";
 
     @Inject(method = "getShaderSource", at = @At("RETURN"), cancellable = true, remap = false)

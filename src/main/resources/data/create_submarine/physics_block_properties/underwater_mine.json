@@ -1,0 +1,7 @@
+{
+  "selector": "create_submarine:underwater_mine",
+  "priority": 1001,
+  "properties": {
+    "sable:mass": 10.0
+  }
+}

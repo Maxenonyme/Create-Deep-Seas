@@ -82,24 +82,43 @@ public class SubmarineInteractionSystem {
     private static void clearVegetation(ServerLevel level, OrientedBoundingBox3d obb) {
         Vector3d pos = obb.getPosition();
         Vector3d dim = obb.getDimensions();
-        double maxDim = Math.max(dim.x, Math.max(dim.y, dim.z));
-        int minX = (int) Math.floor(pos.x - maxDim);
-        int maxX = (int) Math.ceil(pos.x + maxDim);
-        int minY = (int) Math.floor(pos.y - maxDim);
-        int maxY = (int) Math.ceil(pos.y + maxDim);
-        int minZ = (int) Math.floor(pos.z - maxDim);
-        int maxZ = (int) Math.ceil(pos.z + maxDim);
+        Vector3d ax = obb.getOrientation().transform(new Vector3d(dim.x * 0.5, 0, 0));
+        Vector3d ay = obb.getOrientation().transform(new Vector3d(0, dim.y * 0.5, 0));
+        Vector3d az = obb.getOrientation().transform(new Vector3d(0, 0, dim.z * 0.5));
+        double hx = Math.abs(ax.x) + Math.abs(ay.x) + Math.abs(az.x);
+        double hy = Math.abs(ax.y) + Math.abs(ay.y) + Math.abs(az.y);
+        double hz = Math.abs(ax.z) + Math.abs(ay.z) + Math.abs(az.z);
+        int minX = (int) Math.floor(pos.x - hx);
+        int maxX = (int) Math.ceil(pos.x + hx);
+        int minY = Math.max((int) Math.floor(pos.y - hy), level.getMinBuildHeight());
+        int maxY = Math.min((int) Math.ceil(pos.y + hy), level.getMaxBuildHeight() - 1);
+        int minZ = (int) Math.floor(pos.z - hz);
+        int maxZ = (int) Math.ceil(pos.z + hz);
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    if (SubmarineHullManager.contains(obb, x + 0.5, y + 0.5, z + 0.5)) {
-                        mutablePos.set(x, y, z);
-                        BlockState state = level.getBlockState(mutablePos);
-                        if (isVegetation(state)) {
-                            clearVegetationColumn(level, mutablePos);
-                            if (RAND.nextFloat() < 0.1f) {
-                                level.sendParticles(net.minecraft.core.particles.ParticleTypes.BUBBLE, x + 0.5, y + 0.5, z + 0.5, 2, 0.2, 0.2, 0.2, 0.01);
+        for (int cx = minX >> 4; cx <= maxX >> 4; cx++) {
+            for (int cz = minZ >> 4; cz <= maxZ >> 4; cz++) {
+                net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null) continue;
+                int x0 = Math.max(minX, cx << 4), x1 = Math.min(maxX, (cx << 4) + 15);
+                int z0 = Math.max(minZ, cz << 4), z1 = Math.min(maxZ, (cz << 4) + 15);
+                net.minecraft.world.level.chunk.LevelChunkSection[] sections = chunk.getSections();
+                for (int sy = chunk.getSectionIndex(minY); sy <= chunk.getSectionIndex(maxY); sy++) {
+                    if (sy < 0 || sy >= sections.length) continue;
+                    net.minecraft.world.level.chunk.LevelChunkSection section = sections[sy];
+                    if (section == null || section.hasOnlyAir() || !section.maybeHas(SubmarineInteractionSystem::isVegetation)) continue;
+                    int yBase = net.minecraft.core.SectionPos.sectionToBlockCoord(chunk.getSectionYFromSectionIndex(sy));
+                    int y0 = Math.max(minY, yBase), y1 = Math.min(maxY, yBase + 15);
+                    for (int y = y0; y <= y1; y++) {
+                        for (int x = x0; x <= x1; x++) {
+                            for (int z = z0; z <= z1; z++) {
+                                BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
+                                if (!isVegetation(state)) continue;
+                                if (!SubmarineHullManager.contains(obb, x + 0.5, y + 0.5, z + 0.5)) continue;
+                                mutablePos.set(x, y, z);
+                                clearVegetationColumn(level, mutablePos);
+                                if (RAND.nextFloat() < 0.1f) {
+                                    level.sendParticles(net.minecraft.core.particles.ParticleTypes.BUBBLE, x + 0.5, y + 0.5, z + 0.5, 2, 0.2, 0.2, 0.2, 0.01);
+                                }
                             }
                         }
                     }
@@ -110,7 +129,6 @@ public class SubmarineInteractionSystem {
     private static void clearVegetationColumn(ServerLevel level, BlockPos pos) {
         BlockPos.MutableBlockPos cursor = pos.mutable();
         while (isVegetation(level.getBlockState(cursor))) {
-            level.removeBlock(cursor, false);
             level.setBlock(cursor, Blocks.WATER.defaultBlockState(), 3);
             cursor.move(net.minecraft.core.Direction.UP);
             if (cursor.getY() > level.getMaxBuildHeight()) break;

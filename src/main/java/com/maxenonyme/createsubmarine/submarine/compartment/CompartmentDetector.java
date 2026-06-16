@@ -12,7 +12,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 
 public class CompartmentDetector {
-    private static final int MAX_BLOCKS = 100_000;
+    private static int maxBlocks() {
+        return com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.OXYGEN_MAX_FILL_BLOCKS.get();
+    }
 
     public record Component(Set<BlockPos> internal, Set<BlockPos> hull, boolean sealed, BlockPos anchor) {
     }
@@ -104,15 +106,16 @@ public class CompartmentDetector {
     public static boolean stepScan(IncrementalScanState st, int budget) {
         if (st == null || st.done) return true;
 
+        int max = maxBlocks();
         for (int spent = 0; spent < budget; spent++) {
-            if (st.total >= MAX_BLOCKS) {
+            if (st.total >= max) {
                 if (st.hasActiveBfs()) st.finishBfs();
                 st.done = true;
                 return true;
             }
 
             if (st.hasActiveBfs()) {
-                if (!stepActiveBfs(st)) st.finishBfs();
+                if (!stepActiveBfs(st, max)) st.finishBfs();
                 continue;
             }
 
@@ -140,7 +143,7 @@ public class CompartmentDetector {
         return false;
     }
 
-    private static boolean stepActiveBfs(IncrementalScanState st) {
+    private static boolean stepActiveBfs(IncrementalScanState st, int max) {
         if (st.activeQueue == null || st.activeQueue.isEmpty())
             return false;
         BlockPos curr = st.activeQueue.poll();
@@ -172,7 +175,7 @@ public class CompartmentDetector {
                 st.activeQueue.add(next);
                 if (compareLex(next, st.activeAnchor) < 0)
                     st.activeAnchor = next;
-                if (st.total >= MAX_BLOCKS)
+                if (st.total >= max)
                     return true;
             } else {
                 st.activeHull.add(next);
@@ -195,7 +198,7 @@ public class CompartmentDetector {
         IncrementalScanState st = beginScan(subAccess);
         if (st == null)
             return new Result(List.of(), 0, Set.of());
-        while (!stepScan(st, MAX_BLOCKS)) {
+        while (!stepScan(st, maxBlocks())) {
         }
         return finishScan(st);
     }

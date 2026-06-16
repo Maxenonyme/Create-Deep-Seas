@@ -3,17 +3,30 @@
   "minVersion": "0.8",
   "package": "com.maxenonyme.createsubmarine.submarine.mixin",
   "compatibilityLevel": "JAVA_21",
-  "plugin": "com.maxenonyme.createsubmarine.submarine.mixin.CreateSubmarineMixinPlugin",
   "mixins": [
     "LevelChunkMixin",
-    "LevelMixin",
+    "RopeStrandHolderBehaviorMixin",
+    "ServerRopeStrandMixin",
+    "RapierVoxelColliderBakeryMixin",
+    "RopeWinchBlockEntityMixin",
+    "RopeConnectorBlockEntityMixin",
+    "SmartBlockEntityMixin",
+    "EntityWaterPhysicsMixin",
     "compat.SablePhysicsCrashFixMixin",
-    "compat.SubLevelPhysicsSystemMixin"
+    "compat.sable.ServerSubLevelMixin",
+    "LargeWaterWheelPropulsionMixin",
+    "WaterWheelBlockEntityMixin"
   ],
   "client": [
+    "ClientRopeStrandMixin",
+    "EntityPocketFogMixin",
     "FluidRenderHelperBuilderMixin",
     "FluidRenderHelperMixin",
+    "FogRendererMixin",
     "LevelRendererMixin",
+    "RopeStrandRendererMixin",
+    "RopeWinchRendererMixin",
+    "RopeConnectorRendererMixin",
     "WaterOcclusionRendererMixin",
     "compat.AeronauticsVeilCrashFixMixin",
     "compat.AeronauticsShaderCrashFixMixin",
@@ -23,10 +36,15 @@
     "compat.SodiumChunkRendererMixin",
     "compat.SodiumFluidRendererMixin",
     "compat.SodiumBlockRendererMixin",
+    "compat.FlywheelFogUniformsMixin",
     "compat.VeilShaderIncludeFixMixin",
+    "compat.sable.SableSubLevelBEFogMixin",
+    "compat.sable.SableSubLevelPocketFogMixin",
     "compat.sable.VanillaSubLevelRenderDispatcherMixin",
+    "compat.sable.SableWaterOcclusionPreProcessorMixin",
     "compat.sable.SableSnapshotPacketMixin",
-    "compat.sable.SableStartTrackingPacketMixin"
+    "compat.sable.SableStartTrackingPacketMixin",
+    "compat.simulated.DiagramScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

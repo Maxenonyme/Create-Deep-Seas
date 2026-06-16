@@ -33,18 +33,27 @@ public final class CreateSubmarineClient {
     }
 
     public static void init(IEventBus modEventBus, ModContainer modContainer) {
+        com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.load();
+        com.maxenonyme.createsubmarine.submarine.system.UpdateChecker.check();
+        AllPartialModels.init();
         modContainer.registerExtensionPoint(
                 IConfigScreenFactory.class,
-                (container, parent) -> new com.maxenonyme.createsubmarine.submarine.client.HullStrengthConfigScreen(container, parent));
+                (container, parent) -> new com.maxenonyme.createsubmarine.submarine.client.HullStrengthConfigScreen(
+                        container, parent));
 
         modEventBus.addListener(CreateSubmarineClient::onClientSetup);
         modEventBus.addListener(CreateSubmarineClient::onRegisterRenderers);
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
+        modEventBus.addListener(CreateSubmarineClient::onRegisterClientExtensions);
 
         modEventBus.addListener(WatermarkOverlay::register);
 
         NeoForge.EVENT_BUS.addListener(
                 com.maxenonyme.createsubmarine.submarine.client.DeepSeasWelcomeScreen::onScreenOpening);
+        NeoForge.EVENT_BUS.addListener(
+                com.maxenonyme.createsubmarine.submarine.client.LithostitchedMissingScreen::onScreenOpening);
+        NeoForge.EVENT_BUS.addListener(
+                com.maxenonyme.createsubmarine.submarine.client.DeepSeasUpdateScreen::onScreenOpening);
 
         NeoForge.EVENT_BUS.register(SubmarineFogHandler.class);
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
@@ -54,11 +63,14 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);
         NeoForge.EVENT_BUS.register(com.maxenonyme.AbyssDimension.client.CameraShake.GameEvents.class);
         modEventBus.register(PDAManager.ModEvents.class);
+        NeoForge.EVENT_BUS
+                .addListener(com.maxenonyme.createsubmarine.submarine.client.ClientSteelCableItemHandler::onClientTick);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             SubLevelCrackRenderer.clearAll();
             ShapeVizRenderer.clearAll();
             SubLevelRegistry.clearAll();
             CompartmentTracker.clearAll();
+            com.maxenonyme.createsubmarine.submarine.system.SubmarineDriverRegistry.clearAll();
             com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig.load();
         });
     }
@@ -70,6 +82,28 @@ public final class CreateSubmarineClient {
         event.registerEntityRenderer(
                 CreateSubmarine.SONAR_PINGER_ENTITY.get(),
                 ctx -> new SonarPingerRenderer(ctx));
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.PULLEY_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.entity.renderer.PulleyBlockEntityRenderer::new);
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.ARRESTING_HOOK_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.entity.renderer.ArrestingHookBlockEntityRenderer::new);
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.SUBMARINE_PROPELLER_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerRenderer::new);
+        event.registerBlockEntityRenderer(
+                CreateSubmarine.BAROMETER_BE.get(),
+                com.maxenonyme.createsubmarine.submarine.block.entity.renderer.BarometerBlockEntityRenderer::new);
+    }
+
+    private static void onRegisterClientExtensions(
+            net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent event) {
+        event.registerItem(new net.neoforged.neoforge.client.extensions.common.IClientItemExtensions() {
+            @Override
+            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return new com.maxenonyme.createsubmarine.submarine.block.entity.renderer.BarometerItemRenderer();
+            }
+        }, CreateSubmarine.BAROMETER_ITEM.get());
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {
@@ -78,20 +112,27 @@ public final class CreateSubmarineClient {
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.OXYGENE_DIFFUSER.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.WATER_THRUSTER.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.IRON_PRESSURIZER.get(), RenderType.cutout());
-            ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.COPPER_PRESSURIZER.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.GLASS_PRESSURIZER.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(com.maxenonyme.AbyssDimension.LianaRegistry.LIANA_BLOCK.get(), RenderType.cutout());
             ItemBlockRenderTypes.setRenderLayer(com.maxenonyme.AbyssDimension.LianaRegistry.CREEPVINE_SEED.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.SUBMARINE_PROPELLER.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.ARRESTING_HOOK.get(), RenderType.cutout());
+            ItemBlockRenderTypes.setRenderLayer(CreateSubmarine.BAROMETER.get(), RenderType.cutout());
         });
 
         PonderIndex.addPlugin(new SubmarinePonderPlugin());
         WaterOcclusionRenderer.setIsEnabled(true);
-        AllPartialModels.init();
         SimpleBlockEntityVisualizer
-            .builder(CreateSubmarine.BALLAST_VENT_BE.get())
-            .factory(SingleAxisRotatingVisual::shaft)
-            .skipVanillaRender(be -> true)
-            .apply();
+                .builder(CreateSubmarine.BALLAST_VENT_BE.get())
+                .factory(SingleAxisRotatingVisual::shaft)
+                .skipVanillaRender(be -> true)
+                .apply();
+        SimpleBlockEntityVisualizer
+                .builder(CreateSubmarine.SUBMARINE_PROPELLER_BE.get())
+                .factory(
+                        com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerVisual::new)
+                .skipVanillaRender(be -> false)
+                .apply();
     }
 
     private static void onRegisterScreens(RegisterMenuScreensEvent event) {
@@ -99,6 +140,5 @@ public final class CreateSubmarineClient {
                 CreateSubmarine.ELECTROLYZER_MENU.get(),
                 ElectrolyzerScreen::new);
     }
-
 
 }

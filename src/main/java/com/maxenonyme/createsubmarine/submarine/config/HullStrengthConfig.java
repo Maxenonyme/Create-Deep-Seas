@@ -150,7 +150,7 @@ public class HullStrengthConfig {
             resistance = block.getExplosionResistance();
             sound = state.getSoundType();
         } catch (Throwable ignored) {}
-        double score = (hardness * 8.0) + (resistance * 4.0);
+        double score = (hardness * 11.2) + (resistance * 5.6);
         double multiplier = 1.0;
         if (sound == SoundType.METAL) multiplier = 1.8;
         else if (sound == SoundType.GLASS) multiplier = 0.3;
@@ -163,7 +163,7 @@ public class HullStrengthConfig {
         boolean isInternal = id != null && id.getNamespace().equals(CreateSubmarine.MOD_ID);
         if (!isInternal && maxWaterDepth > globalCap) maxWaterDepth = globalCap;
 
-        float chance = (float) Math.max(0.05, Math.min(0.85, 1.0 - (score / 120.0)));
+        float chance = (float) Math.max(0.05, Math.min(0.85, 1.0 - (score / 168.0)));
         return new HullProperty(maxWaterDepth, chance);
     }
 
@@ -182,15 +182,7 @@ public class HullStrengthConfig {
         map.put("create_submarine:electrolyzer",        new HullProperty(200, 0.06f));
         map.put("create_submarine:oxygene_diffuser",    new HullProperty(180, 0.07f));
         map.put("create_submarine:industrial_alarm",    new HullProperty(160, 0.08f));
-
-        HullProperty glass = new HullProperty(10, 0.7f);
-        map.put("minecraft:glass", glass);
-        map.put("minecraft:tinted_glass", glass);
-        String[] colors = {"white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
-                "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black"};
-        for (String color : colors) {
-            map.put("minecraft:" + color + "_stained_glass", glass);
-        }
+        map.put("create_submarine:barometer",           new HullProperty(200, 0.05f));
     }
 
     private static void writeJson(Path path, Map<String, HullProperty> data) {

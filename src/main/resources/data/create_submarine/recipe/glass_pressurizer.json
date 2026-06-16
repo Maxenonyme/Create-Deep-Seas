@@ -1,1 +1,0 @@
-{   "type": "minecraft:crafting_shaped",   "category": "misc",   "key": {     "G": {       "item": "minecraft:glass"     }   },   "pattern": [     "GGG",     "GGG",     "GGG"   ],   "result": {     "count": 1,     "id": "create_submarine:glass_pressurizer"   } }

@@ -20,15 +20,16 @@ public final class WrenchRepairHandler {
         ItemStack held = event.getItemStack();
         if (!(held.getItem() instanceof WrenchItem)) return;
 
-        UUID subId = SubLevelRegistry.findUUID(event.getLevel());
+        BlockPos clickedPos = event.getPos();
+        UUID subId = SubLevelRegistry.findUUID(event.getLevel(), clickedPos);
         if (subId == null) return;
         SubLevelAccess sub = SubLevelRegistry.getAll().get(subId);
         if (sub == null) return;
 
         Level oceanLevel = sub instanceof SubLevel sl ? sl.getLevel() : event.getLevel();
-        BlockPos clickedPos = event.getPos();
-        if (SubmarinePressureSystem.repairCrack(subId, clickedPos, sub, oceanLevel)) {
+        if (SubmarinePressureSystem.repairCrack(subId, clickedPos, oceanLevel)) {
             event.setCanceled(true);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
         }
     }
 }

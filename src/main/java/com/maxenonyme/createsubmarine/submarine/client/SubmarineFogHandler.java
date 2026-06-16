@@ -13,7 +13,6 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.ViewportEvent;
 
 import java.util.UUID;
 
@@ -35,25 +34,13 @@ public class SubmarineFogHandler {
         cachedShouldFog = computeShouldFog(mc.level, player.getEyePosition());
     }
 
-    @SubscribeEvent
-    public static void onRenderFog(ViewportEvent.RenderFog event) {
-        if (!cachedShouldFog) return;
-        event.setNearPlaneDistance(2.0f);
-        event.setFarPlaneDistance(40.0f);
-        event.setCanceled(true);
-    }
-
-    @SubscribeEvent
-    public static void onComputeFogColor(ViewportEvent.ComputeFogColor event) {
-        if (!cachedShouldFog) return;
-        event.setRed(0.02f);
-        event.setGreen(0.05f);
-        event.setBlue(0.2f);
+    public static boolean shouldFog() {
+        return cachedShouldFog;
     }
 
     private static boolean computeShouldFog(Level level, Vec3 probePos) {
         if (findSubmarineContainingPos(level, probePos) == null) return false;
-        return hasWaterAboveOrAt(level, probePos);
+        return isSubmerged(level, probePos);
     }
 
     private static UUID findSubmarineContainingPos(Level level, Vec3 probePos) {
@@ -69,13 +56,16 @@ public class SubmarineFogHandler {
         return null;
     }
 
-    private static boolean hasWaterAboveOrAt(Level level, Vec3 probePos) {
+    private static boolean isSubmerged(Level level, Vec3 probePos) {
         int x = (int) Math.floor(probePos.x);
         int z = (int) Math.floor(probePos.z);
         int startY = (int) Math.floor(probePos.y);
         int endY = level.getMaxBuildHeight();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         for (int y = startY; y <= endY; y++) {
-            if (isWaterAt(level, x, y, z)) return true;
+            cursor.set(x, y, z);
+            if (CompartmentTracker.isOccluded(level, cursor)) continue;
+            return isWaterAt(level, x, y, z);
         }
         return false;
     }

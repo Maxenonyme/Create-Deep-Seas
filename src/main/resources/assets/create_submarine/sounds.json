@@ -7,18 +7,18 @@
             }
         ]
     },
-    "leviathan_class_detected": {
+    "explosionunderwater": {
         "sounds": [
             {
-                "name": "create_submarine:leviathan_class_detected",
-                "stream": true
+                "name": "create_submarine:explosionunderwater",
+                "stream": false
             }
         ]
     },
-    "reaper_leviathan_roars": {
+    "impact_explosion_03": {
         "sounds": [
             {
-                "name": "create_submarine:reaper-leviathan-roars",
+                "name": "create_submarine:impact_explosion_03",
                 "stream": false
             }
         ]
