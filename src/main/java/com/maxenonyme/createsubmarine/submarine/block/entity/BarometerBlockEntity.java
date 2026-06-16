@@ -14,12 +14,15 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import java.util.List;
 import java.util.UUID;
+import dev.ryanhcode.sable.companion.SubLevelAccess;
+import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import com.maxenonyme.createsubmarine.submarine.stress.SubLevelStressAnalyzer;
+import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
+import dev.ryanhcode.sable.companion.SableCompanion;
 
 public class BarometerBlockEntity extends BlockEntity implements IHaveHoveringInformation {
     private Pufferfish pufferfish;
     private boolean pufferfishFailed = false;
-    private int cachedWeakestPressure = -1;
-    private long lastHullScan = -1;
 
     private Component customName;
     public int syncedDepth = 0;
@@ -96,28 +99,32 @@ public class BarometerBlockEntity extends BlockEntity implements IHaveHoveringIn
         return this.pufferfish;
     }
 
-    private int getWeakestHullPressure(UUID subId) {
-        long time = level.getGameTime();
-        if (cachedWeakestPressure != -1 && time - lastHullScan < 40) {
-            return cachedWeakestPressure;
+    private int getStressCrushDepth() {
+        SubLevelAccess subAccess = SableCompanion.INSTANCE.getContaining(level, getBlockPos());
+        if (subAccess instanceof ServerSubLevel ssl) {
+            SubLevelStressAnalyzer analyzer = SubLevelStressAnalyzer.getOrCreate(ssl.getLevel());
+            double[] crushDepths = analyzer.getCrushDepths(ssl);
+            if (crushDepths != null && crushDepths.length > 1) {
+                int worstIdx = (int) crushDepths[crushDepths.length - 1];
+                if (worstIdx >= 0 && crushDepths[worstIdx] > 0 && Double.isFinite(crushDepths[worstIdx])) {
+                    return (int) Math.round(crushDepths[worstIdx]);
+                }
+            }
         }
-        cachedWeakestPressure = com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem
-            .getWeakestHullDepth(subId, level);
-        lastHullScan = time;
-        return cachedWeakestPressure;
+        return -1;
     }
 
     public void tick() {
         if (level == null || level.isClientSide) return;
 
         if (tickCount++ % 10 == 0) {
-            UUID subId = com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry.findUUID(level, getBlockPos());
+            UUID subId = SubLevelRegistry.findUUID(level, getBlockPos());
             int newDepth = 0;
             int newWeakest = -1;
 
             if (subId != null) {
                 newDepth = com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.getCachedDepth(subId);
-                newWeakest = getWeakestHullPressure(subId);
+                newWeakest = getStressCrushDepth();
             }
 
             if (newDepth != syncedDepth || newWeakest != syncedWeakest) {

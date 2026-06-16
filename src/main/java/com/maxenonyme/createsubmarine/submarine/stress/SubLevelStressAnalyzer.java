@@ -190,11 +190,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     this.totalSolveTimeNanos += System.nanoTime() - t0;
                     this.solveCount++;
                     this.needsRecompute.put(id, false);
-                    if (newSolver.blockCount() > 0) {
-                        this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
-                    } else {
-                        this.cachedCrushDepths.remove(id);
-                    }
+                    this.cachedCrushDepths.remove(id);
 
                     if (classification.coherence() < 0.85) {
                         LOGGER.debug("SubLevel {}: coherence={} (roughness penalty={})",
@@ -215,7 +211,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                 final boolean inWater = this.wasInWater.getOrDefault(pid, false);
                 final double[] cd = this.cachedCrushDepths.get(pid);
                 final String stressRange = cd != null ? String.format("%.1f-%.1f", cd[0], cd[s.blockCount()]) : "N/A";
-                LOGGER.info("SubLevel {}: {} blocks, inWater={}, stressRange=[{}], avgSolve={}ms",
+                LOGGER.debug("SubLevel {}: {} blocks, inWater={}, stressRange=[{}], avgSolve={}ms",
                     pid.toString().substring(0, 8), s.blockCount(), inWater, stressRange,
                     String.format("%.2f", solveCount > 0 ? totalSolveTimeNanos / 1e6 / solveCount : 0));
             }
@@ -332,14 +328,14 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             this.totalSolveTimeNanos += System.nanoTime() - t0;
             this.solveCount++;
             this.needsRecompute.put(id, false);
-            if (newSolver.blockCount() > 0) {
-                this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
-            } else {
-                this.cachedCrushDepths.remove(id);
-            }
+            this.cachedCrushDepths.remove(id);
             return newSolver;
         }
         return solver;
+    }
+
+    public void setCrushDepths(final ServerSubLevel subLevel, final double[] crushDepths) {
+        this.cachedCrushDepths.put(subLevel.getUniqueId(), crushDepths);
     }
 
     public double[] getCrushDepths(final ServerSubLevel subLevel) {
@@ -410,9 +406,9 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
         if (worstIdx < 0) return "No measurable stress";
 
         final double avgFraction = sumFraction / solver.blockCount();
-        final int worstBlock = (int) crushDepths[solver.blockCount()];
+        final int worstCrushBlock = (int) crushDepthsFull[solver.blockCount()];
+        final double worstCrush = worstCrushBlock >= 0 ? crushDepthsFull[worstCrushBlock] : Double.POSITIVE_INFINITY;
         final BlockPos stressCenter = solver.getStressCenter();
-        final double worstCrush = worstBlock >= 0 ? crushDepths[worstBlock] : Double.POSITIVE_INFINITY;
 
         final StringBuilder sb = new StringBuilder();
         sb.append(String.format("Blocks: %d (hull: %d) | Depth: %d bl | Stress/yield: avg=%.1f%%, max=%.1f%% | ",
@@ -431,7 +427,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             sb.append(String.format(" | Center: %s", stressCenter.toShortString()));
         }
 
-        if (worstBlock >= 0 && worstCrush < 1.5 * waterDepth) {
+        if (Double.isFinite(worstCrush) && worstCrush < 1.5 * waterDepth) {
             sb.append(" | WARNING: approaching crush depth!");
         }
 
@@ -459,13 +455,14 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
         for (int i = 0; i < solver.blockCount(); i++) {
             final double depth = crushDepths[i];
             if (Double.isInfinite(depth)) continue;
-            if (waterDepth < depth * 0.5) continue;
+            final double blockDepth = solver.getBlockWaterDepth(i);
+            if (blockDepth < depth * 0.5) continue;
 
             final BlockPos pos = solver.getPosition(i);
             final BlockState state = plotLevel.getBlockState(pos);
             if (state.isAir()) continue;
 
-            if (isFragile(state) || waterDepth >= depth * 0.8) {
+            if (isFragile(state) || blockDepth >= depth * 0.8) {
                 brokeAny |= breakBlock(plotLevel, pos, id, solver);
             }
         }

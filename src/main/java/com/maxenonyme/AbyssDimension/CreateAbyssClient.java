@@ -17,7 +17,6 @@ public final class CreateAbyssClient {
         modEventBus.addListener(CreateAbyssClient::onClientSetup);
         modEventBus.addListener(CreateAbyssClient::onRegisterRenderers);
         modEventBus.addListener(CreateAbyssClient::onRegisterLayers);
-        modEventBus.register(PDAManager.ModEvents.class);
 
         NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);
         NeoForge.EVENT_BUS.register(com.maxenonyme.AbyssDimension.client.CookiecutterClientHandler.class);

@@ -47,6 +47,8 @@ public class SonarPingerEntity extends HangingEntity implements ISyncPersistentD
 
     private int scanCooldown = 0;
     private SubLevel cachedSubLevel;
+    private float sonarYaw = 0;
+    private float sonarPitch = -90;
 
     public SonarPingerEntity(EntityType<? extends HangingEntity> type, Level level) {
         super(type, level);
@@ -66,6 +68,8 @@ public class SonarPingerEntity extends HangingEntity implements ISyncPersistentD
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putByte("Facing", (byte) this.direction.get3DDataValue());
+        tag.putFloat("SonarYaw", this.sonarYaw);
+        tag.putFloat("SonarPitch", this.sonarPitch);
     }
 
     @Override
@@ -75,6 +79,12 @@ public class SonarPingerEntity extends HangingEntity implements ISyncPersistentD
             this.direction = Direction.from3DDataValue(tag.getByte("Facing"));
         } else {
             this.direction = Direction.SOUTH;
+        }
+        if (tag.contains("SonarYaw")) {
+            this.sonarYaw = tag.getFloat("SonarYaw");
+        }
+        if (tag.contains("SonarPitch")) {
+            this.sonarPitch = tag.getFloat("SonarPitch");
         }
         this.recalculatePingerBoundingBox();
     }
@@ -129,6 +139,22 @@ public class SonarPingerEntity extends HangingEntity implements ISyncPersistentD
         return this.position();
     }
 
+    public float getSonarYaw() {
+        return this.sonarYaw;
+    }
+
+    public float getSonarPitch() {
+        return this.sonarPitch;
+    }
+
+    public void setSonarYaw(float yaw) {
+        this.sonarYaw = yaw;
+    }
+
+    public void setSonarPitch(float pitch) {
+        this.sonarPitch = pitch;
+    }
+
     public SubLevel getTrackingSubLevel() {
         if (this.cachedSubLevel == null || this.cachedSubLevel.isRemoved()) {
             this.cachedSubLevel = Sable.HELPER.getContaining(this);
@@ -174,14 +200,35 @@ public class SonarPingerEntity extends HangingEntity implements ISyncPersistentD
                 LevelChunk chunk = this.level().getChunkAt(new BlockPos(wx, 0, wz));
                 if (chunk.isEmpty()) continue;
 
+                boolean underwater = false;
+                int surfaceBlockY = -1;
+
                 for (int wy = this.level().getMaxBuildHeight() - 1; wy >= this.level().getMinBuildHeight(); wy--) {
-                    BlockState bs = this.level().getBlockState(new BlockPos(wx, wy, wz));
+                    BlockPos bp = new BlockPos(wx, wy, wz);
+                    BlockState bs = this.level().getBlockState(bp);
+                    if ((bs.isAir() || bs.liquid()) && !underwater) {
+                        if (bs.liquid()) {
+                            underwater = true;
+                            surfaceBlockY = wy;
+                        }
+                        continue;
+                    }
                     if (bs.isAir() || bs.liquid()) continue;
                     int idx = gx * gridSize + gz;
                     int relY = wy - centerY;
                     if (relY < -128 || relY > 127) relY = 0;
                     heights[idx] = (byte) relY;
-                    colors[idx] = bs.getMapColor(this.level(), new BlockPos(wx, wy, wz)).col;
+                    int color = bs.getMapColor(this.level(), bp).col;
+                    if (underwater) {
+                        int r = (color >> 16) & 0xFF;
+                        int g = (color >> 8) & 0xFF;
+                        int b = color & 0xFF;
+                        r = r * 3 / 4;
+                        g = g * 3 / 4;
+                        b = Math.min(255, b + 40);
+                        color = (0xFF << 24) | (r << 16) | (g << 8) | b;
+                    }
+                    colors[idx] = color;
                     break;
                 }
             }

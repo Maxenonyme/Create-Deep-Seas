@@ -25,6 +25,15 @@ public record SonarConfigPayload(int entityID, float yaw, float pitch) implement
     }
 
     public static void handle(SonarConfigPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            var player = context.player();
+            if (player == null) return;
+            var entity = player.level().getEntity(payload.entityID);
+            if (entity instanceof com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerEntity sonar) {
+                sonar.setSonarYaw(payload.yaw);
+                sonar.setSonarPitch(payload.pitch);
+            }
+        });
     }
 
     @Override

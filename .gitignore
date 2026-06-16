@@ -34,6 +34,9 @@ replay_pid*
 # Run output logs
 runClient_output*
 
+# Stress analysis logs
+stress_details*
+
 # CSV result files
 *.csv
 

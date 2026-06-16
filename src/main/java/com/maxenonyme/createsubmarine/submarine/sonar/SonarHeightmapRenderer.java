@@ -11,6 +11,13 @@ import org.joml.*;
 
 public class SonarHeightmapRenderer {
 
+    private static final Vector3f LIGHT_DIR = new Vector3f(0.5f, 0.8f, 0.3f).normalize();
+
+    private static float shade(float nx, float ny, float nz) {
+        float dot = nx * LIGHT_DIR.x() + ny * LIGHT_DIR.y() + nz * LIGHT_DIR.z();
+        return 0.5f + 0.5f * java.lang.Math.max(0, dot);
+    }
+
     public static void renderHeightmap(AdvancedFbo fbo, SonarScanPayload scan,
                                         Matrix4f projMatrix, Matrix4f viewMatrix) {
         fbo.bind(true);
@@ -57,47 +64,62 @@ public class SonarHeightmapRenderer {
                 float wx = (gx - half) * cellSize;
                 float wz = (gz - half) * cellSize;
 
+                // Compute normal from the terrain quad for directional shading
+                float dx1 = cellSize, dy1 = y10 - y00, dz1 = 0;
+                float dx2 = 0, dy2 = y01 - y00, dz2 = cellSize;
+                float nx = dy1 * dz2 - dz1 * dy2;
+                float ny = dz1 * dx2 - dx1 * dz2;
+                float nz = dx1 * dy2 - dy1 * dx2;
+                float len = (float) java.lang.Math.sqrt(nx * nx + ny * ny + nz * nz);
+                if (len > 1e-6f) { nx /= len; ny /= len; nz /= len; }
+                else { nx = 0; ny = 1; nz = 0; }
+                float s = shade(nx, ny, nz);
+
                 int c00 = h00 == -128 ? 0 : scan.colors()[idx00];
                 int c10 = h10 == -128 ? 0 : scan.colors()[idx10];
                 int c01 = h01 == -128 ? 0 : scan.colors()[idx01];
                 int c11 = h11 == -128 ? 0 : scan.colors()[idx11];
 
-                float r00 = ((c00 >> 16) & 0xFF) / 255f;
-                float g00 = ((c00 >> 8) & 0xFF) / 255f;
-                float b00 = (c00 & 0xFF) / 255f;
-                float r10 = ((c10 >> 16) & 0xFF) / 255f;
-                float g10 = ((c10 >> 8) & 0xFF) / 255f;
-                float b10 = (c10 & 0xFF) / 255f;
-                float r01 = ((c01 >> 16) & 0xFF) / 255f;
-                float g01 = ((c01 >> 8) & 0xFF) / 255f;
-                float b01 = (c01 & 0xFF) / 255f;
-                float r11 = ((c11 >> 16) & 0xFF) / 255f;
-                float g11 = ((c11 >> 8) & 0xFF) / 255f;
-                float b11 = (c11 & 0xFF) / 255f;
+                float r00 = ((c00 >> 16) & 0xFF) / 255f * s;
+                float g00 = ((c00 >> 8) & 0xFF) / 255f * s;
+                float b00 = (c00 & 0xFF) / 255f * s;
+                float r10 = ((c10 >> 16) & 0xFF) / 255f * s;
+                float g10 = ((c10 >> 8) & 0xFF) / 255f * s;
+                float b10 = (c10 & 0xFF) / 255f * s;
+                float r01 = ((c01 >> 16) & 0xFF) / 255f * s;
+                float g01 = ((c01 >> 8) & 0xFF) / 255f * s;
+                float b01 = (c01 & 0xFF) / 255f * s;
+                float r11 = ((c11 >> 16) & 0xFF) / 255f * s;
+                float g11 = ((c11 >> 8) & 0xFF) / 255f * s;
+                float b11 = (c11 & 0xFF) / 255f * s;
 
                 float a00 = h00 == -128 ? 0 : 1;
                 float a10 = h10 == -128 ? 0 : 1;
                 float a01 = h01 == -128 ? 0 : 1;
                 float a11 = h11 == -128 ? 0 : 1;
 
+                // Top surface quad
                 buffer.addVertex(wx, y00, wz).setColor(r00, g00, b00, a00);
                 buffer.addVertex(wx + cellSize, y10, wz).setColor(r10, g10, b10, a10);
                 buffer.addVertex(wx + cellSize, y11, wz + cellSize).setColor(r11, g11, b11, a11);
                 buffer.addVertex(wx, y01, wz + cellSize).setColor(r01, g01, b01, a01);
 
                 float bottom = -128f;
-                float rBtm = 0.05f, gBtm = 0.1f, bBtm = 0.05f;
+                float rBtm = 0.02f * s, gBtm = 0.08f * s, bBtm = 0.04f * s;
 
+                // Side quad -X
                 buffer.addVertex(wx, bottom, wz).setColor(rBtm, gBtm, bBtm, 1);
-                buffer.addVertex(wx, y00, wz).setColor(r00, g00, b00, a00);
-                buffer.addVertex(wx, y01, wz + cellSize).setColor(r01, g01, b01, a01);
+                buffer.addVertex(wx, y00, wz).setColor(r00 * 0.5f, g00 * 0.5f, b00 * 0.5f, a00);
+                buffer.addVertex(wx, y01, wz + cellSize).setColor(r01 * 0.5f, g01 * 0.5f, b01 * 0.5f, a01);
                 buffer.addVertex(wx, bottom, wz + cellSize).setColor(rBtm, gBtm, bBtm, 1);
 
+                // Side quad +X
                 buffer.addVertex(wx + cellSize, bottom, wz).setColor(rBtm, gBtm, bBtm, 1);
-                buffer.addVertex(wx + cellSize, y10, wz).setColor(r10, g10, b10, a10);
-                buffer.addVertex(wx + cellSize, y11, wz + cellSize).setColor(r11, g11, b11, a11);
+                buffer.addVertex(wx + cellSize, y10, wz).setColor(r10 * 0.5f, g10 * 0.5f, b10 * 0.5f, a10);
+                buffer.addVertex(wx + cellSize, y11, wz + cellSize).setColor(r11 * 0.5f, g11 * 0.5f, b11 * 0.5f, a11);
                 buffer.addVertex(wx + cellSize, bottom, wz + cellSize).setColor(rBtm, gBtm, bBtm, 1);
 
+                // Bottom quad
                 buffer.addVertex(wx, bottom, wz).setColor(rBtm, gBtm, bBtm, 1);
                 buffer.addVertex(wx + cellSize, bottom, wz).setColor(rBtm, gBtm, bBtm, 1);
                 buffer.addVertex(wx + cellSize, bottom, wz + cellSize).setColor(rBtm, gBtm, bBtm, 1);

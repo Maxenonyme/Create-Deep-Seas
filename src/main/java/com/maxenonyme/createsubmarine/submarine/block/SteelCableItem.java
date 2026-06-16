@@ -81,7 +81,7 @@ public class SteelCableItem extends RopeItem {
             accessorB.createsubmarine$setSteelCable(true);
         }
 
-        if (ropeHolderA.createRope(ropeHolderB)) {
+        if (ropeHolderA.createRope(ropeHolderB, false)) {
             ropeHolderA.blockEntity.notifyUpdate();
             ropeHolderB.blockEntity.notifyUpdate();
             level.playSound(null, posA, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.5F, 1F);

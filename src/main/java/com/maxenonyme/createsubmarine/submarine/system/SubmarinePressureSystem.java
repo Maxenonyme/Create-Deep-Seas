@@ -153,27 +153,6 @@ public class SubmarinePressureSystem {
         }
 
         if (SubmarineSinkingSystem.isCrashing(id)) return;
-
-        Set<BlockPos> breached = BREACHED_PLOT.get(id);
-
-        boolean[] creakPlayed = { false };
-        int[] breakBudget = { 4 };
-        long volume = (long) (bounds.maxX() - bounds.minX() + 1) * (bounds.maxY() - bounds.minY() + 1) * (bounds.maxZ() - bounds.minZ() + 1);
-        int samples = (int) Math.min(250, Math.max(15, volume / 150));
-
-        for (int i = 0; i < samples; i++) {
-            BlockPos plotPos = bounds.randomInside(RAND);
-            if (plotPos == null || (breached != null && breached.contains(plotPos))) continue;
-
-            BlockState state = plotLevel.getBlockState(plotPos);
-            if (state.isAir() || state.getFluidState().isSource()) continue;
-
-            Optional<HullStrengthConfig.HullProperty> propOpt = HullStrengthConfig.getFor(state);
-            if (propOpt.isEmpty()) continue;
-            HullStrengthConfig.HullProperty prop = propOpt.get();
-
-            applyPressure(id, plotLevel, oceanLevel, sub, plotPos, state, prop, surfaceY, creakPlayed, breakBudget);
-        }
     }
 
     private static int measureSurfaceY(Level level, Vector3dc subCenter) {

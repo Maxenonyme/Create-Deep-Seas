@@ -26,6 +26,8 @@ import org.joml.Vector3d;
 import org.joml.Vector3dc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 public class StressForceFeedSystem {
@@ -37,6 +39,12 @@ public class StressForceFeedSystem {
 
     private static final double STRESS_CHANGE_REL_TOLERANCE = 0.01;
     private static final double CRUSH_CHANGE_REL_TOLERANCE = 0.05;
+
+    private static final Map<UUID, Long> stressLastGameTick = new HashMap<>();
+    private static final Map<UUID, Integer> stressSubstepIdx = new HashMap<>();
+
+    private static PrintWriter stressLogWriter;
+    private static final Object stressLogLock = new Object();
 
     private record StressSnapshot(
         double maxRatio,
@@ -82,14 +90,30 @@ public class StressForceFeedSystem {
         if (!(container instanceof final ServerSubLevelContainer sslc)) return;
 
         final double timeStep = event.getTimeStep();
+        final long gameTime = level.getGameTime();
+        final int substepsPerTick = Math.max(1, (int) Math.round(0.05 / timeStep));
 
         for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
             if (ssl.isRemoved()) continue;
-            recordForSubLevel(ssl, timeStep);
+
+            final UUID id = ssl.getUniqueId();
+            if (stressLastGameTick.getOrDefault(id, -1L) != gameTime) {
+                stressLastGameTick.put(id, gameTime);
+                stressSubstepIdx.put(id, 0);
+            }
+            final int idx = stressSubstepIdx.getOrDefault(id, 0);
+            stressSubstepIdx.put(id, idx + 1);
+
+            recordForSubLevel(ssl, timeStep, idx, idx + 1 >= substepsPerTick);
         }
     }
 
     public static void recordForSubLevel(final ServerSubLevel ssl, final double timeStep) {
+        recordForSubLevel(ssl, timeStep, 0, true);
+    }
+
+    private static void recordForSubLevel(final ServerSubLevel ssl, final double timeStep,
+                                           final int substepIdx, final boolean isLastSubstep) {
         final ForceGroup stressGroup = getStressForceGroup();
         final ForceGroup internalGroup = getInternalStressForceGroup();
         final ForceGroup buoyancyGroup = getBuoyancyForceGroup();
@@ -116,8 +140,11 @@ public class StressForceFeedSystem {
         final double[] stressDist = solver.getStressDistribution();
         final int n = solver.blockCount();
 
-        // Log stress UPDATES (only when the distribution changes significantly)
-        {
+        // Only set crush depths, log, broadcast, and check failure on the LAST substep per game tick
+        if (isLastSubstep) {
+            analyzer.setCrushDepths(ssl, solver.computeCrushDepth());
+
+            // Log stress UPDATES (only when the distribution changes significantly)
             double maxRatio = 0, sumRatio = 0;
             int worstRatioIdx = -1;
             for (int i = 0; i < n; i++) {
@@ -138,7 +165,7 @@ public class StressForceFeedSystem {
                     ? String.format(" vm=%.2e yield=%.2e E=%.2e",
                         solver.getVonMises(worstRatioIdx), solver.getYieldStress(worstRatioIdx), solver.getYoungsModulus(worstRatioIdx))
                     : "";
-                LOGGER.info("STRESS INIT ssl={}: max={} mean={} crush={} bounds={} blocks={} hull={}{}",
+                LOGGER.debug("STRESS INIT ssl={}: max={} mean={} crush={} bounds={} blocks={} hull={}{}",
                     subId.toString().substring(0, 8),
                     String.format("%.4f", maxRatio * 100),
                     String.format("%.4f", meanRatio * 100),
@@ -155,7 +182,7 @@ public class StressForceFeedSystem {
                     final String vmYieldInfo = worstRatioIdx >= 0
                         ? String.format(" vm=%.2e yield=%.2e", solver.getVonMises(worstRatioIdx), solver.getYieldStress(worstRatioIdx))
                         : "";
-                    LOGGER.info("STRESS UPDATE ssl={}: max={} (was {}) mean={} (was {}) crush={} (was {}) bounds={} blocks={} hull={}{}",
+                    LOGGER.debug("STRESS UPDATE ssl={}: max={} (was {}) mean={} (was {}) crush={} (was {}) bounds={} blocks={} hull={}{}",
                         subId.toString().substring(0, 8),
                         String.format("%.4f%%", maxRatio * 100),
                         String.format("%.4f%%", prev.maxRatio * 100),
@@ -167,33 +194,26 @@ public class StressForceFeedSystem {
                     lastStressState.put(subId, cur);
                 }
             }
-        }
 
-        final int totalArrows = recordFaceForces(solver, queued, stressDist, n)
-                              + recordInternalForces(solver, internalQueued, n, stressDist, timeStep);
+            checkStructuralFailure(ssl, solver, analyzer);
 
-        // Record actual lift from Sable's FloatingBlockMaterial system
-        if (buoyancyGroup != null) {
-            recordBuoyancyForce(ssl, buoyancyGroup, solver, timeStep);
-        }
-
-        checkStructuralFailure(ssl, solver, analyzer);
-
-        if (totalArrows > 0) {
-            final UUID subId = ssl.getUniqueId();
-            final int prevLogTick = arrowLogTick.getOrDefault(subId, 0);
-            if (prevLogTick == 0 || prevLogTick != totalArrows) {
-                LOGGER.debug("Recorded {} arrow(s) for ssl={}",
-                    totalArrows, subId.toString().substring(0, 8));
-                arrowLogTick.put(subId, totalArrows);
+            // Arrow count log
+            {
+                final int totalArrows = recordFaceForces(solver, queued, stressDist, n)
+                                      + recordInternalForces(solver, internalQueued, n, stressDist, timeStep);
+                if (totalArrows > 0) {
+                    final int prevLogTick = arrowLogTick.getOrDefault(subId, 0);
+                    if (prevLogTick == 0 || prevLogTick != totalArrows) {
+                        LOGGER.debug("Recorded {} arrow(s) for ssl={}",
+                            totalArrows, subId.toString().substring(0, 8));
+                        arrowLogTick.put(subId, totalArrows);
+                    }
+                }
             }
-        }
 
-        {
-            final UUID subId = ssl.getUniqueId();
+            // Broadcast stress center once per second
             final long gameTime = ssl.getLevel().getGameTime();
             final Long lastTime = lastBroadcastTime.get(subId);
-            // Debounce to at most once per 20 ticks (1 second)
             if (lastTime == null || gameTime - lastTime >= 20) {
                 lastBroadcastTime.put(subId, gameTime);
                 try {
@@ -213,6 +233,62 @@ public class StressForceFeedSystem {
                 } catch (Exception e) {
                     LOGGER.error("Failed to broadcast stress center for ssl={}", subId.toString().substring(0, 8), e);
                 }
+            }
+        }
+
+        // Always record forces on every substep (drive the physics)
+        {
+            final int totalArrows = recordFaceForces(solver, queued, stressDist, n)
+                                  + recordInternalForces(solver, internalQueued, n, stressDist, timeStep);
+        }
+
+        if (buoyancyGroup != null) {
+            recordBuoyancyForce(ssl, buoyancyGroup, solver, timeStep);
+        }
+
+        // Write every substep to file for analysis
+        writeStressLogToFile(ssl, solver, substepIdx, isLastSubstep);
+    }
+
+    private static void writeStressLogToFile(final ServerSubLevel ssl, final LatticeStressSolver solver,
+                                              final int substepIdx, final boolean isLastSubstep) {
+        synchronized (stressLogLock) {
+            try {
+                if (stressLogWriter == null) {
+                    final Path logDir = Path.of("logs");
+                    Files.createDirectories(logDir);
+                    final Path logFile = logDir.resolve("stress_details.txt");
+                    stressLogWriter = new PrintWriter(new FileWriter(logFile.toFile(), true));
+                }
+                final double[] stressDist = solver.getStressDistribution();
+                final int n = solver.blockCount();
+                double maxRatio = 0, sumRatio = 0;
+                int worstRatioIdx = -1;
+                for (int i = 0; i < n; i++) {
+                    if (stressDist[i] > maxRatio) { maxRatio = stressDist[i]; worstRatioIdx = i; }
+                    sumRatio += stressDist[i];
+                }
+                final double meanRatio = sumRatio / n;
+                final double[] crush = solver.computeCrushDepth();
+                final int worstIdx = (int) crush[n];
+                final double minCrush = worstIdx >= 0 ? crush[worstIdx] : Double.POSITIVE_INFINITY;
+
+                final double worstVm = worstRatioIdx >= 0 ? solver.getVonMises(worstRatioIdx) : Double.NaN;
+                final double worstYield = worstRatioIdx >= 0 ? solver.getYieldStress(worstRatioIdx) : Double.NaN;
+
+                stressLogWriter.printf("[%d] SSL=%s substep=%d last=%b n=%d hull=%d | "
+                    + "maxRatio=%.6f%% meanRatio=%.6f%% minCrush=%.1f worstIdx=%d | "
+                    + "vm=%.4e yield=%.4e | bounds=%s%n",
+                    ssl.getLevel().getGameTime(),
+                    ssl.getUniqueId().toString().substring(0, 8),
+                    substepIdx, isLastSubstep,
+                    n, solver.hullBlockCount(),
+                    maxRatio * 100, meanRatio * 100, minCrush, worstRatioIdx,
+                    worstVm, worstYield,
+                    solver.getBounds());
+                stressLogWriter.flush();
+            } catch (IOException e) {
+                LOGGER.error("Failed to write stress log", e);
             }
         }
     }

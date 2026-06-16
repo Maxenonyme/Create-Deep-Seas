@@ -18,24 +18,26 @@ void main() {
 
     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
 
-    float green = luminance * 0.8 + 0.2;
-    float red = luminance * 0.15;
-    float blue = luminance * 0.1;
+    float green = luminance * 0.85 + 0.15;
+    float red = luminance * 0.12;
+    float blue = luminance * 0.08;
 
-    red *= 1.0 + 0.3 * sin(texCoord.y * InSize.y * 0.5);
-    green *= 1.0 - 0.2 * sin(texCoord.y * InSize.y * 0.5);
-    blue *= 1.0 + 0.1 * sin(texCoord.y * InSize.y * 0.5);
+    red *= 1.0 + 0.4 * sin(texCoord.y * InSize.y * 0.5);
+    green *= 1.0 - 0.25 * sin(texCoord.y * InSize.y * 0.5);
+    blue *= 1.0 + 0.15 * sin(texCoord.y * InSize.y * 0.5);
 
     float scanline = sin(texCoord.y * InSize.y * 3.14159 * 1.5);
     scanline = abs(scanline);
-    scanline = 0.7 + 0.3 * (1.0 - scanline);
+    scanline = 0.65 + 0.35 * (1.0 - scanline);
 
     float noise = hash(texCoord * InSize + floor(Time * 20.0));
-    noise = noise * 0.05;
+    noise = noise * 0.04;
 
-    float intensity = smoothstep(0.0, 0.5, luminance);
+    float vignette = 1.0 - 0.3 * length(texCoord - 0.5) * 1.4;
 
-    vec3 sonarColor = vec3(red * scanline + noise, green * scanline + noise, blue * scanline + noise);
+    vec3 sonarColor = vec3(red * scanline + noise, green * scanline + noise, blue * scanline + noise) * vignette;
+
+    sonarColor += vec3(0.0, 0.02, 0.0) * (1.0 - luminance);
 
     float alpha = step(depth, 0.99);
 

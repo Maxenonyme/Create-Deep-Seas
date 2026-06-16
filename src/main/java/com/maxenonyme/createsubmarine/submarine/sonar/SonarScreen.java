@@ -3,6 +3,7 @@ package com.maxenonyme.createsubmarine.submarine.sonar;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.createsubmarine.submarine.network.SonarConfigPayload;
 import com.maxenonyme.createsubmarine.submarine.network.SonarScanPayload;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
@@ -51,13 +52,15 @@ public class SonarScreen extends AbstractSimiScreen {
     private float renderTime = FPS;
     private float totalTime = 0;
 
-    private float yaw = 0;
-    private float pitch = -90;
+    private float yaw;
+    private float pitch;
 
     public SonarScreen(SonarPingerEntity sonarEntity, @Nullable ClientSubLevel subLevel) {
         this.sonarEntity = sonarEntity;
         this.subLevel = subLevel;
         this.isSubLevelMode = subLevel != null;
+        this.yaw = sonarEntity.getSonarYaw();
+        this.pitch = sonarEntity.getSonarPitch();
         if (this.isSubLevelMode) {
             updateBoundingBox();
         }
@@ -117,29 +120,38 @@ public class SonarScreen extends AbstractSimiScreen {
         int vpX = this.width / 2 - VIEWPORT_SIZE / 2;
         int vpY = this.height / 2 - VIEWPORT_SIZE / 2;
 
-        addRenderableWidget(new SonarButton(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "textures/gui/sonar_arrow_up.png"),
+        addRenderableWidget(new SonarButton(SonarButton.Arrow.UP,
                 vpX + VIEWPORT_SIZE + 8, vpY + 4, 16, 16, () -> {
             this.pitch = Mth.clamp(this.pitch - 15, -90, 90);
             updateOrientation();
+            sendConfigToServer();
         }));
 
-        addRenderableWidget(new SonarButton(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "textures/gui/sonar_arrow_down.png"),
+        addRenderableWidget(new SonarButton(SonarButton.Arrow.DOWN,
                 vpX + VIEWPORT_SIZE + 8, vpY + 22, 16, 16, () -> {
             this.pitch = Mth.clamp(this.pitch + 15, -90, 90);
             updateOrientation();
+            sendConfigToServer();
         }));
 
-        addRenderableWidget(new SonarButton(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "textures/gui/sonar_arrow_left.png"),
+        addRenderableWidget(new SonarButton(SonarButton.Arrow.LEFT,
                 vpX + VIEWPORT_SIZE - 20, vpY + VIEWPORT_SIZE / 2 - 8, 16, 16, () -> {
             this.yaw = (this.yaw - 15) % 360;
             updateOrientation();
+            sendConfigToServer();
         }));
 
-        addRenderableWidget(new SonarButton(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "textures/gui/sonar_arrow_right.png"),
+        addRenderableWidget(new SonarButton(SonarButton.Arrow.RIGHT,
                 vpX + VIEWPORT_SIZE + 4, vpY + VIEWPORT_SIZE / 2 - 8, 16, 16, () -> {
             this.yaw = (this.yaw + 15) % 360;
             updateOrientation();
+            sendConfigToServer();
         }));
+    }
+
+    private void sendConfigToServer() {
+        net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                new SonarConfigPayload(this.sonarEntity.getId(), this.yaw, this.pitch));
     }
 
     private void updateOrientation() {
