@@ -70,6 +70,10 @@ public class SubmarinePressureSystem {
         return CACHED_WATER_DEPTH.getOrDefault(id, 0);
     }
 
+    public static Set<BlockPos> getBreachedPositions(UUID id) {
+        return BREACHED_PLOT.getOrDefault(id, Set.of());
+    }
+
     public static boolean isBreached(UUID id) {
         Set<BlockPos> breached = BREACHED_PLOT.get(id);
         return breached != null && !breached.isEmpty();

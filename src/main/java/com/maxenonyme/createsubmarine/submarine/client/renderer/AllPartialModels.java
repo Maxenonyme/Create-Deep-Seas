@@ -17,9 +17,12 @@ public class AllPartialModels {
     public static final PartialModel SUBMARINE_PROPELLER_REVERSED = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_reversed"));
     public static final PartialModel SUBMARINE_PROPELLER_CONTRA = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_contra"));
     public static final PartialModel SUBMARINE_PROPELLER_REVERSED_CONTRA = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_reversed_contra"));
-    public static final PartialModel PURGE_STAFF_CORE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/purge_staff/core"));
-    public static final PartialModel PURGE_STAFF_CASING = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/purge_staff/casing"));
-    public static final PartialModel PURGE_STAFF_EYE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/purge_staff/eye"));
+    public static final PartialModel LEAK_DETECTOR_CORE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/leak_detector/core"));
+    public static final PartialModel LEAK_DETECTOR_CASING = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/leak_detector/casing"));
+    public static final PartialModel LEAK_DETECTOR_EYE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/leak_detector/eye"));
+    public static final PartialModel WARDING_STAFF = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/warding_staff/staff"));
+    public static final PartialModel WARDING_STAFF_RING = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/warding_staff/ring"));
+    public static final PartialModel WARDING_STAFF_ORB = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/warding_staff/orb"));
     public static final SpriteShiftEntry WINCH_STEEL_COIL_SCROLL = SpriteShifter.get(
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil"),
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil_scroll")

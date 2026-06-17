@@ -141,6 +141,8 @@
   "item.create_submarine.phycological_membrane": "Phycological Membrane",
   "item.create_submarine.phycological_membrane.tooltip.summary": "Can be filled with air.",
   "item.create_submarine.pressurizer.tooltip.summary": "Allows submarines to have\npressure-resistant windows.",
+  "item.create_submarine.warding_staff": "Warding Staff",
+  "item.create_submarine.leak_detector": "Leak Detector",
   "item.create_submarine.steel_cable": "Steel Cable",
   "itemGroup.create_submarine": "Create Deep Seas",
   "item.create_submarine.underwater_mine.tooltip.summary": "When attached to a Create Aeronautics contraption,\nthis mine will detonate if entities or\nboats get too close.",

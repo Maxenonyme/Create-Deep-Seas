@@ -13,11 +13,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import java.util.List;
-import java.util.UUID;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import com.maxenonyme.createsubmarine.submarine.stress.SubLevelStressAnalyzer;
-import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import dev.ryanhcode.sable.companion.SableCompanion;
 
 public class BarometerBlockEntity extends BlockEntity implements IHaveHoveringInformation {
@@ -27,6 +25,7 @@ public class BarometerBlockEntity extends BlockEntity implements IHaveHoveringIn
     private Component customName;
     public int syncedDepth = 0;
     public int syncedWeakest = -1;
+    private int puffHysteresisState = 0;
     private int tickCount = 0;
 
     public BarometerBlockEntity(BlockPos pos, BlockState state) {
@@ -74,12 +73,20 @@ public class BarometerBlockEntity extends BlockEntity implements IHaveHoveringIn
             if (depth > 0 && weakest != -1) {
                 if (depth > weakest) {
                     state = 3;
+                } else if (puffHysteresisState == 2 || puffHysteresisState == 3) {
+                    if (!(depth < weakest * 0.70)) {
+                        state = 2;
+                    } else {
+                        state = 1;
+                    }
                 } else if (depth >= weakest * 0.80) {
                     state = 2;
                 } else {
                     state = 1;
                 }
             }
+
+            puffHysteresisState = state;
 
             if (state == 0) {
                 this.pufferfish.setPuffState(0);
@@ -118,12 +125,12 @@ public class BarometerBlockEntity extends BlockEntity implements IHaveHoveringIn
         if (level == null || level.isClientSide) return;
 
         if (tickCount++ % 10 == 0) {
-            UUID subId = SubLevelRegistry.findUUID(level, getBlockPos());
+            SubLevelAccess subAccess = SableCompanion.INSTANCE.getContaining(level, getBlockPos());
             int newDepth = 0;
             int newWeakest = -1;
 
-            if (subId != null) {
-                newDepth = com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.getCachedDepth(subId);
+            if (subAccess instanceof ServerSubLevel subLevel) {
+                newDepth = com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.getCachedDepth(subLevel.getUniqueId());
                 newWeakest = getStressCrushDepth();
             }
 

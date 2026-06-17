@@ -1,0 +1,45 @@
+{
+  "gui_light": "front",
+  "textures": {
+    "0": "create_submarine:item/leak_detector/cagetexture",
+    "particle": "create_submarine:item/leak_detector/cagetexture"
+  },
+  "elements": [
+    { "from": [-1.0, 18.0, -1.0], "to": [1.0, 30.0, 1.0],
+      "faces": {
+        "north": { "uv": [0, 0, 2, 12], "texture": "#0" },
+        "east":  { "uv": [2, 0, 4, 12], "texture": "#0" },
+        "south": { "uv": [4, 0, 6, 12], "texture": "#0" },
+        "west":  { "uv": [6, 0, 8, 12], "texture": "#0" },
+        "up":    { "uv": [0, 0, 2, 2], "texture": "#0" },
+        "down":  { "uv": [0, 0, 2, 2], "texture": "#0" }
+      }
+    },
+    { "from": [-2.0, 26.0, -2.0], "to": [2.0, 28.0, 2.0],
+      "faces": {
+        "north": { "uv": [0, 0, 4, 2], "texture": "#0" },
+        "east":  { "uv": [4, 0, 8, 2], "texture": "#0" },
+        "south": { "uv": [8, 0, 12, 2], "texture": "#0" },
+        "west":  { "uv": [12, 0, 16, 2], "texture": "#0" },
+        "up":    { "uv": [0, 0, 4, 4], "texture": "#0" },
+        "down":  { "uv": [0, 0, 4, 4], "texture": "#0" }
+      }
+    },
+    { "from": [-2.5, 22.0, -0.5], "to": [2.5, 24.0, 0.5],
+      "faces": {
+        "north": { "uv": [0, 0, 5, 2], "texture": "#0" },
+        "south": { "uv": [0, 0, 5, 2], "texture": "#0" },
+        "up":    { "uv": [0, 0, 5, 1], "texture": "#0" },
+        "down":  { "uv": [0, 0, 5, 1], "texture": "#0" }
+      }
+    },
+    { "from": [-0.5, 22.0, -2.5], "to": [0.5, 24.0, 2.5],
+      "faces": {
+        "east":  { "uv": [0, 0, 5, 2], "texture": "#0" },
+        "west":  { "uv": [0, 0, 5, 2], "texture": "#0" },
+        "up":    { "uv": [0, 0, 1, 5], "texture": "#0" },
+        "down":  { "uv": [0, 0, 1, 5], "texture": "#0" }
+      }
+    }
+  ]
+}

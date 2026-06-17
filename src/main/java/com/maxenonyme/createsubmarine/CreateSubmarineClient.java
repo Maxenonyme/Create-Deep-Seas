@@ -58,6 +58,7 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS.register(SubmarineFogHandler.class);
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
         NeoForge.EVENT_BUS.register(ShapeVizRenderer.class);
+        NeoForge.EVENT_BUS.register(com.maxenonyme.createsubmarine.submarine.client.LeakDetectorPathRenderer.class);
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.ClientTickEvent.Pre.class,
             e -> ShapeVizRenderer.onClientTick());
         NeoForge.EVENT_BUS.register(PDAManager.GameEvents.class);
@@ -72,6 +73,8 @@ public final class CreateSubmarineClient {
             CompartmentTracker.clearAll();
             com.maxenonyme.createsubmarine.submarine.system.SubmarineDriverRegistry.clearAll();
             com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig.load();
+            com.maxenonyme.createsubmarine.submarine.client.WardingEffectHandler.clearOnLogout();
+            com.maxenonyme.createsubmarine.submarine.client.LeakDetectorPathRenderer.clearAll();
         });
     }
 

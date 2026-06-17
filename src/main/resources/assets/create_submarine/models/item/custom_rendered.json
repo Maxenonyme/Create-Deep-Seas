@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:builtin/entity",
   "gui_light": "front",
-  "textures": {
-    "particle": "create_submarine:item/purge_staff/staffmaintexture"
-  }
+    "textures": {
+        "particle": "create_submarine:item/leak_detector/staffmaintexture"
+    }
 }

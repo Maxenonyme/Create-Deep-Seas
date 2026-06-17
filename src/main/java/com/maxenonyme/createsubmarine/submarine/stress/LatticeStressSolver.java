@@ -779,17 +779,13 @@ public class LatticeStressSolver {
         double globalDepth = Double.POSITIVE_INFINITY;
         int worstBlock = -1;
 
-        final double centerDepth = this.subLevelPose != null
-            ? this.waterSurfaceWorldY - this.subLevelPose.position().y()
-            : Double.POSITIVE_INFINITY;
-        if (centerDepth <= 0.0) {
-            java.util.Arrays.fill(result, Double.POSITIVE_INFINITY);
-            result[this.n] = -1.0;
-            return result;
-        }
-
         for (int i = 0; i < this.n; i++) {
             if (this.yieldStress[i] <= 0) {
+                result[i] = Double.POSITIVE_INFINITY;
+                continue;
+            }
+            final double blockDepth = this.blockWaterDepths[i];
+            if (blockDepth <= 0) {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
             }
@@ -798,7 +794,7 @@ public class LatticeStressSolver {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
             }
-            final double depth = centerDepth * this.yieldStress[i] / vm;
+            final double depth = blockDepth * this.yieldStress[i] / vm;
             if (depth > 1e15) {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;

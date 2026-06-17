@@ -287,8 +287,12 @@ public class CreateSubmarine {
                         () -> new com.maxenonyme.createsubmarine.submarine.sonar.SonarPingerItem(
                                         new Item.Properties().rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
 
-        public static final Supplier<Item> PURGE_STAFF = ITEMS.register("purge_staff",
-                        () -> new com.maxenonyme.createsubmarine.submarine.item.purge_staff.PurgeStaffItem(
+        public static final Supplier<Item> LEAK_DETECTOR = ITEMS.register("leak_detector",
+                        () -> new com.maxenonyme.createsubmarine.submarine.item.leak_detector.LeakDetectorItem(
+                                        new Item.Properties().rarity(net.minecraft.world.item.Rarity.EPIC).stacksTo(1)));
+
+        public static final Supplier<Item> WARDING_STAFF = ITEMS.register("warding_staff",
+                        () -> new com.maxenonyme.createsubmarine.submarine.item.warding_staff.WardingStaffItem(
                                         new Item.Properties().rarity(net.minecraft.world.item.Rarity.EPIC).stacksTo(1)));
 
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
@@ -472,6 +476,14 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.network.CameraShakePayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.CameraShakePayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.CameraShakePayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.WardingEffectPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.WardingEffectPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.WardingEffectPayload::handle);
+                registrar.playToClient(
+                                com.maxenonyme.createsubmarine.submarine.network.LeakDetectorPayload.TYPE,
+                                com.maxenonyme.createsubmarine.submarine.network.LeakDetectorPayload.CODEC,
+                                com.maxenonyme.createsubmarine.submarine.network.LeakDetectorPayload::handle);
         }
 
         private void registerCapabilities(net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent event) {
@@ -590,8 +602,10 @@ public class CreateSubmarine {
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"), subSection);
                         tabItems.add(SONAR_PINGER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "sonar_pinger"), subSection);
-                        tabItems.add(PURGE_STAFF::get);
-                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "purge_staff"), subSection);
+                        tabItems.add(LEAK_DETECTOR::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "leak_detector"), subSection);
+                        tabItems.add(WARDING_STAFF::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "warding_staff"), subSection);
                         tabItems.add(STEEL_CABLE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
                         tabItems.add(PULLEY_ITEM::get);
