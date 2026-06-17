@@ -102,7 +102,7 @@
   "create_submarine.ponder.steel_cable.header": "钢制缆绳",
   "create_submarine.ponder.steel_cable.text_1": "实体可在绷紧的钢制缆绳上移动。",
   "create_submarine.ponder.steel_cable_electrified.header": "钢制缆绳——通电",
-  "create_submarine.ponder.steel_cable_electrified.text_1": "使用诸如\nCreate: Addition 的电力模组，\n直接向持有缆绳的\n绳索绞盘提供 FE 以使其通电。",
+  "create_submarine.ponder.steel_cable_electrified.text_1": "使用诸如\nCreate Crafts & Additions 的电力模组，\n直接向持有缆绳的\n绳索绞盘提供 FE 以使其通电。",
   "create_submarine.ponder.barometer.header": "压力表",
   "create_submarine.ponder.barometer.text_1": "压力表会显示潜艇当前承受的压力。",
   "create_submarine.ponder.barometer.text_2": "它会以船体最脆弱的方块为基准，比较当前压力与最大承压能力。",
