@@ -48,6 +48,17 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
         super(CreateSubmarine.DECOMPRESSION_CHAMBER_BE.get(), pos, state);
     }
 
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        if (level != null && !level.isClientSide && cachedCompartment != null) {
+            for (BlockPos p : cachedCompartment.internal()) {
+                net.minecraft.core.GlobalPos globalPos = net.minecraft.core.GlobalPos.of(level.dimension(), p);
+                CHAMBER_WATER_BLOCKS.remove(globalPos);
+            }
+        }
+    }
+
     public void tick() {
         if (level == null || level.isClientSide)
             return;
@@ -205,7 +216,7 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
 
     private int getWaterLevel(BlockPos p) {
         BlockState state = level.getBlockState(p);
-        if (state.isAir() || (!state.getFluidState().isEmpty() && state.getBlock() != Blocks.WATER))
+        if (state.isAir())
             return 0;
         if (state.getBlock() == Blocks.WATER) {
             int lvl = state.getValue(net.minecraft.world.level.block.LiquidBlock.LEVEL);
@@ -294,9 +305,11 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
         pendingFill = Math.min(pendingFill, Math.max(0, chamberCapacity() - water));
         pendingDrain = Math.min(pendingDrain, water);
 
+        java.util.Set<BlockPos> reachable = getReachableBlocks();
+
         int budget = 64;
         while (pendingFill >= 125 && budget-- > 0) {
-            BlockPos p = findNextFillBlock();
+            BlockPos p = findNextFillBlock(reachable);
             if (p == null) {
                 pendingFill = 0;
                 break;
@@ -308,7 +321,7 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
 
         budget = 64;
         while (pendingDrain >= 125 && budget-- > 0) {
-            BlockPos p = findNextDrainBlock();
+            BlockPos p = findNextDrainBlock(reachable);
             if (p == null) {
                 pendingDrain = 0;
                 break;
@@ -423,8 +436,7 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
         return visited;
     }
 
-    private BlockPos findNextFillBlock() {
-        java.util.Set<BlockPos> reachable = getReachableBlocks();
+    private BlockPos findNextFillBlock(java.util.Set<BlockPos> reachable) {
         BlockPos bestPos = null;
         int bestY = Integer.MAX_VALUE;
         int bestLvl = Integer.MAX_VALUE;
@@ -456,9 +468,7 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
         return bestPos;
     }
 
-    private BlockPos findNextDrainBlock() {
-        java.util.Set<BlockPos> reachable = getReachableBlocks();
-
+    private BlockPos findNextDrainBlock(java.util.Set<BlockPos> reachable) {
         BlockState myState = getBlockState();
         Direction frontFace = myState.getValue(DecompressionChamberBlock.FACING);
         List<Direction> priorityFaces = new ArrayList<>();
@@ -626,12 +636,10 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
             if (room <= 0)
                 return 0;
 
-            int toAccept = Math.min(resource.getAmount(), room / 2);
-            if (toAccept == 0 && room > 0)
-                toAccept = 1;
+            int toAccept = Math.min(resource.getAmount(), room);
 
             if (action.execute()) {
-                pendingFill += toAccept * 2;
+                pendingFill += toAccept;
                 lastFlowTick = level.getGameTime();
                 lastFlowDir = 1;
             }
@@ -653,14 +661,12 @@ public class DecompressionChamberBlockEntity extends BlockEntity {
                 return FluidStack.EMPTY;
             int available = chamberWaterVolume() - pendingDrain;
 
-            int amount = Math.min(maxDrain, available / 2);
-            if (amount <= 0 && available > 0)
-                amount = 1;
+            int amount = Math.min(maxDrain, available);
             if (amount <= 0)
                 return FluidStack.EMPTY;
 
             if (action.execute()) {
-                pendingDrain += amount * 2;
+                pendingDrain += amount;
                 lastFlowTick = level.getGameTime();
                 lastFlowDir = -1;
             }

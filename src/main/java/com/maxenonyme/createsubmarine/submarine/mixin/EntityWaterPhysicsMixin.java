@@ -119,7 +119,7 @@ public abstract class EntityWaterPhysicsMixin {
             dev.ryanhcode.sable.companion.SubLevelAccess sub = dev.ryanhcode.sable.companion.SableCompanion.INSTANCE.getContaining(level, eyePos);
             if (sub != null) {
                 org.joml.Vector3d localPos = new org.joml.Vector3d(x, eyeY, z);
-                sub.logicalPose().transformPosition(localPos);
+                sub.logicalPose().transformPositionInverse(localPos);
                 net.minecraft.core.BlockPos localBlockPos = net.minecraft.core.BlockPos.containing(localPos.x, localPos.y, localPos.z);
                 
                 net.minecraft.world.level.Level subLevel = com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry.getLevel(sub.getUniqueId());
@@ -133,7 +133,7 @@ public abstract class EntityWaterPhysicsMixin {
                         inside = false;
                     } else {
                         org.joml.Vector3d localFeet = new org.joml.Vector3d(x, y, z);
-                        sub.logicalPose().transformPosition(localFeet);
+                        sub.logicalPose().transformPositionInverse(localFeet);
                         net.minecraft.core.BlockPos localFeetPos = net.minecraft.core.BlockPos.containing(localFeet.x, localFeet.y, localFeet.z);
                         if (subLevel.getFluidState(localFeetPos).is(net.minecraft.tags.FluidTags.WATER)) {
                             inside = false;
