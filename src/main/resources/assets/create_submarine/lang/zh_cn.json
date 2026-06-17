@@ -18,7 +18,7 @@
   "create_submarine.configuration.ballastForceMultiplier": "压载力倍率",
   "create_submarine.configuration.ballastForceMultiplier.tooltip": "运行时对压载水罐施加垂直推力的倍率。数值越低，下潜和上浮速度越慢；数值越高，响应越灵敏。",
   "create_submarine.configuration.ballastLiftPerTank": "压载水罐升力",
-  "create_submarine.configuration.ballastLiftPerTank.tooltip": "每个压载水罐可推动的潜艇质量（每个方块大约为 1）。\n总浮力会随压载水罐数量增加，因此较重的潜艇需要更多压载水罐",
+  "create_submarine.configuration.ballastLiftPerTank.tooltip": "每个压载水罐可推动的潜艇质量（每个方块大约为 1）。\n总浮力会随压载水罐数量增加，因此较重的潜艇需要更多压载水罐。",
   "create_submarine.configuration.ballastTransferRateMultiplier": "压载注排速率倍率",
   "create_submarine.configuration.ballastTransferRateMultiplier.tooltip": "对压载排口注水/排水传输速率的倍率。数值越低，注水和排水速度越慢；数值越高，注水和排水速度越快。",
   "create_submarine.configuration.ballastVerticalSpeed": "压载升降速度",
