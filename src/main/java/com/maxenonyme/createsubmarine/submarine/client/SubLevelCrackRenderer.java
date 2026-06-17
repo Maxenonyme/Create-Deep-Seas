@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -36,17 +37,23 @@ public class SubLevelCrackRenderer {
         }
     }
 
+    public static boolean hasCrack(UUID subId, BlockPos plotPos) {
+        Map<BlockPos, int[]> m = CLIENT_CRACKS.get(subId);
+        return m != null && m.containsKey(plotPos);
+    }
+
     public static void clearSub(UUID subId) {
         CLIENT_CRACKS.remove(subId);
     }
 
     public static void clearAll() {
         CLIENT_CRACKS.clear();
+        com.maxenonyme.createsubmarine.submarine.client.renderer.SubLevelRenderPoseCapture.clearAll();
     }
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_SOLID_BLOCKS) return;
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
         if (CLIENT_CRACKS.isEmpty()) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -61,41 +68,59 @@ public class SubLevelCrackRenderer {
             Map<BlockPos, int[]> cracks = subEntry.getValue();
             if (cracks.isEmpty()) continue;
 
-            SubLevelAccess sub = CompartmentTracker.getSubsSnapshot().get(subId);
+            SubLevelAccess sub = CompartmentTracker.getSub(subId);
             if (sub == null) continue;
 
-            org.joml.Vector3dc subPos = sub.logicalPose().position();
-            org.joml.Quaterniondc subRot = sub.logicalPose().orientation();
+            dev.ryanhcode.sable.companion.math.Pose3dc renderPose =
+                    com.maxenonyme.createsubmarine.submarine.client.renderer.SubLevelRenderPoseCapture.get(subId);
+            if (renderPose == null) {
+                if (sub instanceof dev.ryanhcode.sable.sublevel.ClientSubLevel clientSub) {
+                    renderPose = clientSub.renderPose();
+                } else {
+                    renderPose = sub.logicalPose();
+                }
+            }
 
-            poseStack.pushPose();
-            poseStack.translate(subPos.x() - camPos.x, subPos.y() - camPos.y, subPos.z() - camPos.z);
-            poseStack.mulPose(new org.joml.Quaternionf(
-                    (float) subRot.x(), (float) subRot.y(), (float) subRot.z(), (float) subRot.w()));
+            if (renderPose == null) continue;
+            org.joml.Quaterniondc subRot = renderPose.orientation();
 
             for (Map.Entry<BlockPos, int[]> crackEntry : cracks.entrySet()) {
                 BlockPos plotPos = crackEntry.getKey();
                 int crackLevel = crackEntry.getValue()[0];
 
-                int stage = crackLevel == 1 ? 2 : 5;
+                int stage = 0;
+                if (crackLevel == 1) stage = 2;
+                else if (crackLevel == 2) stage = 5;
+                else if (crackLevel >= 3) stage = 8;
                 ResourceLocation tex = ResourceLocation.withDefaultNamespace(
                         "textures/block/destroy_stage_" + stage + ".png");
 
-                poseStack.pushPose();
-                poseStack.translate(plotPos.getX(), plotPos.getY(), plotPos.getZ());
+                BlockState state = mc.level.getBlockState(plotPos);
+                if (state.isAir()) continue;
 
-                VertexConsumer consumer = bufferSource.getBuffer(RenderType.crumbling(tex));
+                org.joml.Vector3d worldVec = new org.joml.Vector3d(plotPos.getX(), plotPos.getY(), plotPos.getZ());
+                renderPose.transformPosition(worldVec);
+
+                poseStack.pushPose();
+                poseStack.translate(worldVec.x - camPos.x, worldVec.y - camPos.y, worldVec.z - camPos.z);
+                poseStack.mulPose(new org.joml.Quaternionf(
+                        (float) subRot.x(), (float) subRot.y(), (float) subRot.z(), (float) subRot.w()));
+
+                poseStack.translate(0.5f, 0.5f, 0.5f);
+                poseStack.scale(1.01f, 1.01f, 1.01f);
+                poseStack.translate(-0.5f, -0.5f, -0.5f);
+
+                VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(tex));
                 renderCube(poseStack.last().pose(), consumer);
 
                 poseStack.popPose();
             }
-
-            poseStack.popPose();
         }
 
-        for (int s : new int[]{2, 5}) {
+        for (int s = 0; s <= 9; s++) {
             ResourceLocation tex = ResourceLocation.withDefaultNamespace(
                     "textures/block/destroy_stage_" + s + ".png");
-            bufferSource.endBatch(RenderType.crumbling(tex));
+            bufferSource.endBatch(RenderType.entityTranslucent(tex));
         }
     }
 
@@ -114,10 +139,10 @@ public class SubLevelCrackRenderer {
             float x2, float y2, float z2,
             float x3, float y3, float z3,
             float nx, float ny, float nz) {
-        vert(v, mat, x0, y0, z0, 0, 0, nx, ny, nz);
-        vert(v, mat, x1, y1, z1, 1, 0, nx, ny, nz);
-        vert(v, mat, x2, y2, z2, 1, 1, nx, ny, nz);
         vert(v, mat, x3, y3, z3, 0, 1, nx, ny, nz);
+        vert(v, mat, x2, y2, z2, 1, 1, nx, ny, nz);
+        vert(v, mat, x1, y1, z1, 1, 0, nx, ny, nz);
+        vert(v, mat, x0, y0, z0, 0, 0, nx, ny, nz);
     }
 
     private static void vert(VertexConsumer v, Matrix4f mat,

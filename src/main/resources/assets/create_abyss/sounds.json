@@ -1,0 +1,18 @@
+{
+    "leviathan_class_detected": {
+        "sounds": [
+            {
+                "name": "create_abyss:leviathan_class_detected",
+                "stream": true
+            }
+        ]
+    },
+    "reaper_leviathan_roars": {
+        "sounds": [
+            {
+                "name": "create_abyss:reaper-leviathan-roars",
+                "stream": false
+            }
+        ]
+    }
+}

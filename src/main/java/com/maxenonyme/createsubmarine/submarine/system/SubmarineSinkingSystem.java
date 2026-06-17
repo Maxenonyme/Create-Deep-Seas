@@ -1,9 +1,12 @@
 package com.maxenonyme.createsubmarine.submarine.system;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentDetector;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -72,6 +75,63 @@ public class SubmarineSinkingSystem {
         serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, worldCenter.x, worldCenter.y, worldCenter.z, 5, 3.0,
                 3.0, 3.0, 0.3);
         scheduleStructuralCuts(parentLevel, bounds);
+    }
+
+    /**
+     * Implodes a single compartment (a decompression chamber opened to deep water before it filled)
+     * using the same teardown plumbing as a full crash, but bounded to that chamber: its
+     * ocean-facing walls cave in over the next ticks, the water it made is cleared, and it is marked
+     * compromised so it reads as flooded. The rest of the submarine is left whole and is NOT marked
+     * as crashing.
+     */
+    public static void implodeCompartment(UUID id, SubLevelAccess sub, Level parentLevel,
+            CompartmentDetector.Component comp) {
+        if (com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DISABLE_IMPLOSION.get()) return;
+        if (!(parentLevel instanceof ServerLevel serverLevel)) return;
+
+        long baseTick = serverLevel.getServer().getTickCount();
+
+        // Only the walls that face the ocean give way; interior walls stay so neighbouring
+        // compartments keep their seal and the sub does not unzip from here.
+        for (BlockPos p : comp.hull()) {
+            boolean facesExterior = false;
+            for (Direction dir : Direction.values()) {
+                if (!CompartmentTracker.isWithinShip(id, p.relative(dir))) {
+                    facesExterior = true;
+                    break;
+                }
+            }
+            if (facesExterior) {
+                PENDING.offer(new ScheduledRemoval(parentLevel, p.immutable(), baseTick + RAND.nextInt(20)));
+            }
+        }
+        // The water this chamber created vanishes as the pocket collapses.
+        for (BlockPos p : comp.internal()) {
+            if (parentLevel.getBlockState(p).getBlock() == Blocks.WATER) {
+                PENDING.offer(new ScheduledRemoval(parentLevel, p.immutable(), baseTick + RAND.nextInt(10)));
+            }
+        }
+        CompartmentTracker.markCompromised(id, comp.anchor());
+
+        Vector3d center = new Vector3d();
+        int n = 0;
+        for (BlockPos p : comp.internal()) {
+            center.add(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
+            n++;
+        }
+        if (n == 0) return;
+        center.div(n);
+        Vector3d worldCenter = new Vector3d(center);
+        sub.logicalPose().transformPosition(worldCenter);
+        serverLevel.playSound(null, BlockPos.containing(worldCenter.x, worldCenter.y, worldCenter.z),
+                CreateSubmarine.IMPLOSION_SOUND.get(), SoundSource.BLOCKS, 2.0f, 1.0f);
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, worldCenter.x, worldCenter.y, worldCenter.z,
+                2, 1.0, 1.0, 1.0, 0.1);
+        for (BlockPos p : comp.internal()) {
+            Vector3d wp = new Vector3d(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
+            sub.logicalPose().transformPosition(wp);
+            serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE, wp.x, wp.y, wp.z, 1, 0.3, 0.3, 0.3, 0.02);
+        }
     }
 
     private static void destroyLifeSupport(Level level, SubLevelRegistry.PlotBounds bounds) {

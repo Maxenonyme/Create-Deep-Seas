@@ -30,12 +30,16 @@ public class SubmarinePonderScenes {
                 helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "water_thruster"))
                                 .addStoryBoard("water_thruster", SubmarinePonderScenes::waterThruster);
 
-                helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "poulis"))
-                                .addStoryBoard("steel_cable", SubmarinePonderScenes::poulis);
+                helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "pulley"))
+                                .addStoryBoard("steel_cable", SubmarinePonderScenes::pulley);
 
                 helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "steel_cable"))
                                 .addStoryBoard("steel_cable", SubmarinePonderScenes::steelCable)
                                 .addStoryBoard("steel_cable", SubmarinePonderScenes::steelCableElectrified);
+
+                helper.forComponents(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "barometer"))
+                                .addStoryBoard("barometre1", SubmarinePonderScenes::barometer)
+                                .addStoryBoard("barometre2", SubmarinePonderScenes::barometerDisplayLink);
         }
 
         public static void ballastVent(SceneBuilder builder, SceneBuildingUtil util) {
@@ -470,10 +474,10 @@ public class SubmarinePonderScenes {
                 scene.markAsFinished();
         }
 
-        public static void poulis(SceneBuilder builder, SceneBuildingUtil util) {
+        public static void pulley(SceneBuilder builder, SceneBuildingUtil util) {
                 CreateSceneBuilder scene = new CreateSceneBuilder(builder);
 
-                scene.title("poulis", "Pulley");
+                scene.title("pulley", "Pulley");
                 scene.configureBasePlate(0, 0, 13);
                 scene.scaleSceneView(0.65f);
 
@@ -499,12 +503,12 @@ public class SubmarinePonderScenes {
                 net.minecraft.core.BlockPos posA = util.grid().at(1, 3, 2);
                 net.minecraft.core.BlockPos posB = util.grid().at(3, 3, 2);
                 scene.world().setBlock(posA,
-                        CreateSubmarine.POULIS.get().defaultBlockState()
-                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PoulisBlock.FACING, Direction.NORTH),
+                        CreateSubmarine.PULLEY.get().defaultBlockState()
+                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PulleyBlock.FACING, Direction.NORTH),
                         false);
                 scene.world().setBlock(posB,
-                        CreateSubmarine.POULIS.get().defaultBlockState()
-                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PoulisBlock.FACING, Direction.SOUTH),
+                        CreateSubmarine.PULLEY.get().defaultBlockState()
+                                .setValue(com.maxenonyme.createsubmarine.submarine.block.PulleyBlock.FACING, Direction.SOUTH),
                         false);
 
                 ElementLink<WorldSectionElement> pulleySection = scene.world().showIndependentSection(
@@ -529,10 +533,10 @@ public class SubmarinePonderScenes {
                 scene.world().moveSection(pulleySection, new net.minecraft.world.phys.Vec3(8, 0, 0), 100);
                 for (int i = 0; i < 100; i++) {
                         scene.world().modifyBlockEntity(posA,
-                                com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.class,
+                                com.maxenonyme.createsubmarine.submarine.block.entity.PulleyBlockEntity.class,
                                 be -> be.clientWheelAngle += anglePerTick);
                         scene.world().modifyBlockEntity(posB,
-                                com.maxenonyme.createsubmarine.submarine.block.entity.PoulisBlockEntity.class,
+                                com.maxenonyme.createsubmarine.submarine.block.entity.PulleyBlockEntity.class,
                                 be -> be.clientWheelAngle += anglePerTick);
                         scene.idle(1);
                 }
@@ -546,6 +550,105 @@ public class SubmarinePonderScenes {
                         .attachKeyFrame();
 
                 scene.idle(90);
+                scene.markAsFinished();
+        }
+
+        public static void barometer(SceneBuilder builder, SceneBuildingUtil util) {
+                CreateSceneBuilder scene = new CreateSceneBuilder(builder);
+
+                scene.title("barometer", "Barometer Usage");
+                scene.configureBasePlate(0, 0, 5);
+                scene.scaleSceneView(0.8f);
+
+                scene.world().showSection(util.select().layer(0), Direction.UP);
+                scene.idle(15);
+
+                scene.world().showSection(util.select().layersFrom(1), Direction.DOWN);
+                scene.idle(20);
+
+                scene.addKeyframe();
+
+                scene.overlay().showText(80)
+                                .text("create_submarine.ponder.barometer.text_1")
+                                .pointAt(util.vector().centerOf(2, 2, 2))
+                                .placeNearTarget()
+                                .attachKeyFrame();
+
+                scene.idle(90);
+
+                scene.addKeyframe();
+
+                scene.overlay().showText(80)
+                                .text("create_submarine.ponder.barometer.text_2")
+                                .pointAt(util.vector().centerOf(2, 2, 2))
+                                .placeNearTarget()
+                                .attachKeyFrame();
+
+                scene.idle(90);
+
+                scene.addKeyframe();
+
+                scene.overlay().showText(80)
+                                .text("create_submarine.ponder.barometer.text_3")
+                                .pointAt(util.vector().centerOf(2, 2, 2))
+                                .placeNearTarget()
+                                .attachKeyFrame();
+
+                scene.idle(90);
+
+                scene.markAsFinished();
+        }
+
+        public static void barometerDisplayLink(SceneBuilder builder, SceneBuildingUtil util) {
+                CreateSceneBuilder scene = new CreateSceneBuilder(builder);
+
+                scene.title("barometer_display_link", "Display Link Integration");
+                scene.configureBasePlate(0, 0, 7);
+                scene.scaleSceneView(0.7f);
+
+                scene.world().showSection(util.select().layer(0), Direction.UP);
+                scene.idle(15);
+
+                scene.world().showSection(util.select().layersFrom(1).substract(util.select().position(2, 2, 5)).substract(util.select().fromTo(3, 1, 0, 3, 2, 2)), Direction.DOWN);
+                scene.idle(20);
+
+                scene.addKeyframe();
+
+                scene.overlay().showText(70)
+                                .text("create_submarine.ponder.barometer_display_link.text_1")
+                                .pointAt(util.vector().blockSurface(util.grid().at(2, 2, 4), Direction.SOUTH))
+                                .placeNearTarget()
+                                .attachKeyFrame();
+
+                scene.idle(60);
+
+                scene.world().showSection(util.select().position(2, 2, 5), Direction.NORTH);
+                scene.idle(20);
+
+                scene.addKeyframe();
+
+                scene.world().showSection(util.select().fromTo(3, 1, 0, 3, 2, 2), Direction.SOUTH);
+                scene.idle(20);
+
+                scene.overlay().showOutline(net.createmod.ponder.api.PonderPalette.GREEN, new Object(), util.select().fromTo(3, 1, 0, 3, 2, 2), 80);
+                scene.overlay().showText(80)
+                                .text("create_submarine.ponder.barometer_display_link.text_2")
+                                .pointAt(util.vector().centerOf(3, 2, 1))
+                                .placeNearTarget()
+                                .attachKeyFrame();
+
+                scene.world().flashDisplayLink(util.grid().at(2, 2, 5));
+                scene.idle(5);
+
+                scene.addKeyframe();
+
+                for (int y = 1; y <= 2; y++) {
+                    for (int z = 0; z <= 2; z++) {
+                        scene.world().setDisplayBoardText(util.grid().at(3, y, z), 1, net.minecraft.network.chat.Component.translatable("create_submarine.ponder.barometer_display_link.text_3"));
+                    }
+                }
+                scene.idle(90);
+
                 scene.markAsFinished();
         }
 }

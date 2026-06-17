@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "facing=north,ceiling=false": { "model": "create_submarine:block/arresting_hook/base" },
+    "facing=south,ceiling=false": { "model": "create_submarine:block/arresting_hook/base", "y": 180 },
+    "facing=east,ceiling=false": { "model": "create_submarine:block/arresting_hook/base", "y": 90 },
+    "facing=west,ceiling=false": { "model": "create_submarine:block/arresting_hook/base", "y": 270 },
+
+    "facing=north,ceiling=true": { "model": "create_submarine:block/arresting_hook/base", "x": 180, "y": 180 },
+    "facing=south,ceiling=true": { "model": "create_submarine:block/arresting_hook/base", "x": 180 },
+    "facing=east,ceiling=true": { "model": "create_submarine:block/arresting_hook/base", "x": 180, "y": 270 },
+    "facing=west,ceiling=true": { "model": "create_submarine:block/arresting_hook/base", "x": 180, "y": 90 }
+  }
+}

@@ -177,9 +177,22 @@ public final class SubmarineWaterCullBuffer {
                 continue;
             }
             BlockState state = lastChunk.getBlockState(pos);
-            if (state.isAir() || !state.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, net.minecraft.core.BlockPos.ZERO).isEmpty())
+            if (!state.getFluidState().isEmpty())
+                continue;
+            boolean fillsCell = state.isAir()
+                    || state.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE,
+                            net.minecraft.core.BlockPos.ZERO);
+            if (fillsCell || isBuriedInShip(id, pos))
                 out.add(pos);
         }
         return out;
+    }
+
+    private static boolean isBuriedInShip(UUID id, BlockPos pos) {
+        for (net.minecraft.core.Direction dir : net.minecraft.core.Direction.values()) {
+            if (!CompartmentTracker.isWithinShip(id, pos.relative(dir)))
+                return false;
+        }
+        return true;
     }
 }

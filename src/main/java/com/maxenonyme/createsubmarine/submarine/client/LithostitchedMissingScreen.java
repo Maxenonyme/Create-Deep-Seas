@@ -43,10 +43,9 @@ public class LithostitchedMissingScreen extends Screen {
             return;
         }
 
-        if (SubmarineConfig.ENABLE_DEEPER_OCEANS.get() || SubmarineConfig.ENABLE_ABYSS_DIMENSION.get()) {
+        if (SubmarineConfig.ENABLE_DEEPER_OCEANS.get()) {
 
             SubmarineConfig.ENABLE_DEEPER_OCEANS.set(false);
-            SubmarineConfig.ENABLE_ABYSS_DIMENSION.set(false);
             SubmarineConfig.SPEC.save();
 
             if (!com.maxenonyme.createsubmarine.submarine.config.SubmarineClientState.hasSeenLithostitchedScreen()) {

@@ -21,13 +21,42 @@ public abstract class EntityWaterPhysicsMixin {
         if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(0.0D);
     }
 
+    @org.spongepowered.asm.mixin.Shadow
+    protected boolean wasTouchingWater;
+    @org.spongepowered.asm.mixin.Shadow
+    protected it.unimi.dsi.fastutil.objects.Object2DoubleMap<net.minecraft.tags.TagKey<net.minecraft.world.level.material.Fluid>> fluidHeight;
+    @org.spongepowered.asm.mixin.Shadow(remap = false)
+    @org.spongepowered.asm.mixin.Final
+    private it.unimi.dsi.fastutil.objects.Object2DoubleMap<net.neoforged.neoforge.fluids.FluidType> forgeFluidTypeHeight;
+
     @Inject(method = "updateInWaterStateAndDoFluidPushing", at = @At("HEAD"), cancellable = true)
     private void createsubmarine$cancelWaterPushing(CallbackInfoReturnable<Boolean> cir) {
-        if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(false);
+        if (createsubmarine$isInsideAirtightSub()) {
+            wasTouchingWater = false;
+            fluidHeight.clear();
+            forgeFluidTypeHeight.clear();
+            cir.setReturnValue(false);
+        }
     }
 
     @Inject(method = "isEyeInFluid", at = @At("HEAD"), cancellable = true)
     private void createsubmarine$isEyeInFluid(net.minecraft.tags.TagKey<?> fluidTag, CallbackInfoReturnable<Boolean> cir) {
+        if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "doWaterSplashEffect", at = @At("HEAD"), cancellable = true)
+    private void createsubmarine$noSplashWhileSubmerged(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        Entity entity = (Entity) (Object) this;
+        net.minecraft.core.BlockPos eye = net.minecraft.core.BlockPos.containing(entity.getX(), entity.getEyeY(), entity.getZ());
+        net.minecraft.world.level.material.FluidState fs = entity.level().getFluidState(eye);
+        if (fs.is(net.minecraft.tags.FluidTags.WATER)
+                && entity.getEyeY() < eye.getY() + fs.getHeight(entity.level(), eye)) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "isUnderWater", at = @At("HEAD"), cancellable = true)
+    private void createsubmarine$isUnderWater(CallbackInfoReturnable<Boolean> cir) {
         if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(false);
     }
 
@@ -54,6 +83,11 @@ public abstract class EntityWaterPhysicsMixin {
         }
     }
 
+    @Inject(method = "isSwimming", at = @At("HEAD"), cancellable = true)
+    private void createsubmarine$isSwimming(CallbackInfoReturnable<Boolean> cir) {
+        if (createsubmarine$isInsideAirtightSub()) cir.setReturnValue(false);
+    }
+
     @Unique
     private long createsubmarine$cacheTick = -1L;
     @Unique
@@ -64,9 +98,10 @@ public abstract class EntityWaterPhysicsMixin {
     @Unique
     private boolean createsubmarine$isInsideAirtightSub() {
         Entity entity = (Entity) (Object) this;
-        if (entity.level() == null) return false;
+        net.minecraft.world.level.Level level = entity.level();
+        if (level == null) return false;
 
-        long tick = entity.level().getGameTime();
+        long tick = level.getGameTime();
         double x = entity.getX(), y = entity.getY(), z = entity.getZ(), eyeY = entity.getEyeY();
         if (tick == createsubmarine$cacheTick
                 && x == createsubmarine$cacheX && y == createsubmarine$cacheY
@@ -75,10 +110,9 @@ public abstract class EntityWaterPhysicsMixin {
         }
 
         net.minecraft.world.phys.Vec3 eyePos = new net.minecraft.world.phys.Vec3(x, eyeY, z);
-        boolean inside = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.isOccludedExact(entity.level(), eyePos);
+        boolean inside = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.isInSealedExact(level, eyePos);
         if (!inside) {
-            net.minecraft.world.phys.Vec3 feetPos = entity.position();
-            inside = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.isOccludedExact(entity.level(), feetPos);
+            inside = com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.isInSealedExact(level, entity.position());
         }
 
         createsubmarine$cacheTick = tick;
@@ -89,4 +123,5 @@ public abstract class EntityWaterPhysicsMixin {
         createsubmarine$cachedInside = inside;
         return inside;
     }
+
 }

@@ -33,7 +33,7 @@ public final class LianaLODOptimizer {
 
     public static final TagKey<Block> LIANA_LOD_TAG = TagKey.create(
             Registries.BLOCK,
-            ResourceLocation.fromNamespaceAndPath("create_submarine", "liana_lod")
+            ResourceLocation.fromNamespaceAndPath("create_abyss", "liana_lod")
     );
 
     private static int tickCounter = 0;

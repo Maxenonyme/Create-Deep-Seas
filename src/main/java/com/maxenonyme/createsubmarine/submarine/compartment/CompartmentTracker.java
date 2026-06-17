@@ -37,7 +37,32 @@ public class CompartmentTracker {
     private static final Map<UUID, double[]> LAST_POSE = new ConcurrentHashMap<>();
     private static final Map<UUID, CompartmentDetector.IncrementalScanState> ACTIVE_SCANS = new ConcurrentHashMap<>();
     private static final Map<UUID, Set<BlockPos>> SOLID_BLOCKS = new ConcurrentHashMap<>();
+    private static final Set<UUID> STRUCTURE_DIRTY = ConcurrentHashMap.newKeySet();
     private static volatile AABB globalBounds = null;
+
+    private record SealedEntry(UUID id, SubLevelAccess access,
+            net.minecraft.resources.ResourceKey<Level> dimension,
+            it.unimi.dsi.fastutil.longs.LongOpenHashSet cells) {
+    }
+
+    private static volatile SealedEntry[] sealedSnapshot = new SealedEntry[0];
+    private static final ThreadLocal<Vector3d> LOCAL_POS = ThreadLocal.withInitial(Vector3d::new);
+
+    private static void rebuildSealedSnapshot() {
+        java.util.ArrayList<SealedEntry> list = new java.util.ArrayList<>();
+        for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
+            Set<BlockPos> sealed = SEALED_UNION.get(e.getKey());
+            if (sealed == null || sealed.isEmpty()) continue;
+            it.unimi.dsi.fastutil.longs.LongOpenHashSet cells = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(sealed.size());
+            for (BlockPos p : sealed) cells.add(p.asLong());
+            net.minecraft.resources.ResourceKey<Level> dim = null;
+            if (e.getValue() instanceof dev.ryanhcode.sable.sublevel.SubLevel sl && sl.getLevel() != null) {
+                dim = sl.getLevel().dimension();
+            }
+            list.add(new SealedEntry(e.getKey(), e.getValue(), dim, cells));
+        }
+        sealedSnapshot = list.toArray(new SealedEntry[0]);
+    }
 
     public static void update(UUID id, SubLevelAccess sub, CompartmentDetector.Result result, long gameTick) {
         COMPARTMENTS.put(id, result.components());
@@ -82,6 +107,7 @@ public class CompartmentTracker {
         }
         SEALED_UNION.put(id, Collections.unmodifiableSet(sealed));
         VISUAL_UNION.put(id, Collections.unmodifiableSet(visual));
+        rebuildSealedSnapshot();
         if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
             com.maxenonyme.createsubmarine.submarine.client.renderer.SubmarineWaterCullBuffer.updateSubmarineOcclusion(id, visual);
         }
@@ -104,6 +130,8 @@ public class CompartmentTracker {
         LAST_POSE.remove(id);
         ACTIVE_SCANS.remove(id);
         SOLID_BLOCKS.remove(id);
+        STRUCTURE_DIRTY.remove(id);
+        rebuildSealedSnapshot();
         rebuildGlobalBounds();
     }
 
@@ -119,11 +147,17 @@ public class CompartmentTracker {
         LAST_POSE.clear();
         ACTIVE_SCANS.clear();
         SOLID_BLOCKS.clear();
+        STRUCTURE_DIRTY.clear();
+        sealedSnapshot = new SealedEntry[0];
         globalBounds = null;
     }
 
     public static Map<UUID, SubLevelAccess> getSubsSnapshot() {
         return new java.util.HashMap<>(SUBS);
+    }
+
+    public static SubLevelAccess getSub(UUID id) {
+        return SUBS.get(id);
     }
 
     public static AABB getWorldAABB(UUID id) {
@@ -183,8 +217,31 @@ public class CompartmentTracker {
         return ACTIVE_SCANS.containsKey(id);
     }
 
+    public static boolean isStructureDirty(UUID id) {
+        return STRUCTURE_DIRTY.contains(id);
+    }
+
+    public static void onPlotBlockChanged(Level level, BlockPos pos) {
+        for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
+            if (!(e.getValue() instanceof dev.ryanhcode.sable.sublevel.SubLevel sl)) continue;
+            if (sl.getLevel() != null && sl.getLevel().dimension() != level.dimension()) continue;
+            dev.ryanhcode.sable.sublevel.plot.LevelPlot plot = sl.getPlot();
+            if (plot == null) continue;
+            BoundingBox3ic b = plot.getBoundingBox();
+            if (pos.getX() >= b.minX() && pos.getX() <= b.maxX()
+                    && pos.getY() >= b.minY() && pos.getY() <= b.maxY()
+                    && pos.getZ() >= b.minZ() && pos.getZ() <= b.maxZ()) {
+                STRUCTURE_DIRTY.add(e.getKey());
+            }
+        }
+    }
+
     public static void beginScanIfIdle(UUID id, SubLevelAccess sub) {
-        ACTIVE_SCANS.computeIfAbsent(id, k -> CompartmentDetector.beginScan(sub));
+        ACTIVE_SCANS.computeIfAbsent(id, k -> {
+            CompartmentDetector.IncrementalScanState st = CompartmentDetector.beginScan(sub);
+            if (st != null) STRUCTURE_DIRTY.remove(id);
+            return st;
+        });
     }
 
     public static boolean stepScan(UUID id, SubLevelAccess sub, int budget, long gameTick) {
@@ -196,6 +253,7 @@ public class CompartmentTracker {
             if (done) {
                 if (st.chunksMissing) {
                     LAST_UPDATE_TICK.put(id, gameTick);
+                    STRUCTURE_DIRTY.add(id);
                 } else {
                     CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
                     update(id, sub, r, gameTick);
@@ -225,7 +283,31 @@ public class CompartmentTracker {
 
     @Nullable
     public static UUID findSealedSublevel(Level level, BlockPos worldPos) {
-        return findContainingSub(level, worldPos, SEALED_UNION);
+        AABB gb = globalBounds;
+        if (gb == null) return null;
+        double cx = worldPos.getX() + 0.5, cy = worldPos.getY() + 0.5, cz = worldPos.getZ() + 0.5;
+        if (!gb.contains(cx, cy, cz)) return null;
+
+        SealedEntry[] snap = sealedSnapshot;
+        for (SealedEntry e : snap) {
+            if (e.dimension != null && e.dimension != level.dimension()) continue;
+            AABB aabb = WORLD_AABB.get(e.id);
+            if (aabb == null || !aabb.contains(cx, cy, cz)) continue;
+
+            Vector3d local = LOCAL_POS.get();
+            local.set(cx, cy, cz);
+            try {
+                e.access.logicalPose().transformPositionInverse(local);
+            } catch (Exception ex) {
+                continue;
+            }
+            long key = BlockPos.asLong(
+                    net.minecraft.util.Mth.floor(local.x),
+                    net.minecraft.util.Mth.floor(local.y),
+                    net.minecraft.util.Mth.floor(local.z));
+            if (e.cells.contains(key)) return e.id;
+        }
+        return null;
     }
 
     public static boolean isOccludedExact(Level level, net.minecraft.world.phys.Vec3 exactPos) {
@@ -233,7 +315,42 @@ public class CompartmentTracker {
     }
 
     public static boolean isInSealedExact(Level level, net.minecraft.world.phys.Vec3 exactPos) {
-        return findContainingSubExact(level, exactPos, SEALED_UNION) != null;
+        AABB gb = globalBounds;
+        if (gb == null || !gb.contains(exactPos.x, exactPos.y, exactPos.z)) return false;
+
+        for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
+            UUID id = e.getKey();
+            SubLevelAccess access = e.getValue();
+            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl
+                    && sl.getLevel() != null && sl.getLevel().dimension() != level.dimension()) continue;
+            AABB aabb = WORLD_AABB.get(id);
+            if (aabb == null || !aabb.contains(exactPos.x, exactPos.y, exactPos.z)) continue;
+            Set<BlockPos> blocks = SEALED_UNION.get(id);
+            if (blocks == null || blocks.isEmpty()) continue;
+
+            Pose3dc pose = (level.isClientSide && access instanceof dev.ryanhcode.sable.sublevel.ClientSubLevel csl)
+                    ? csl.renderPose()
+                    : access.logicalPose();
+            Vector3d local = new Vector3d(exactPos.x, exactPos.y, exactPos.z);
+            try {
+                pose.transformPositionInverse(local);
+            } catch (Exception ex) {
+                continue;
+            }
+            BlockPos localPos = BlockPos.containing(local.x, local.y, local.z);
+            if (blocks.contains(localPos)) return !plotFluidAt(access, localPos);
+        }
+        return false;
+    }
+
+    private static boolean plotFluidAt(SubLevelAccess access, BlockPos localPos) {
+        if (!(access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl)) return false;
+        dev.ryanhcode.sable.sublevel.plot.LevelPlot plot = sl.getPlot();
+        if (plot == null) return false;
+        net.minecraft.world.level.chunk.LevelChunk chunk = plot.getChunk(
+                plot.toLocal(new net.minecraft.world.level.ChunkPos(localPos.getX() >> 4, localPos.getZ() >> 4)));
+        if (chunk == null) return false;
+        return !chunk.getBlockState(localPos).getFluidState().isEmpty();
     }
 
     @Nullable
@@ -245,7 +362,8 @@ public class CompartmentTracker {
         for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
             UUID id = e.getKey();
             SubLevelAccess access = e.getValue();
-            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl && sl.getLevel() != level) continue;
+            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl
+                    && sl.getLevel() != null && sl.getLevel().dimension() != level.dimension()) continue;
             AABB aabb = WORLD_AABB.get(id);
             if (aabb == null || !aabb.contains(exactPos.x, exactPos.y, exactPos.z)) continue;
             Set<BlockPos> blocks = blockSetPerSub.get(id);
@@ -272,7 +390,8 @@ public class CompartmentTracker {
         for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
             UUID id = e.getKey();
             SubLevelAccess access = e.getValue();
-            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl && sl.getLevel() != level) continue;
+            if (access instanceof dev.ryanhcode.sable.sublevel.SubLevel sl
+                    && sl.getLevel() != null && sl.getLevel().dimension() != level.dimension()) continue;
             AABB aabb = WORLD_AABB.get(id);
             if (aabb == null || !aabb.contains(cx, cy, cz)) continue;
             Set<BlockPos> blocks = blockSetPerSub.get(id);

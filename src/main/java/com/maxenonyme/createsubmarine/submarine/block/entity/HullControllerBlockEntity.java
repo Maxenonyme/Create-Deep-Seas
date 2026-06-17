@@ -32,8 +32,13 @@ public class HullControllerBlockEntity extends BlockEntity {
             if (!SubmarineDriverRegistry.claim(currentSubLevelId, worldPosition, SubmarineDriverRegistry.HULL_CONTROLLER, gameTick)) {
                 return;
             }
+            long lastUpdate = CompartmentTracker.lastUpdateTick(currentSubLevelId);
+            long sinceUpdate = gameTick - lastUpdate;
+            boolean scanDue = lastUpdate == 0
+                    || CompartmentTracker.isStructureDirty(currentSubLevelId)
+                    || sinceUpdate >= 200;
             if (!CompartmentTracker.isScanActive(currentSubLevelId)
-                    && gameTick - CompartmentTracker.lastUpdateTick(currentSubLevelId) >= getDynamicScanDelay()) {
+                    && scanDue && sinceUpdate >= getDynamicScanDelay()) {
                 CompartmentTracker.beginScanIfIdle(currentSubLevelId, sub);
             }
             if (CompartmentTracker.isScanActive(currentSubLevelId)) {

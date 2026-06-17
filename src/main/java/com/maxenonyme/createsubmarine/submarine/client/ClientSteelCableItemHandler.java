@@ -161,17 +161,41 @@ public class ClientSteelCableItemHandler {
                 org.joml.Vector3d a = points.get(i).position();
                 org.joml.Vector3d b = points.get(i + 1).position();
 
-                org.joml.Vector3d c = getClosestPointOnSegment(a, b, pPos);
-                double d = pPos.distance(c);
+                org.joml.Vector3d pFeet = new org.joml.Vector3d(player.getX(), player.getY() + 0.2, player.getZ());
+                org.joml.Vector3d pMid = new org.joml.Vector3d(player.getX(), player.getY() + player.getBbHeight() / 2.0, player.getZ());
+                org.joml.Vector3d pHead = new org.joml.Vector3d(player.getX(), player.getY() + player.getBbHeight() - 0.2, player.getZ());
 
-                double worldX = pPos.x;
-                double worldZ = pPos.z;
-                double worldFeetY = pPos.y - player.getBbHeight() / 2.0;
-                double horizontalDist = Math.sqrt((worldX - c.x) * (worldX - c.x) + (worldZ - c.z) * (worldZ - c.z));
-                double vertDiff = worldFeetY - c.y;
+                org.joml.Vector3d cFeet = getClosestPointOnSegment(a, b, pFeet);
+                org.joml.Vector3d cMid = getClosestPointOnSegment(a, b, pMid);
+                org.joml.Vector3d cHead = getClosestPointOnSegment(a, b, pHead);
+
+                double dFeet = pFeet.distance(cFeet);
+                double dMid = pMid.distance(cMid);
+                double dHead = pHead.distance(cHead);
+
+                org.joml.Vector3d bestP = pMid;
+                org.joml.Vector3d bestC = cMid;
+                double bestD = dMid;
+
+                if (dFeet < bestD) {
+                    bestD = dFeet;
+                    bestP = pFeet;
+                    bestC = cFeet;
+                }
+                if (dHead < bestD) {
+                    bestD = dHead;
+                    bestP = pHead;
+                    bestC = cHead;
+                }
+
+                double worldX = player.getX();
+                double worldZ = player.getZ();
+                double worldFeetY = player.getY();
+                double horizontalDist = Math.sqrt((worldX - cFeet.x) * (worldX - cFeet.x) + (worldZ - cFeet.z) * (worldZ - cFeet.z));
+                double vertDiff = worldFeetY - cFeet.y;
 
                 if (horizontalDist < 0.4 && vertDiff >= -0.15 && vertDiff <= 0.45 && player.getDeltaMovement().y <= 0.05) {
-                    double targetWorldFeetY = c.y + 0.1;
+                    double targetWorldFeetY = cFeet.y + 0.1;
                     double pushY = targetWorldFeetY - worldFeetY;
 
                     org.joml.Vector3d pushVec = new org.joml.Vector3d(0, pushY, 0);
@@ -191,9 +215,9 @@ public class ClientSteelCableItemHandler {
                     continue;
                 }
 
-                double collisionLimit = 0.5;
-                if (d < collisionLimit) {
-                    org.joml.Vector3d push = new org.joml.Vector3d(pPos).sub(c);
+                double collisionLimit = 0.4;
+                if (bestD < collisionLimit) {
+                    org.joml.Vector3d push = new org.joml.Vector3d(bestP).sub(bestC);
                     double dist = push.length();
                     if (dist < 1e-6) {
                         push.set(0, 1, 0);

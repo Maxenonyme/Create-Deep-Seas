@@ -28,7 +28,7 @@ public class PDAManager {
         SLIDE_OUT
     }
 
-    private static final ResourceLocation PDA_TEXTURE = ResourceLocation.fromNamespaceAndPath("create_submarine",
+    private static final ResourceLocation PDA_TEXTURE = ResourceLocation.fromNamespaceAndPath("create_abyss",
             "textures/gui/pda.png");
     private static final int BOX_WIDTH = 240;
     private static final int BOX_HEIGHT = 60;
@@ -195,7 +195,7 @@ public class PDAManager {
             if (roarDelayTicks == 0) {
                 mc.level.playLocalSound(mc.player.getX(), mc.player.getY(), mc.player.getZ(),
                         net.minecraft.sounds.SoundEvent.createVariableRangeEvent(
-                                ResourceLocation.fromNamespaceAndPath("create_submarine", "reaper_leviathan_roars")),
+                                ResourceLocation.fromNamespaceAndPath("create_abyss", "reaper_leviathan_roars")),
                         net.minecraft.sounds.SoundSource.HOSTILE, 0.5F, 1.0F, false);
             }
         }
@@ -267,7 +267,7 @@ public class PDAManager {
         public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
             event.registerAbove(
                     VanillaGuiLayers.HOTBAR,
-                    ResourceLocation.fromNamespaceAndPath("create_submarine", "pda"),
+                    ResourceLocation.fromNamespaceAndPath("create_abyss", "pda"),
                     (guiGraphics, partialTick) -> PDAManager.renderOverlay(guiGraphics,
                             partialTick.getGameTimeDeltaTicks()));
         }
@@ -287,13 +287,13 @@ public class PDAManager {
                                     .executes(context -> {
                                         String message = StringArgumentType.getString(context, "message");
                                         PDAManager.queuePDACommand(message, ResourceLocation.fromNamespaceAndPath(
-                                                "create_submarine", "leviathan_class_detected"), 6800, 100);
+                                                "create_abyss", "leviathan_class_detected"), 6800, 100);
                                         return 1;
                                     }))
                             .executes(context -> {
                                 PDAManager.queuePDACommand(
                                         "Detecting multiple leviathan class organisms in the region. Are you certain whatever you're doing is worth it?",
-                                        ResourceLocation.fromNamespaceAndPath("create_submarine",
+                                        ResourceLocation.fromNamespaceAndPath("create_abyss",
                                                 "leviathan_class_detected"),
                                         6800, 100);
                                 return 1;

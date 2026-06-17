@@ -31,7 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SubmarinePressureSystem {
     private static final int TICK_INTERVAL = 20;
     private static final int MAX_WATER_SCAN = 400;
-    private static final ResourceLocation SOUND_METAL_STRESS = ResourceLocation.withDefaultNamespace("entity.iron_golem.repair");
+    private static final ResourceLocation SOUND_METAL_STRESS = ResourceLocation
+            .withDefaultNamespace("entity.iron_golem.repair");
     private static int tickCounter = 0;
     private static final Random RAND = new Random();
 
@@ -58,6 +59,10 @@ public class SubmarinePressureSystem {
         CRACK_LEVELS.clear();
     }
 
+    public static boolean isPressurized(UUID id) {
+        return CACHED_WATER_DEPTH.getOrDefault(id, 0) > 0;
+    }
+
     public static Map<UUID, Map<BlockPos, Integer>> getAllCracks() {
         return CRACK_LEVELS;
     }
@@ -81,13 +86,28 @@ public class SubmarinePressureSystem {
         return cracks != null && cracks.containsKey(plotPos);
     }
 
-    public static boolean repairCrack(UUID id, BlockPos plotPos, SubLevelAccess sub, Level oceanLevel) {
+    public static boolean repairCrack(UUID id, BlockPos plotPos, Level oceanLevel) {
         Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
-        if (cracks == null || !cracks.containsKey(plotPos)) return false;
-        cracks.remove(plotPos);
-        sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
+        if (cracks == null || !cracks.containsKey(plotPos))
+            return false;
+
+        int currentCrack = cracks.get(plotPos);
+        if (currentCrack <= 1) {
+            cracks.remove(plotPos);
+            sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
+        } else {
+            cracks.put(plotPos, currentCrack - 1);
+            Level plotLevel = SubLevelRegistry.getLevel(id);
+            int bid = plotLevel != null ? BuiltInRegistries.BLOCK.getId(plotLevel.getBlockState(plotPos).getBlock())
+                    : 0;
+            sendCrackPacket(oceanLevel, id, plotPos, currentCrack - 1, bid);
+        }
+
         Vector3d worldVec = new Vector3d(plotPos.getX() + 0.5, plotPos.getY() + 0.5, plotPos.getZ() + 0.5);
-        sub.logicalPose().transformPosition(worldVec);
+        SubLevelAccess sub = CompartmentTracker.getSubsSnapshot().get(id);
+        if (sub != null) {
+            sub.logicalPose().transformPosition(worldVec);
+        }
         BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
         oceanLevel.playSound(null, worldPos, net.minecraft.sounds.SoundEvents.IRON_GOLEM_REPAIR,
                 SoundSource.BLOCKS, 0.6f, 1.0f + RAND.nextFloat() * 0.3f);
@@ -95,8 +115,10 @@ public class SubmarinePressureSystem {
     }
 
     public static void onServerTick(ServerTickEvent.Post event) {
-        if (++tickCounter % TICK_INTERVAL != 0) return;
-        if (com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DISABLE_IMPLOSION.get()) return;
+        if (++tickCounter % TICK_INTERVAL != 0)
+            return;
+        if (com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DISABLE_IMPLOSION.get())
+            return;
 
         for (Map.Entry<UUID, SubLevelAccess> entry : SubLevelRegistry.getAll().entrySet()) {
             processSubmarine(entry.getKey(), entry.getValue());
@@ -105,10 +127,12 @@ public class SubmarinePressureSystem {
 
     private static void processSubmarine(UUID id, SubLevelAccess sub) {
         Level plotLevel = SubLevelRegistry.getLevel(id);
-        if (plotLevel == null) return;
+        if (plotLevel == null)
+            return;
 
         SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
-        if (bounds == null) return;
+        if (bounds == null)
+            return;
 
         Level oceanLevel = sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl ? sl.getLevel() : plotLevel;
 
@@ -121,24 +145,30 @@ public class SubmarinePressureSystem {
             return;
         }
 
-        if (SubmarineSinkingSystem.isCrashing(id)) return;
+        if (SubmarineSinkingSystem.isCrashing(id))
+            return;
 
         Set<BlockPos> breached = BREACHED_PLOT.get(id);
 
         boolean[] creakPlayed = { false };
         int[] breakBudget = { 4 };
-        long volume = (long) (bounds.maxX() - bounds.minX() + 1) * (bounds.maxY() - bounds.minY() + 1) * (bounds.maxZ() - bounds.minZ() + 1);
+        long volume = (long) (bounds.maxX() - bounds.minX() + 1) * (bounds.maxY() - bounds.minY() + 1)
+                * (bounds.maxZ() - bounds.minZ() + 1);
         int samples = (int) Math.min(250, Math.max(15, volume / 150));
 
         for (int i = 0; i < samples; i++) {
             BlockPos plotPos = bounds.randomInside(RAND);
-            if (plotPos == null || (breached != null && breached.contains(plotPos))) continue;
+            if (plotPos == null || (breached != null && breached.contains(plotPos)))
+                continue;
 
             BlockState state = plotLevel.getBlockState(plotPos);
-            if (state.isAir() || state.getFluidState().isSource()) continue;
+            if (state.isAir() || state.getFluidState().isSource())
+                continue;
 
-            Optional<HullStrengthConfig.HullProperty> propOpt = HullStrengthConfig.getFor(state);
-            if (propOpt.isEmpty()) continue;
+            BlockState actualState = getActualBlockState(plotLevel, plotPos, state);
+            Optional<HullStrengthConfig.HullProperty> propOpt = HullStrengthConfig.getFor(actualState);
+            if (propOpt.isEmpty())
+                continue;
             HullStrengthConfig.HullProperty prop = propOpt.get();
 
             applyPressure(id, plotLevel, oceanLevel, sub, plotPos, state, prop, surfaceY, creakPlayed, breakBudget);
@@ -169,17 +199,23 @@ public class SubmarinePressureSystem {
                     break;
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         return surfaceY;
     }
 
-    private static void applyPressure(UUID id, Level plotLevel, Level oceanLevel, SubLevelAccess sub, BlockPos plotPos, BlockState state, HullStrengthConfig.HullProperty prop, int surfaceY, boolean[] creakPlayed, int[] breakBudget) {
+    private static void applyPressure(UUID id, Level plotLevel, Level oceanLevel, SubLevelAccess sub, BlockPos plotPos,
+            BlockState state, HullStrengthConfig.HullProperty prop, int surfaceY, boolean[] creakPlayed,
+            int[] breakBudget) {
         CompartmentDetector.Component comp = CompartmentTracker.findCompartmentAdjacent(id, plotPos);
-        if (comp == null) return;
-        if (CompartmentTracker.isCompromised(id, comp.anchor())) return;
+        if (comp == null)
+            return;
+        if (CompartmentTracker.isCompromised(id, comp.anchor()))
+            return;
 
-        if (!comp.hull().contains(plotPos)) return;
+        if (!comp.hull().contains(plotPos))
+            return;
 
         boolean facesExterior = false;
         for (Direction dir : Direction.values()) {
@@ -189,15 +225,18 @@ public class SubmarinePressureSystem {
                 break;
             }
         }
-        if (!facesExterior) return;
+        if (!facesExterior)
+            return;
 
         Vector3d worldVec = new Vector3d(plotPos.getX() + 0.5, plotPos.getY() + 0.5, plotPos.getZ() + 0.5);
         sub.logicalPose().transformPosition(worldVec);
 
         int depth = surfaceY - (int) Math.floor(worldVec.y);
-        if (depth <= prop.maxWaterDepth()) return;
+        if (depth <= prop.maxWaterDepth())
+            return;
 
-        if (RAND.nextFloat() >= prop.implosionChance()) return;
+        if (RAND.nextFloat() >= prop.implosionChance())
+            return;
         BlockPos worldPos = BlockPos.containing(worldVec.x, worldVec.y, worldVec.z);
 
         if (!creakPlayed[0]) {
@@ -213,21 +252,21 @@ public class SubmarinePressureSystem {
         int crackLevel = cracks.getOrDefault(plotPos, 0) + 1;
         int blockId = BuiltInRegistries.BLOCK.getId(state.getBlock());
 
-        if (crackLevel >= 3) {
+        if (crackLevel >= 4) {
             cracks.remove(plotPos);
             sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
 
             if (breakBudget[0] > 0) {
                 breakBudget[0]--;
                 SoundType soundType = SoundType.STONE;
-                try { soundType = state.getBlock().getSoundType(state, plotLevel, plotPos, null); } catch (Exception ignored) {}
-                oceanLevel.playSound(null, worldPos, soundType.getBreakSound(), SoundSource.BLOCKS, 1.6f, 0.65f + RAND.nextFloat() * 0.3f);
+                try {
+                    soundType = state.getBlock().getSoundType(state, plotLevel, plotPos, null);
+                } catch (Exception ignored) {
+                }
+                oceanLevel.playSound(null, worldPos, soundType.getBreakSound(), SoundSource.BLOCKS, 1.6f,
+                        0.65f + RAND.nextFloat() * 0.3f);
             }
-            if (oceanLevel instanceof ServerLevel serverLevel) {
-                serverLevel.sendParticles(ParticleTypes.SPLASH, worldVec.x, worldVec.y + 0.5, worldVec.z, 25, 0.4, 0.1, 0.4, 0.2);
-            }
-
-            plotLevel.destroyBlock(plotPos, false);
+            plotLevel.destroyBlock(plotPos, true);
             BREACHED_PLOT.computeIfAbsent(id, k -> ConcurrentHashMap.newKeySet()).add(plotPos);
             SubLevelRegistry.PlotBounds b = SubLevelRegistry.getBounds(id);
             if (b != null) {
@@ -237,14 +276,30 @@ public class SubmarinePressureSystem {
             cracks.put(plotPos, crackLevel);
             sendCrackPacket(oceanLevel, id, plotPos, crackLevel, blockId);
             if (oceanLevel instanceof ServerLevel serverLevel) {
-                int count = crackLevel == 1 ? 5 : 12;
-                serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, worldVec.x, worldVec.y, worldVec.z, count, 0.3, 0.3, 0.3, 0.05);
+                int count = crackLevel == 1 ? 5 : (crackLevel * 2);
+                serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, worldVec.x, worldVec.y, worldVec.z, count, 0.3,
+                        0.3, 0.3, 0.05);
             }
         }
     }
 
+    public static void onPlotBlockReplaced(Level plotLevel, BlockPos plotPos) {
+        if (CRACK_LEVELS.isEmpty())
+            return;
+        UUID id = SubLevelRegistry.findUUID(plotLevel, plotPos);
+        if (id == null)
+            return;
+        Map<BlockPos, Integer> cracks = CRACK_LEVELS.get(id);
+        if (cracks == null || cracks.remove(plotPos) == null)
+            return;
+        SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
+        Level oceanLevel = sub instanceof dev.ryanhcode.sable.sublevel.SubLevel sl ? sl.getLevel() : plotLevel;
+        sendCrackPacket(oceanLevel, id, plotPos, -1, 0);
+    }
+
     private static void sendCrackPacket(Level oceanLevel, UUID id, BlockPos plotPos, int crackLevel, int blockId) {
-        if (!(oceanLevel instanceof ServerLevel sl)) return;
+        if (!(oceanLevel instanceof ServerLevel sl))
+            return;
         SubCrackPayload payload = new SubCrackPayload(id, plotPos, crackLevel, blockId);
         for (net.minecraft.server.level.ServerPlayer player : sl.players()) {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, payload);
@@ -253,11 +308,109 @@ public class SubmarinePressureSystem {
 
     private static boolean hasAnySealedCompartment(UUID id) {
         List<CompartmentDetector.Component> comps = KNOWN_SEALED.get(id);
-        if (comps == null || comps.isEmpty()) return true;
+        if (comps == null || comps.isEmpty())
+            return true;
 
         for (CompartmentDetector.Component c : comps) {
-            if (c.sealed() && !CompartmentTracker.isCompromised(id, c.anchor())) return true;
+            if (c.sealed() && !CompartmentTracker.isCompromised(id, c.anchor()))
+                return true;
         }
         return false;
+    }
+
+    public static BlockState getActualBlockState(Level level, BlockPos pos, BlockState originalState) {
+        net.minecraft.world.level.block.entity.BlockEntity be = level.getBlockEntity(pos);
+        if (be != null) {
+            ResourceLocation id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (id != null && id.getPath().contains("copycat")) {
+                net.minecraft.nbt.CompoundTag nbt = be.saveWithFullMetadata(level.registryAccess());
+                if (nbt.contains("Material")) {
+                    BlockState mat = net.minecraft.nbt.NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), nbt.getCompound("Material"));
+                    if (mat != null && !mat.isAir()) return mat;
+                }
+                if (nbt.contains("material_data")) {
+                    net.minecraft.nbt.CompoundTag data = nbt.getCompound("material_data");
+                    for (String key : data.getAllKeys()) {
+                        net.minecraft.nbt.CompoundTag itemTag = data.getCompound(key);
+                        if (itemTag.contains("material")) {
+                            BlockState mat = net.minecraft.nbt.NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), itemTag.getCompound("material"));
+                            if (mat != null && !mat.isAir()) return mat;
+                        }
+                    }
+                }
+            }
+        }
+        return originalState;
+    }
+
+    public static int getWeakestHullDepth(UUID subId, Level plotLevel) {
+        int weakest = Integer.MAX_VALUE;
+        for (CompartmentDetector.Component comp : CompartmentTracker.getCompartments(subId)) {
+            if (!comp.sealed() || CompartmentTracker.isCompromised(subId, comp.anchor()))
+                continue;
+            for (BlockPos bp : comp.hull()) {
+                boolean facesExterior = false;
+                for (Direction dir : Direction.values()) {
+                    if (!CompartmentTracker.isWithinShip(subId, bp.relative(dir))) {
+                        facesExterior = true;
+                        break;
+                    }
+                }
+                if (!facesExterior)
+                    continue;
+                BlockState state = plotLevel.getBlockState(bp);
+                if (!state.isCollisionShapeFullBlock(plotLevel, bp))
+                    continue;
+                BlockState strengthState = getActualBlockState(plotLevel, bp, state);
+                Optional<HullStrengthConfig.HullProperty> prop = HullStrengthConfig.getFor(strengthState);
+                if (prop.isPresent() && prop.get().maxWaterDepth() < weakest) {
+                    weakest = prop.get().maxWaterDepth();
+                }
+            }
+        }
+        return weakest == Integer.MAX_VALUE ? -1 : weakest;
+    }
+
+    public static boolean isUnderHighPressure(UUID id, Level plotLevel) {
+        int depth = getCachedDepth(id);
+        if (depth <= 0) return false;
+        int weakest = getWeakestHullDepth(id, plotLevel);
+        if (weakest == -1) return false;
+        return depth >= weakest * 0.80;
+    }
+
+    public static void onBlockBroken(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (!(event.getLevel() instanceof Level level) || level.isClientSide())
+            return;
+        if (com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig.DISABLE_IMPLOSION.get())
+            return;
+        if (event.getPlayer() != null && event.getPlayer().isCreative())
+            return;
+
+        UUID id = SubLevelRegistry.findUUID(level, event.getPos());
+        if (id == null || SubmarineSinkingSystem.isCrashing(id))
+            return;
+        if (!isUnderHighPressure(id, level))
+            return;
+
+        CompartmentDetector.Component comp = CompartmentTracker.findCompartmentAdjacent(id, event.getPos());
+        if (comp == null || !comp.hull().contains(event.getPos()))
+            return;
+
+        boolean facesExterior = false;
+        for (Direction dir : Direction.values()) {
+            if (!CompartmentTracker.isWithinShip(id, event.getPos().relative(dir))) {
+                facesExterior = true;
+                break;
+            }
+        }
+        if (!facesExterior)
+            return;
+
+        SubLevelAccess sub = SubLevelRegistry.getAll().get(id);
+        SubLevelRegistry.PlotBounds bounds = SubLevelRegistry.getBounds(id);
+        if (sub == null || bounds == null)
+            return;
+        SubmarineSinkingSystem.onCrashed(id, sub, level, bounds);
     }
 }
