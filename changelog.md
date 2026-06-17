@@ -1,5 +1,15 @@
 # Changelog
 
+## [June 17, 2026] - Performance & Dedicated Server Fixes
+
+### Bug Fixes & Refactoring
+- **Dedicated Server Crash:** Fixed a critical issue preventing dedicated servers from starting due to `FlowingFluidMixin` and client-side code stripping.
+- **Decompression Chamber Performance:** Massively improved the decompression chamber's TPS performance during filling and draining by optimizing the compartment BFS (Breadth-First Search) to only run once per tick instead of for every block filled.
+- **Fluid Duplication Fix:** Fixed a bug in the decompression chamber's fluid handlers that would incorrectly duplicate or void fluids by scaling transfer rates artificially. The block now correctly respects the 1:1 fluid mechanics.
+- **Waterlogged Block Protection:** The decompression chamber will no longer accidentally destroy and replace waterlogged blocks (like slabs and stairs) when attempting to manage water levels inside the compartment.
+- **Coordinate Mapping Accuracy:** Fixed a severe bug in `EntityWaterPhysicsMixin` where player coordinates were incorrectly calculated in global world space instead of local sublevel space, breaking airtight submarine suffocation/swimming checks.
+- **Memory Leak Prevention:** Patched a static memory leak in the decompression chamber that prevented unloaded or destroyed chamber water blocks from being garbage collected.
+
 ## [June 15, 2026] - Barometer, Decompression Chambers & Implosion Mechanics
 
 ### New Blocks & Features
