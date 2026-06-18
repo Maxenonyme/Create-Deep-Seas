@@ -37,6 +37,7 @@ public class CreateAbyss {
                     .displayItems((parameters, output) -> {
                         output.accept(EntityRegistry.AMPHISTIUM_SPAWN_EGG.get());
                         output.accept(EntityRegistry.COOKIECUTTER_SHARK_SPAWN_EGG.get());
+                        output.accept(EntityRegistry.MAGMATIC_SNAIL_SPAWN_EGG.get());
                     })
                     .build());
 

@@ -29,6 +29,12 @@ public final class CreateAbyssClient {
         event.registerEntityRenderer(
                 EntityRegistry.COOKIECUTTER_SHARK.get(),
                 com.maxenonyme.AbyssDimension.client.renderer.CookiecutterSharkRenderer::new);
+        event.registerEntityRenderer(
+                EntityRegistry.MAGMATIC_SNAIL.get(),
+                com.maxenonyme.AbyssDimension.client.renderer.MagmaticSnailRenderer::new);
+        event.registerEntityRenderer(
+                EntityRegistry.ISOPOD.get(),
+                com.maxenonyme.AbyssDimension.client.renderer.IsopodRenderer::new);
     }
 
     private static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
@@ -38,6 +44,12 @@ public final class CreateAbyssClient {
         event.registerLayerDefinition(
                 com.maxenonyme.AbyssDimension.client.model.CookiecutterShark.LAYER_LOCATION,
                 com.maxenonyme.AbyssDimension.client.model.CookiecutterShark::createBodyLayer);
+        event.registerLayerDefinition(
+                com.maxenonyme.AbyssDimension.client.model.MagmaticSnail.LAYER_LOCATION,
+                com.maxenonyme.AbyssDimension.client.model.MagmaticSnail::createBodyLayer);
+        event.registerLayerDefinition(
+                com.maxenonyme.AbyssDimension.client.model.Isopod.LAYER_LOCATION,
+                com.maxenonyme.AbyssDimension.client.model.Isopod::createBodyLayer);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

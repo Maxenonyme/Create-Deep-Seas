@@ -14,6 +14,24 @@ import java.util.function.Supplier;
 public final class EntityRegistry {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, CreateAbyss.MOD_ID);
 
+    public static final Supplier<EntityType<MagmaticSnailEntity>> MAGMATIC_SNAIL = ENTITY_TYPES.register("magmatic_snail",
+            () -> EntityType.Builder.of(MagmaticSnailEntity::new, MobCategory.WATER_CREATURE)
+                    .sized(1.8F, 2.0F)
+                    .clientTrackingRange(8)
+                    .build("magmatic_snail"));
+
+    public static final Supplier<Item> MAGMATIC_SNAIL_SPAWN_EGG = CreateAbyss.ITEMS.register("magmatic_snail_spawn_egg",
+            () -> new DeferredSpawnEggItem(MAGMATIC_SNAIL, 0x8B4513, 0xFF4500, new Item.Properties()));
+
+    public static final Supplier<EntityType<IsopodEntity>> ISOPOD = ENTITY_TYPES.register("isopod",
+            () -> EntityType.Builder.of(IsopodEntity::new, MobCategory.WATER_CREATURE)
+                    .sized(0.9F, 0.5F)
+                    .clientTrackingRange(8)
+                    .build("isopod"));
+
+    public static final Supplier<Item> ISOPOD_SPAWN_EGG = CreateAbyss.ITEMS.register("isopod_spawn_egg",
+            () -> new DeferredSpawnEggItem(ISOPOD, 0x6B5B4F, 0x3A2E25, new Item.Properties()));
+
     public static final Supplier<EntityType<AmphistiumEntity>> AMPHISTIUM = ENTITY_TYPES.register("amphistium",
             () -> EntityType.Builder.of(AmphistiumEntity::new, MobCategory.WATER_AMBIENT)
                     .sized(0.6F, 0.4F)
@@ -41,6 +59,8 @@ public final class EntityRegistry {
     public static void registerAttributes(EntityAttributeCreationEvent event) {
         event.put(AMPHISTIUM.get(), AmphistiumEntity.createAttributes().build());
         event.put(COOKIECUTTER_SHARK.get(), CookiecutterSharkEntity.createAttributes().build());
+        event.put(MAGMATIC_SNAIL.get(), MagmaticSnailEntity.createAttributes().build());
+        event.put(ISOPOD.get(), IsopodEntity.createAttributes().build());
     }
 
     public static void registerSpawnPlacements(net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent event) {
@@ -56,6 +76,20 @@ public final class EntityRegistry {
                 net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
                 net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
                 CookiecutterSharkEntity::checkSpawnRules,
+                net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
+        );
+        event.register(
+                MAGMATIC_SNAIL.get(),
+                net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
+                net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                MagmaticSnailEntity::checkSpawnRules,
+                net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
+        );
+        event.register(
+                ISOPOD.get(),
+                net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
+                net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                IsopodEntity::checkSpawnRules,
                 net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
         );
     }

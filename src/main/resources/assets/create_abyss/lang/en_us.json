@@ -8,7 +8,11 @@
   "create_abyss.command.spawn_liana_success": "Successfully spawned a submarine liana of length %s",
   "entity.create_abyss.amphistium": "Amphistium",
   "entity.create_abyss.cookiecutter_shark": "Cookiecutter Shark",
+  "entity.create_abyss.magmatic_snail": "Magmatic Sea Snail",
   "item.create_abyss.amphistium_spawn_egg": "Amphistium Spawn Egg",
   "item.create_abyss.cookiecutter_shark_spawn_egg": "Cookiecutter Shark Spawn Egg",
+  "entity.create_abyss.isopod": "Isopod",
+  "item.create_abyss.magmatic_snail_spawn_egg": "Magmatic Sea Snail Spawn Egg",
+  "item.create_abyss.isopod_spawn_egg": "Isopod Spawn Egg",
   "itemGroup.create_abyss.abyss_tab": "Create Abyss"
 }
