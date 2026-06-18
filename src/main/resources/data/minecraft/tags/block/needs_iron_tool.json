@@ -7,6 +7,7 @@
     "create_submarine:pulley",
     "create_submarine:underwater_mine",
     "create_submarine:submarine_propeller",
-    "create_submarine:arresting_hook"
+    "create_submarine:arresting_hook",
+    "create_submarine:barometer"
   ]
 }

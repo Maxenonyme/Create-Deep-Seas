@@ -45,10 +45,21 @@ public abstract class SableSubLevelPocketFogMixin {
         WaterOcclusionContainer<?> container = WaterOcclusionContainer.getContainer(this.subLevel.getLevel());
         if (container == null) return;
         WaterOcclusionRegion region = container.getOccludingRegion(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
-        if (region == null) return;
-        if (Sable.HELPER.getContaining(this.subLevel.getLevel(), region.getVolume().getMinBlockPos()) == this.subLevel) return;
-        Vector3dc p = this.subLevel.renderPose().position();
-        if (!container.isOccluded(new Vec3(p.x(), p.y(), p.z()))) return;
+        boolean shouldClearFog = false;
+        if (region != null && Sable.HELPER.getContaining(this.subLevel.getLevel(), region.getVolume().getMinBlockPos()) != this.subLevel) {
+            Vector3dc p = this.subLevel.renderPose().position();
+            if (container.isOccluded(new Vec3(p.x(), p.y(), p.z()))) {
+                shouldClearFog = true;
+            }
+        }
+        
+        if (!shouldClearFog) {
+            if (com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.isInSealedExact(this.subLevel.getLevel(), Minecraft.getInstance().gameRenderer.getMainCamera().getPosition())) {
+                shouldClearFog = true;
+            }
+        }
+
+        if (!shouldClearFog) return;
 
         float[] fog = RenderSystem.getShaderFogColor();
         createsubmarine$savedFogColor = new float[] { fog[0], fog[1], fog[2], fog[3] };

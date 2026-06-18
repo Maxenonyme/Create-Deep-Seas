@@ -13,10 +13,12 @@
     "RopeConnectorBlockEntityMixin",
     "SmartBlockEntityMixin",
     "EntityWaterPhysicsMixin",
+    "FlowingFluidMixin",
     "compat.SablePhysicsCrashFixMixin",
     "compat.sable.ServerSubLevelMixin",
     "LargeWaterWheelPropulsionMixin",
-    "WaterWheelBlockEntityMixin"
+    "WaterWheelBlockEntityMixin",
+    "compat.copycat.CopycatWrenchMixin"
   ],
   "client": [
     "ClientRopeStrandMixin",

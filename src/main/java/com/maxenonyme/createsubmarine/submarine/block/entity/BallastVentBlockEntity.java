@@ -19,14 +19,28 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
+import net.minecraft.world.level.block.Blocks;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentDetector;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
+import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
+import com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem;
 
 public class BallastVentBlockEntity extends KineticBlockEntity {
+    private enum Mode {
+        NONE, TANK, OCEAN
+    }
+
     private BallastTankBlockEntity cachedTank;
     private int scanCooldown = 0;
+
+    private Mode mode = Mode.NONE;
 
     public BallastVentBlockEntity(BlockPos pos, BlockState state) {
         super(CreateSubmarine.BALLAST_VENT_BE.get(), pos, state);
@@ -37,14 +51,33 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
         super.tick();
         if (level == null || level.isClientSide)
             return;
+
         scanCooldown--;
+        if (scanCooldown <= 0) {
+            detectMode();
+            scanCooldown = 40;
+        }
+
+        if (mode == Mode.TANK) {
+            tickBallastTank();
+        }
+    }
+
+    private void detectMode() {
+        cachedTank = findBallastTank();
+        if (cachedTank != null) {
+            mode = Mode.TANK;
+            return;
+        }
+        mode = isAnyHolesFaceSubmerged() ? Mode.OCEAN : Mode.NONE;
+    }
+
+
+
+    private void tickBallastTank() {
         float speed = getSpeed();
         if (Math.abs(speed) < 0.1f)
             return;
-        if (scanCooldown <= 0) {
-            cachedTank = findBallastTank();
-            scanCooldown = 40;
-        }
         if (cachedTank == null)
             return;
 
@@ -78,7 +111,6 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
                 .get();
         int transferRate = (int) (baseTransferRate * speedMultiplier * rateMult);
 
-        // It doesn't want to work :(
         int minRateForFullTransfer = (int) Math.ceil((double) totalCapacity / 600.0);
         transferRate = Math.max(transferRate, minRateForFullTransfer);
 
@@ -117,7 +149,57 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
             return null;
         if (level == null || level.isClientSide)
             return null;
-        return new PassthroughHandler(side);
+        if (mode == Mode.NONE)
+            detectMode();
+        return switch (mode) {
+            case OCEAN -> new OceanHandler();
+            default -> new PassthroughHandler(side);
+        };
+    }
+
+
+
+    private static class OceanHandler implements IFluidHandler {
+        private static final int OCEAN = 1_000_000;
+
+        @Override
+        public int getTanks() {
+            return 1;
+        }
+
+        @Override
+        public @NotNull FluidStack getFluidInTank(int tank) {
+            return new FluidStack(net.minecraft.world.level.material.Fluids.WATER, OCEAN);
+        }
+
+        @Override
+        public int getTankCapacity(int tank) {
+            return OCEAN;
+        }
+
+        @Override
+        public boolean isFluidValid(int tank, @NotNull FluidStack stack) {
+            return stack.getFluid().isSame(net.minecraft.world.level.material.Fluids.WATER);
+        }
+
+        @Override
+        public int fill(@NotNull FluidStack resource, IFluidHandler.FluidAction action) {
+            return isFluidValid(0, resource) ? resource.getAmount() : 0;
+        }
+
+        @Override
+        public @NotNull FluidStack drain(@NotNull FluidStack resource, IFluidHandler.FluidAction action) {
+            if (resource.isEmpty() || !isFluidValid(0, resource))
+                return FluidStack.EMPTY;
+            return drain(resource.getAmount(), action);
+        }
+
+        @Override
+        public @NotNull FluidStack drain(int maxDrain, IFluidHandler.FluidAction action) {
+            if (maxDrain <= 0)
+                return FluidStack.EMPTY;
+            return new FluidStack(net.minecraft.world.level.material.Fluids.WATER, maxDrain);
+        }
     }
 
     private class PassthroughHandler implements IFluidHandler {
@@ -253,7 +335,7 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
             double fx = cx + dir.getStepX() * 0.6;
             double fy = cy + dir.getStepY() * 0.6;
             double fz = cz + dir.getStepZ() * 0.6;
-            int count = 50;
+            int count = 5;
             double spread = 0.9;
             double speedMagnitude = 0.5;
             if (filling) {
@@ -281,7 +363,8 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
         }
         if (parentLevel == null)
             return false;
-        return com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.realFluidState(parentLevel, wPos).is(FluidTags.WATER);
+        return com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker.realFluidState(parentLevel, wPos)
+                .is(FluidTags.WATER);
     }
 
     @Override

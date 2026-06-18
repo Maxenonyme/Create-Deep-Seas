@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "create_submarine:block/decompression_chamber/decompression_chamber",
+    "up": "create_submarine:block/decompression_chamber/decompression_chamber",
+    "north": "create_submarine:block/decompression_chamber/decompression_chamber",
+    "east": "create_submarine:block/decompression_chamber/decompression_chamber",
+    "south": "create_submarine:block/decompression_chamber/decompression_chamber_out",
+    "west": "create_submarine:block/decompression_chamber/decompression_chamber",
+    "particle": "create_submarine:block/decompression_chamber/decompression_chamber"
+  }
+}

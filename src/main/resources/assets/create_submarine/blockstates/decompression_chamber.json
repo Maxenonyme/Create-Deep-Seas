@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=north": { "model": "create_submarine:block/decompression_chamber" },
+    "facing=east":  { "model": "create_submarine:block/decompression_chamber", "y": 90 },
+    "facing=south": { "model": "create_submarine:block/decompression_chamber", "y": 180 },
+    "facing=west":  { "model": "create_submarine:block/decompression_chamber", "y": 270 },
+    "facing=up":    { "model": "create_submarine:block/decompression_chamber", "x": -90 },
+    "facing=down":  { "model": "create_submarine:block/decompression_chamber", "x": 90 }
+  }
+}

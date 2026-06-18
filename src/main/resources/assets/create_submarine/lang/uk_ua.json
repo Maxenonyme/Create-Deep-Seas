@@ -158,5 +158,7 @@
   "create_submarine.command.findhole.outside": "Не вдалося знайти герметичну оболонку. Ви знаходитесь зовні підводного човна.",
   "create_submarine.command.findhole.detected_count": "Виявлено дірок: %s",
   "create_submarine.command.findhole.entry": "Локально: [%s, %s, %s] -> У світі: [%s, %s, %s]",
-  "create_submarine.command.findhole.more": "... та ще %s дірок."
+  "create_submarine.command.findhole.more": "... та ще %s дірок.",
+  "create_submarine.ponder.tag.deep_seas": "Create: Deep Seas",
+  "create_submarine.ponder.tag.deep_seas.description": "All components from Create: Deep Seas"
 }

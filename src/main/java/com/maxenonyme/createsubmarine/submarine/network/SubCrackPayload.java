@@ -1,7 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.network;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.client.SubLevelCrackRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -11,7 +10,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
 
-public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel) implements CustomPacketPayload {
+public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel, int blockId) implements CustomPacketPayload {
     public static final Type<SubCrackPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "sub_crack"));
 
@@ -19,13 +18,14 @@ public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel) impl
             SubCrackPayload::write, SubCrackPayload::new);
 
     public SubCrackPayload(FriendlyByteBuf buf) {
-        this(buf.readUUID(), buf.readBlockPos(), buf.readInt());
+        this(buf.readUUID(), buf.readBlockPos(), buf.readInt(), buf.readInt());
     }
 
     public void write(FriendlyByteBuf buf) {
         buf.writeUUID(subId);
         buf.writeBlockPos(plotPos);
         buf.writeInt(crackLevel);
+        buf.writeInt(blockId);
     }
 
     @Override
@@ -34,7 +34,17 @@ public record SubCrackPayload(UUID subId, BlockPos plotPos, int crackLevel) impl
     }
 
     public static void handle(SubCrackPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> SubLevelCrackRenderer.updateCrack(
-                payload.subId(), payload.plotPos(), payload.crackLevel(), 0));
+        context.enqueueWork(() -> {
+            if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+                ClientHandler.handle(payload);
+            }
+        });
+    }
+
+    private static class ClientHandler {
+        private static void handle(SubCrackPayload payload) {
+            com.maxenonyme.createsubmarine.submarine.client.SubLevelCrackRenderer.updateCrack(
+                    payload.subId(), payload.plotPos(), payload.crackLevel(), payload.blockId());
+        }
     }
 }

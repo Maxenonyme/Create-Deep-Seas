@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GGG",
+    "GWG",
+    "III"
+  ],
+  "key": {
+    "G": {
+      "item": "create_submarine:iron_pressurizer"
+    },
+    "W": {
+      "item": "minecraft:water_bucket"
+    },
+    "I": {
+      "item": "create:industrial_iron_block"
+    }
+  },
+  "result": {
+    "id": "create_submarine:barometer",
+    "count": 1
+  }
+}

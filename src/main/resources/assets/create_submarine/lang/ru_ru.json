@@ -59,7 +59,7 @@
   "create_submarine.configuration.pulleyMaxSlideSpeed": "Макс. скорость скольжения шкива",
   "create_submarine.configuration.pulleyMaxSlideSpeed.tooltip": "Максимальная скорость скольжения шкива по стальному тросу (блоков/с). При превышении этой скорости шкив начинает перегреваться.",
   "create_submarine.configuration.steelCableMaxLength": "Макс. длина стального троса",
-  "create_submarine.configuration.steelCableMaxLength.tooltip": "Максимальная длина стального троса в блоках (расстояние между двумя точками крепления). Очень длинные тросы могут вызывать задержки (лаги) сервера. По умолчанию: 1000.",
+  "create_submarine.configuration.steelCableMaxLength.tooltip": "Максимальная длина стального троса (расстояние между двумя точками крепления, в блоках). Слишком длинные тросы могут вызывать лаги на сервере. По умолчанию 1000.",
   "create_submarine.configuration.section.create.submarine.common.toml": "Общие",
   "create_submarine.configuration.section.create.submarine.common.toml.title": "Общие настройки",
   "create_submarine.configuration.title": "Create Deep Seas",
@@ -135,8 +135,6 @@
   "item.create_submarine.pressurizer.tooltip.summary": "Позволяет оснащать субмарины\nокнами, устойчивыми к давлению.",
   "item.create_submarine.steel_cable": "Стальной трос",
   "itemGroup.create_submarine": "Create Deep Seas",
-  "create_submarine.configuration.steelCableMaxLength": "Макс. длина стального троса",
-  "create_submarine.configuration.steelCableMaxLength.tooltip": "Максимальная длина стального троса (расстояние между двумя точками крепления, в блоках). Слишком длинные тросы могут вызывать лаги на сервере. По умолчанию 1000.",
   "block.create_submarine.rudder": "Руль направления",
   "create_submarine.command.findhole.not_in_submarine": "Вы должны находиться внутри или на подводной лодке.",
   "create_submarine.command.findhole.world_not_loaded": "Мир подводной лодки не загружен.",
@@ -147,6 +145,7 @@
   "create_submarine.command.findhole.outside": "Не удалось найти герметичную оболочку. Вы находитесь снаружи подводной лодки.",
   "create_submarine.command.findhole.detected_count": "Обнаружено дыр: %s",
   "create_submarine.command.findhole.entry": "Локально: [%s, %s, %s] -> В мире: [%s, %s, %s]",
-  "create_submarine.command.findhole.more": "... и еще %s дыр."
+  "create_submarine.command.findhole.more": "... и еще %s дыр.",
+  "create_submarine.ponder.tag.deep_seas": "Create: Deep Seas",
+  "create_submarine.ponder.tag.deep_seas.description": "All components from Create: Deep Seas"
 }
-

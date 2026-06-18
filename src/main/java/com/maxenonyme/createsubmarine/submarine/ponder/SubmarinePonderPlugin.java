@@ -16,4 +16,9 @@ public class SubmarinePonderPlugin implements PonderPlugin {
     public void registerScenes(PonderSceneRegistrationHelper<ResourceLocation> helper) {
         SubmarinePonderScenes.register(helper);
     }
+
+    @Override
+    public void registerTags(net.createmod.ponder.api.registration.PonderTagRegistrationHelper<ResourceLocation> helper) {
+        SubmarinePonderTags.register(helper);
+    }
 }

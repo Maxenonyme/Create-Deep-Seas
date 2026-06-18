@@ -17,6 +17,31 @@ import net.minecraft.world.level.Level;
 
 public class SteelCableItem extends RopeItem {
 
+    private static java.lang.reflect.Method createRopeMethod = null;
+    private static boolean createRopeMethodNeedsBool = true;
+    private static boolean createRopeMethodFailed = false;
+
+    private static java.lang.reflect.Method getCreateRopeMethod() {
+        if (createRopeMethodFailed) return null;
+        if (createRopeMethod != null) return createRopeMethod;
+        try {
+            createRopeMethod = dev.simulated_team.simulated.content.blocks.rope.RopeStrandHolderBehavior.class.getMethod("createRope", dev.simulated_team.simulated.content.blocks.rope.RopeStrandHolderBehavior.class, boolean.class);
+            createRopeMethodNeedsBool = true;
+        } catch (NoSuchMethodException e) {
+            try {
+                createRopeMethod = dev.simulated_team.simulated.content.blocks.rope.RopeStrandHolderBehavior.class.getMethod("createRope", dev.simulated_team.simulated.content.blocks.rope.RopeStrandHolderBehavior.class);
+                createRopeMethodNeedsBool = false;
+            } catch (Exception ex) {
+                createRopeMethodFailed = true;
+                ex.printStackTrace();
+            }
+        } catch (Exception e) {
+            createRopeMethodFailed = true;
+            e.printStackTrace();
+        }
+        return createRopeMethod;
+    }
+
     public SteelCableItem(Properties properties) {
         super(properties);
     }
@@ -81,7 +106,21 @@ public class SteelCableItem extends RopeItem {
             accessorB.createsubmarine$setSteelCable(true);
         }
 
-        if (ropeHolderA.createRope(ropeHolderB, false)) {
+        boolean success = false;
+        try {
+            java.lang.reflect.Method method = getCreateRopeMethod();
+            if (method != null) {
+                if (createRopeMethodNeedsBool) {
+                    success = (boolean) method.invoke(ropeHolderA, ropeHolderB, false);
+                } else {
+                    success = (boolean) method.invoke(ropeHolderA, ropeHolderB);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (success) {
             ropeHolderA.blockEntity.notifyUpdate();
             ropeHolderB.blockEntity.notifyUpdate();
             level.playSound(null, posA, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.5F, 1F);

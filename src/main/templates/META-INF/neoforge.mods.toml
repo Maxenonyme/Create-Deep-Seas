@@ -41,6 +41,7 @@ Surface naval content for Create Deep Seas. Coming soon.
 
 [[dependencies.${mod_id}]]
     modId="lithostitched"
+    mandatory=false
     type="optional"
     versionRange="[1.4.8,)"
     ordering="AFTER"
@@ -97,6 +98,7 @@ Surface naval content for Create Deep Seas. Coming soon.
 
 [[dependencies.${mod_id}]]
     modId="fusion"
+    mandatory=false
     type="optional"
     versionRange="[1.2.12,)"
     ordering="NONE"
@@ -132,6 +134,7 @@ Surface naval content for Create Deep Seas. Coming soon.
 
 [[dependencies.${abyss_mod_id}]]
     modId="lithostitched"
+    mandatory=false
     type="optional"
     versionRange="[1.4.8,)"
     ordering="AFTER"

@@ -23,7 +23,8 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 public class HullStrengthConfig {
-    public record HullProperty(int maxWaterDepth, float implosionChance) {}
+    public record HullProperty(int maxWaterDepth, float implosionChance) {
+    }
 
     private static final Path CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("submarine_hull.json");
     private static final Path LEGACY_DUMP_PATH = FMLPaths.CONFIGDIR.get().resolve("submarine_hull_generated.json");
@@ -47,9 +48,11 @@ public class HullStrengthConfig {
 
         for (Block block : BuiltInRegistries.BLOCK) {
             BlockState state = block.defaultBlockState();
-            if (state.isAir()) continue;
+            if (state.isAir())
+                continue;
             ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-            if (id == null) continue;
+            if (id == null)
+                continue;
             String key = id.toString();
 
             HullProperty prop = existing.get(key);
@@ -63,17 +66,23 @@ public class HullStrengthConfig {
         }
 
         boolean shouldWrite = fileMissing || (anyNewBlock && !configParseFailed);
-        if (shouldWrite) writeJson(CONFIG_PATH, complete);
-        try { Files.deleteIfExists(LEGACY_DUMP_PATH); } catch (IOException ignored) {}
+        if (shouldWrite)
+            writeJson(CONFIG_PATH, complete);
+        try {
+            Files.deleteIfExists(LEGACY_DUMP_PATH);
+        } catch (IOException ignored) {
+        }
     }
 
     public static Optional<HullProperty> getFor(BlockState state) {
         Block block = state.getBlock();
         HullProperty base = resolvedCache.get(block);
         if (base == null) {
-            if (state.isAir()) return Optional.empty();
+            if (state.isAir())
+                return Optional.empty();
             ResourceLocation id = BuiltInRegistries.BLOCK.getKey(block);
-            if (id == null) return Optional.empty();
+            if (id == null)
+                return Optional.empty();
             base = values.getOrDefault(id.toString(), autoCompute(state, id));
             resolvedCache.put(block, base);
         }
@@ -85,13 +94,15 @@ public class HullStrengthConfig {
         double chanceMult = SubmarineConfig.IMPLOSION_CHANCE_MULTIPLIER.get();
         int depth = Math.max(1, (int) Math.round(base.maxWaterDepth() * depthMult));
         float chance = (float) Math.max(0.0, Math.min(1.0, base.implosionChance() * chanceMult));
-        if (depth == base.maxWaterDepth() && chance == base.implosionChance()) return base;
+        if (depth == base.maxWaterDepth() && chance == base.implosionChance())
+            return base;
         return new HullProperty(depth, chance);
     }
 
     private static Map<String, HullProperty> readConfigFile() {
         Map<String, HullProperty> map = new LinkedHashMap<>();
-        if (!Files.exists(CONFIG_PATH)) return map;
+        if (!Files.exists(CONFIG_PATH))
+            return map;
 
         String json;
         try {
@@ -112,10 +123,21 @@ public class HullStrengthConfig {
             return map;
         }
 
+        int version = 1;
+        if (root.has("_version")) {
+            version = root.get("_version").getAsInt();
+        }
+        if (version < 2) {
+            backupBadFile();
+            return map;
+        }
+
         for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
-            if (entry.getKey().startsWith("_")) continue;
+            if (entry.getKey().startsWith("_"))
+                continue;
             JsonElement value = entry.getValue();
-            if (!value.isJsonObject()) continue;
+            if (!value.isJsonObject())
+                continue;
             JsonObject props = value.getAsJsonObject();
             int depth = 0;
             if (props.has("maxWaterDepth")) {
@@ -131,7 +153,8 @@ public class HullStrengthConfig {
 
     private static void backupBadFile() {
         try {
-            Path backup = CONFIG_PATH.resolveSibling(CONFIG_PATH.getFileName() + ".bak." + Instant.now().getEpochSecond());
+            Path backup = CONFIG_PATH
+                    .resolveSibling(CONFIG_PATH.getFileName() + ".bak." + Instant.now().getEpochSecond());
             Files.copy(CONFIG_PATH, backup, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
         }
@@ -149,19 +172,25 @@ public class HullStrengthConfig {
             hardness = state.getDestroySpeed(null, null);
             resistance = block.getExplosionResistance();
             sound = state.getSoundType();
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
         double score = (hardness * 11.2) + (resistance * 5.6);
         double multiplier = 1.0;
-        if (sound == SoundType.METAL) multiplier = 1.8;
-        else if (sound == SoundType.GLASS) multiplier = 0.3;
-        else if (sound == SoundType.WOOD || sound == SoundType.BAMBOO) multiplier = 0.6;
-        else if (sound == SoundType.STONE || sound == SoundType.DEEPSLATE) multiplier = 1.1;
+        if (sound == SoundType.METAL)
+            multiplier = 1.8;
+        else if (sound == SoundType.GLASS)
+            multiplier = 0.3;
+        else if (sound == SoundType.WOOD || sound == SoundType.BAMBOO)
+            multiplier = 0.6;
+        else if (sound == SoundType.STONE || sound == SoundType.DEEPSLATE)
+            multiplier = 1.1;
         score *= multiplier;
 
         int globalCap = SubmarineConfig.GLOBAL_MAX_DEPTH_CAP.get();
         int maxWaterDepth = Math.max(1, (int) score);
         boolean isInternal = id != null && id.getNamespace().equals(CreateSubmarine.MOD_ID);
-        if (!isInternal && maxWaterDepth > globalCap) maxWaterDepth = globalCap;
+        if (!isInternal && maxWaterDepth > globalCap)
+            maxWaterDepth = globalCap;
 
         float chance = (float) Math.max(0.05, Math.min(0.85, 1.0 - (score / 168.0)));
         return new HullProperty(maxWaterDepth, chance);
@@ -169,25 +198,27 @@ public class HullStrengthConfig {
 
     private static void buildStaticDefaults(Map<String, HullProperty> map) {
         int cap = SubmarineConfig.GLOBAL_MAX_DEPTH_CAP.get();
-        map.put("minecraft:obsidian",             new HullProperty(cap, 0.08f));
+        map.put("minecraft:obsidian", new HullProperty(cap, 0.08f));
         map.put("minecraft:reinforced_deepslate", new HullProperty(cap, 0.01f));
-        map.put("minecraft:bedrock",              new HullProperty(cap, 0.00f));
+        map.put("minecraft:bedrock", new HullProperty(cap, 0.00f));
 
         map.put("create_submarine:creative_oxygenator", new HullProperty(250, 0.02f));
-        map.put("create_submarine:ballast_tank",        new HullProperty(230, 0.04f));
-        map.put("create_submarine:ballast_vent",        new HullProperty(220, 0.05f));
-        map.put("create_submarine:water_thruster",      new HullProperty(220, 0.05f));
-        map.put("create_submarine:iron_pressurizer",    new HullProperty(200, 0.06f));
-        map.put("create_submarine:copper_pressurizer",  new HullProperty(200, 0.06f));
-        map.put("create_submarine:electrolyzer",        new HullProperty(200, 0.06f));
-        map.put("create_submarine:oxygene_diffuser",    new HullProperty(180, 0.07f));
-        map.put("create_submarine:industrial_alarm",    new HullProperty(160, 0.08f));
-        map.put("create_submarine:barometer",           new HullProperty(200, 0.05f));
+        map.put("create_submarine:ballast_tank", new HullProperty(230, 0.04f));
+        map.put("create_submarine:ballast_vent", new HullProperty(220, 0.05f));
+        map.put("create_submarine:water_thruster", new HullProperty(220, 0.05f));
+        map.put("create_submarine:iron_pressurizer", new HullProperty(200, 0.06f));
+        map.put("create_submarine:copper_pressurizer", new HullProperty(200, 0.06f));
+        map.put("create_submarine:electrolyzer", new HullProperty(200, 0.06f));
+        map.put("create_submarine:oxygene_diffuser", new HullProperty(180, 0.07f));
+        map.put("create_submarine:industrial_alarm", new HullProperty(160, 0.08f));
+        map.put("create_submarine:barometer", new HullProperty(200, 0.05f));
     }
 
     private static void writeJson(Path path, Map<String, HullProperty> data) {
         JsonObject root = new JsonObject();
-        root.addProperty("_README", "Per-block hull strength. Edit maxWaterDepth (int) and implosionChance (0..1). Keys starting with _ are ignored.");
+        root.addProperty("_README",
+                "Per-block hull strength. Edit maxWaterDepth (int) and implosionChance (0..1). Keys starting with _ are ignored.");
+        root.addProperty("_version", 2);
         data.forEach((blockId, prop) -> {
             JsonObject entry = new JsonObject();
             entry.addProperty("maxWaterDepth", prop.maxWaterDepth());

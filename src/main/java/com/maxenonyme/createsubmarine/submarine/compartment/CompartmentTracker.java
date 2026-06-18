@@ -253,6 +253,7 @@ public class CompartmentTracker {
             if (done) {
                 if (st.chunksMissing) {
                     LAST_UPDATE_TICK.put(id, gameTick);
+                    STRUCTURE_DIRTY.add(id);
                 } else {
                     CompartmentDetector.Result r = CompartmentDetector.finishScan(st);
                     update(id, sub, r, gameTick);

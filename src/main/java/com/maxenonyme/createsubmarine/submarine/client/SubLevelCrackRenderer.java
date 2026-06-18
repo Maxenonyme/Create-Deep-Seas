@@ -37,6 +37,11 @@ public class SubLevelCrackRenderer {
         }
     }
 
+    public static boolean hasCrack(UUID subId, BlockPos plotPos) {
+        Map<BlockPos, int[]> m = CLIENT_CRACKS.get(subId);
+        return m != null && m.containsKey(plotPos);
+    }
+
     public static void clearSub(UUID subId) {
         CLIENT_CRACKS.remove(subId);
     }

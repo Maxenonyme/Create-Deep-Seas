@@ -109,6 +109,7 @@
   "create_submarine.command.findhole.outside": "No se pudo encontrar un recinto válido. Estás fuera del submarino.",
   "create_submarine.command.findhole.detected_count": "%s agujero(s) detectado(s)",
   "create_submarine.command.findhole.entry": "Local: [%s, %s, %s] -> Mundo: [%s, %s, %s]",
-  "create_submarine.command.findhole.more": "... y %s agujeros más."
+  "create_submarine.command.findhole.more": "... y %s agujeros más.",
+  "create_submarine.ponder.tag.deep_seas": "Create: Deep Seas",
+  "create_submarine.ponder.tag.deep_seas.description": "All components from Create: Deep Seas"
 }
-

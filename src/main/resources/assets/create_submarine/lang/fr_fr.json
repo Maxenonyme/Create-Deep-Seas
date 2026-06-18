@@ -1,6 +1,7 @@
 {
   "block.create_submarine.ballast_tank": "Ballast de Sous-Marin",
   "block.create_submarine.ballast_vent": "Évent de Ballast",
+  "block.create_submarine.decompression_chamber": "Chambre de Décompression",
   "block.create_submarine.copper_pressurizer": "Vitre Pressurisée en Cuivre",
   "block.create_submarine.creative_oxygenator": "Oxygénateur Créatif",
   "block.create_submarine.electrolyzer": "Électrolyseur",
@@ -108,6 +109,14 @@
   "create_submarine.ponder.water_thruster.text_2": "Le connecter à une source d'eau et lui fournir de l'énergie cinétique l'activera.",
   "create_submarine.ponder.water_thruster.text_3": "Plus il y a de pression et de vitesse, plus vous allez vite !",
   "create_submarine.ponder.water_thruster.text_4": "Ce réservoir fournit l'eau nécessaire à la propulsion.",
+  "create_submarine.ponder.barometer.header": "Baromètre",
+  "create_submarine.ponder.barometer.text_1": "Le Baromètre indique la pression appliquée sur le sous-marin.",
+  "create_submarine.ponder.barometer.text_2": "Il la compare à la pression maximale que la coque peut soutenir en prenant le bloc le plus faible.",
+  "create_submarine.ponder.barometer.text_3": "Vous pouvez aussi nommer le poisson à l'intérieur avec une Étiquette pour avoir un compagnon dans les abysses !",
+  "create_submarine.ponder.barometer_display_link.header": "Intégration du Display Link",
+  "create_submarine.ponder.barometer_display_link.text_1": "Vous pouvez attacher un Display Link sur le Baromètre.",
+  "create_submarine.ponder.barometer_display_link.text_2": "Cela vous permet d'afficher la profondeur et l'état de la coque du sous-marin sur n'importe quel Panneau d'Affichage !",
+  "create_submarine.ponder.barometer_display_link.text_3": "Profondeur : 42m",
   "create_submarine.screen.hull_strength_config.title": "Configuration de la Résistance de la Coque",
   "create_submarine.simulated_section.submarine": "Deep Seas",
   "create_submarine.tooltip.holdForInfo": "Maintenir %s pour les infos",
@@ -171,5 +180,13 @@
   "create_submarine.command.findhole.outside": "Impossible de trouver une enceinte valide. Vous êtes à l'extérieur du sous-marin.",
   "create_submarine.command.findhole.detected_count": "%s trou(s) détecté(s)",
   "create_submarine.command.findhole.entry": "Local : [%s, %s, %s] -> Monde : [%s, %s, %s]",
-  "create_submarine.command.findhole.more": "... et %s autres trous."
+  "create_submarine.command.findhole.more": "... et %s autres trous.",
+  "create_submarine.display_source.barometer": "Baromètre de Pression",
+  "create_submarine.display_source.depth": "Profondeur : %s",
+  "create_submarine.display_source.mode.title": "Mode d'Affichage",
+  "create_submarine.display_source.mode.depth_only": "Profondeur Uniquement",
+  "create_submarine.display_source.mode.danger_only": "Danger Uniquement",
+  "create_submarine.display_source.mode.both": "Profondeur & Danger",
+  "create_submarine.ponder.tag.deep_seas": "Composants des Abysses",
+  "create_submarine.ponder.tag.deep_seas.description": "Ingénierie et mécaniques sous-marines"
 }

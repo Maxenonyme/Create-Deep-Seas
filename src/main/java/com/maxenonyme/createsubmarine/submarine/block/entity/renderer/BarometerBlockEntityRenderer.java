@@ -106,24 +106,7 @@ public class BarometerBlockEntityRenderer implements BlockEntityRenderer<Baromet
             ms.popPose();
         }
         
-        net.minecraft.network.chat.Component customName = be.getCustomName();
-        if (customName != null) {
-            ms.pushPose();
-            ms.translate(0.5f, 1.5f, 0.5f);
-            ms.mulPose(ms.last().pose().getNormalizedRotation(new org.joml.Quaternionf()).conjugate());
-            ms.scale(-0.025f, -0.025f, 0.025f);
-            
-            org.joml.Matrix4f matrix4f = ms.last().pose();
-            float opacity = Minecraft.getInstance().options.getBackgroundOpacity(0.25F);
-            int bgColor = (int)(opacity * 255.0F) << 24;
-            net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
-            float widthOffset = (float)(-font.width(customName) / 2);
-            
-            font.drawInBatch(customName, widthOffset, 0f, 553648127, false, matrix4f, buffer, net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH, bgColor, light);
-            font.drawInBatch(customName, widthOffset, 0f, -1, false, matrix4f, buffer, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, light);
-            
-            ms.popPose();
-        }
+
 
         net.neoforged.neoforge.fluids.FluidStack water = new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.WATER, 1000);
         renderForcedFluid(water, 0.01f / 16f, 4.01f / 16f, 0.01f / 16f, 15.99f / 16f, 15.99f / 16f, 15.99f / 16f, ms, buffer, light, overlay);
