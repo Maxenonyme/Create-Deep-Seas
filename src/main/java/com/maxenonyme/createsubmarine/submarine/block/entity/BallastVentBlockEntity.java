@@ -179,7 +179,7 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
 
         @Override
         public boolean isFluidValid(int tank, @NotNull FluidStack stack) {
-            return stack.getFluid().isSame(net.minecraft.world.level.material.Fluids.WATER);
+            return stack.getFluid().is(net.minecraft.tags.FluidTags.WATER);
         }
 
         @Override
@@ -236,7 +236,7 @@ public class BallastVentBlockEntity extends KineticBlockEntity {
 
         @Override
         public boolean isFluidValid(int tank, @NotNull FluidStack stack) {
-            return stack.getFluid().isSame(net.minecraft.world.level.material.Fluids.WATER);
+            return stack.getFluid().is(net.minecraft.tags.FluidTags.WATER);
         }
 
         @Override

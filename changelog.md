@@ -1,15 +1,21 @@
 # Changelog
 
+## [June 18, 2026] - Modded Fluids and Sodium Compatibility Fixes
+
+- **Modded Fluids Compatibility:** Completely rewrote the fluid detection logic across the entire mod (Decompression Chambers, Ballasts, Electrolyzers, etc.) to use standard NeoForge Fluid Tags (`#minecraft:water`) instead of hardcoded vanilla blocks. The mod is now natively compatible with modded liquids like Terrafirmacraft's saltwater out of the box!
+- **Mod Compatibility (Veil/Spotlights):** Fixed a shader compilation crash that occurred when using the "Spotlights or Something" mod (Veil rendering engine) alongside Sodium. Rewrote the Sodium shader injection using MixinExtras `@ModifyReturnValue` to gracefully allow Veil's mixins to apply their shader uniforms first, preventing `undefined variable "lodBias"` OpenGL errors.
+
 ## [June 17, 2026] - Performance & Dedicated Server Fixes
 
 ### Bug Fixes & Refactoring
-- **Dedicated Server Crash:** Fixed a critical issue preventing dedicated servers from starting due to `FlowingFluidMixin` and client-side code stripping.
+- **Dedicated Server Crashes:** 
+  - Fixed a critical issue preventing dedicated servers from starting due to `FlowingFluidMixin` and client-side code stripping.
+  - Fixed a severe crash during server startup where a client-only rendering class (`SubLevelCrackRenderer`) was referenced within a common network packet, causing the Mixin pre-processor to crash and trigger a cascade failure of dependent mods (like Copycats+ and Create Aeronautics).
 - **Decompression Chamber Performance:** Massively improved the decompression chamber's TPS performance during filling and draining by optimizing the compartment BFS (Breadth-First Search) to only run once per tick instead of for every block filled.
 - **Fluid Duplication Fix:** Fixed a bug in the decompression chamber's fluid handlers that would incorrectly duplicate or void fluids by scaling transfer rates artificially. The block now correctly respects the 1:1 fluid mechanics.
 - **Waterlogged Block Protection:** The decompression chamber will no longer accidentally destroy and replace waterlogged blocks (like slabs and stairs) when attempting to manage water levels inside the compartment.
 - **Coordinate Mapping Accuracy:** Fixed a severe bug in `EntityWaterPhysicsMixin` where player coordinates were incorrectly calculated in global world space instead of local sublevel space, breaking airtight submarine suffocation/swimming checks.
 - **Memory Leak Prevention:** Patched a static memory leak in the decompression chamber that prevented unloaded or destroyed chamber water blocks from being garbage collected.
-
 ## [June 15, 2026] - Barometer, Decompression Chambers & Implosion Mechanics
 
 ### New Blocks & Features

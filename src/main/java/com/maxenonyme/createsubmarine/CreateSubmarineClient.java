@@ -43,6 +43,12 @@ public final class CreateSubmarineClient {
         modEventBus.addListener(CreateSubmarineClient::onRegisterScreens);
         modEventBus.addListener(CreateSubmarineClient::onRegisterClientExtensions);
         com.maxenonyme.createsubmarine.submarine.util.CrackUtil.setChecker(SubLevelCrackRenderer::hasCrack);
+        com.maxenonyme.createsubmarine.submarine.network.SubCrackPayload.handler = (payload, context) -> {
+            context.enqueueWork(() -> {
+                SubLevelCrackRenderer.updateCrack(
+                        payload.subId(), payload.plotPos(), payload.crackLevel(), payload.blockId());
+            });
+        };
 
         modEventBus.addListener(WatermarkOverlay::register);
 

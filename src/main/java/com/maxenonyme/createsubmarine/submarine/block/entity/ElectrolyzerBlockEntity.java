@@ -17,7 +17,7 @@ import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import org.jetbrains.annotations.NotNull;
 
 public class ElectrolyzerBlockEntity extends BlockEntity {
-    public final FluidTank waterTank = new FluidTank(4000, fluid -> fluid.getFluid().isSame(Fluids.WATER));
+    public final FluidTank waterTank = new FluidTank(4000, fluid -> fluid.getFluid().is(net.minecraft.tags.FluidTags.WATER));
     public final FluidTank oxygenTank = new FluidTank(4000,
             fluid -> fluid.getFluid().isSame(CreateSubmarine.OXYGEN.get()));
     public final EnergyStorage energyStorage = new EnergyStorage(10000, 1000, 1000);
@@ -45,7 +45,7 @@ public class ElectrolyzerBlockEntity extends BlockEntity {
 
         @Override
         public int fill(FluidStack resource, FluidAction action) {
-            if (resource.getFluid().isSame(Fluids.WATER))
+            if (resource.getFluid().is(net.minecraft.tags.FluidTags.WATER))
                 return waterTank.fill(resource, action);
             return 0;
         }

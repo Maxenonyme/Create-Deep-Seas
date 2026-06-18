@@ -4,11 +4,10 @@ import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 
 @Pseudo
-@Mixin(targets = "net.caffeinemc.mods.sodium.client.gl.shader.ShaderLoader", remap = false)
+@Mixin(value = net.caffeinemc.mods.sodium.client.gl.shader.ShaderLoader.class, remap = false, priority = 2000)
 public abstract class SodiumShaderLoaderMixin {
 
     private static final String UNIFORM_BLOCK = "uniform vec2 ScreenSize;\n" +
@@ -23,17 +22,12 @@ public abstract class SodiumShaderLoaderMixin {
             "        if (_csubCloseDepth < 1.0 && _csubFragDepth > _csubCloseDepth && _csubFragDepth < _csubFarDepth) { discard; }\n" +
             "    }\n";
 
-    @Inject(method = "getShaderSource", at = @At("RETURN"), cancellable = true, remap = false)
-    private static void createsubmarine$injectOcclusion(ResourceLocation location, CallbackInfoReturnable<String> cir) {
+    @ModifyReturnValue(method = "getShaderSource", at = @At("RETURN"), remap = false)
+    private static String createsubmarine$injectOcclusion(String source, ResourceLocation location) {
         String path = location.getPath();
-        if (!path.endsWith(".fsh"))
-            return;
-        if (!path.contains("block_layer"))
-            return;
-
-        String source = cir.getReturnValue();
-        if (source == null || source.contains("SableWaterOcclusionEnabled"))
-            return;
+        if (!path.endsWith(".fsh") || !path.contains("block_layer") || source == null || source.contains("SableWaterOcclusionEnabled")) {
+            return source;
+        }
 
         StringBuilder out = new StringBuilder(source.length() + 1024);
 
@@ -53,7 +47,7 @@ public abstract class SodiumShaderLoaderMixin {
             out.append(injectDiscardInMain(source));
         }
 
-        cir.setReturnValue(out.toString());
+        return out.toString();
     }
 
     private static String injectDiscardInMain(String source) {
