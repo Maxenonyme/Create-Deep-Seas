@@ -23,6 +23,9 @@ public class AllPartialModels {
     public static final PartialModel WARDING_STAFF = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/warding_staff/staff"));
     public static final PartialModel WARDING_STAFF_RING = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/warding_staff/ring"));
     public static final PartialModel WARDING_STAFF_ORB = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/warding_staff/orb"));
+    public static final PartialModel PURGE_STAFF = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/purge_staff/core"));
+    public static final PartialModel PURGE_STAFF_CASING = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/purge_staff/casing"));
+    public static final PartialModel PURGE_STAFF_EYE = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/purge_staff/eye"));
     public static final SpriteShiftEntry WINCH_STEEL_COIL_SCROLL = SpriteShifter.get(
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil"),
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil_scroll")

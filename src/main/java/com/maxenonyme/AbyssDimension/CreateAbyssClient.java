@@ -35,6 +35,9 @@ public final class CreateAbyssClient {
         event.registerEntityRenderer(
                 EntityRegistry.ISOPOD.get(),
                 com.maxenonyme.AbyssDimension.client.renderer.IsopodRenderer::new);
+        event.registerEntityRenderer(
+                EntityRegistry.ABYSSAL_CUTTLEFISH.get(),
+                com.maxenonyme.AbyssDimension.client.renderer.AbyssalCuttlefishRenderer::new);
     }
 
     private static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
@@ -50,6 +53,9 @@ public final class CreateAbyssClient {
         event.registerLayerDefinition(
                 com.maxenonyme.AbyssDimension.client.model.Isopod.LAYER_LOCATION,
                 com.maxenonyme.AbyssDimension.client.model.Isopod::createBodyLayer);
+        event.registerLayerDefinition(
+                com.maxenonyme.AbyssDimension.client.model.AbyssalCuttlefish.LAYER_LOCATION,
+                com.maxenonyme.AbyssDimension.client.model.AbyssalCuttlefish::createBodyLayer);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

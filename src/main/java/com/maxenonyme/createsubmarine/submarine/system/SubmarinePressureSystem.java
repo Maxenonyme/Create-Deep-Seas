@@ -260,10 +260,14 @@ public class SubmarinePressureSystem {
 
     private static void sendCrackPacket(Level oceanLevel, UUID id, BlockPos plotPos, int crackLevel, int blockId) {
         if (!(oceanLevel instanceof ServerLevel sl)) return;
-        SubCrackPayload payload = new SubCrackPayload(id, plotPos, crackLevel);
+        SubCrackPayload payload = new SubCrackPayload(id, plotPos, crackLevel, blockId);
         for (net.minecraft.server.level.ServerPlayer player : sl.players()) {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, payload);
         }
+    }
+
+    public static boolean isPressurized(UUID id) {
+        return getCachedDepth(id) > 0 && !isBreached(id);
     }
 
     public static BlockState getActualBlockState(Level level, BlockPos pos, BlockState originalState) {

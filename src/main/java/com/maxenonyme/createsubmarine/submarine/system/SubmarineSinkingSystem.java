@@ -1,6 +1,7 @@
 package com.maxenonyme.createsubmarine.submarine.system;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentDetector;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
 import net.minecraft.core.BlockPos;
@@ -123,6 +124,34 @@ public class SubmarineSinkingSystem {
                 for (int z = bounds.minZ(); z <= bounds.maxZ(); z++)
                     PENDING.offer(new ScheduledRemoval(parentLevel, new BlockPos(x, y, z),
                             baseTick + 60 + RAND.nextInt(120)));
+    }
+
+    public static void implodeCompartment(UUID id, SubLevelAccess sub, Level parentLevel, CompartmentDetector.Component comp) {
+        if (comp == null) return;
+        CRASHED.add(id);
+        Vector3d worldCenter = new Vector3d(0, 0, 0);
+        int count = 0;
+        for (BlockPos p : comp.internal()) {
+            worldCenter.add(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
+            count++;
+        }
+        for (BlockPos p : comp.hull()) {
+            worldCenter.add(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
+            count++;
+        }
+        if (count > 0 && parentLevel instanceof ServerLevel serverLevel) {
+            worldCenter.div(count);
+            sub.logicalPose().transformPosition(worldCenter);
+            BlockPos worldCenterPos = BlockPos.containing(worldCenter.x, worldCenter.y, worldCenter.z);
+            serverLevel.playSound(null, worldCenterPos, CreateSubmarine.IMPLOSION_SOUND.get(), SoundSource.BLOCKS, 2.0f, 1.0f);
+            serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, worldCenter.x, worldCenter.y, worldCenter.z, 3, 2.0, 2.0, 2.0, 0.3);
+        }
+        for (BlockPos p : comp.hull()) {
+            parentLevel.setBlock(p, Blocks.AIR.defaultBlockState(), 3);
+        }
+        for (BlockPos p : comp.internal()) {
+            parentLevel.setBlock(p, Blocks.AIR.defaultBlockState(), 3);
+        }
     }
 
     private static void applySinkingForce(SubLevelAccess sub) {

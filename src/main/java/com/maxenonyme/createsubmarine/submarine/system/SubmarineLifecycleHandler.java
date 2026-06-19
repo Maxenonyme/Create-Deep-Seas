@@ -7,6 +7,7 @@ import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
@@ -54,9 +55,14 @@ public final class SubmarineLifecycleHandler {
 
             Map<BlockPos, Integer> cracks = SubmarinePressureSystem.getAllCracks().get(subId);
             if (cracks == null) continue;
+            Level plotLevel = SubLevelRegistry.getLevel(subId);
             for (Map.Entry<BlockPos, Integer> c : cracks.entrySet()) {
+                int blockId = 0;
+                if (plotLevel != null) {
+                    blockId = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getId(plotLevel.getBlockState(c.getKey()).getBlock());
+                }
                 PacketDistributor.sendToPlayer(player,
-                        new SubCrackPayload(subId, c.getKey(), c.getValue()));
+                        new SubCrackPayload(subId, c.getKey(), c.getValue(), blockId));
             }
         }
     }

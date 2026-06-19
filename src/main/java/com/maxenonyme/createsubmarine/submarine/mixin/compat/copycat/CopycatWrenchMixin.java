@@ -30,7 +30,7 @@ public interface CopycatWrenchMixin {
             if (sub != null) {
                 subId = sub.getUniqueId();
                 org.joml.Vector3d local = new org.joml.Vector3d(clickedPos.getX() + 0.5, clickedPos.getY() + 0.5, clickedPos.getZ() + 0.5);
-                dev.ryanhcode.sable.companion.math.Pose3dc pose = level.isClientSide() ? com.maxenonyme.createsubmarine.CreateSubmarine.clientPoseGetter.apply(sub) : sub.logicalPose();
+                dev.ryanhcode.sable.companion.math.Pose3dc pose = sub.logicalPose();
                 pose.transformPositionInverse(local);
                 plotPos = net.minecraft.core.BlockPos.containing(local.x, local.y, local.z);
             }

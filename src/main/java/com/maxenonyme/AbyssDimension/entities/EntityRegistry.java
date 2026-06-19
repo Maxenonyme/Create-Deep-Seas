@@ -7,6 +7,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.DeferredSpawnEggItem;
+import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
@@ -30,7 +31,13 @@ public final class EntityRegistry {
                     .build("isopod"));
 
     public static final Supplier<Item> ISOPOD_SPAWN_EGG = CreateAbyss.ITEMS.register("isopod_spawn_egg",
-            () -> new DeferredSpawnEggItem(ISOPOD, 0x6B5B4F, 0x3A2E25, new Item.Properties()));
+            () -> new IsopodSpawnEggItem(ISOPOD, 0x6B5B4F, 0x3A2E25, 1, new Item.Properties()));
+    public static final Supplier<Item> SIZE_2_ISOPOD_SPAWN_EGG = CreateAbyss.ITEMS.register("size_2_isopod_spawn_egg",
+            () -> new IsopodSpawnEggItem(ISOPOD, 0x7D6B5C, 0x4C3E32, 2, new Item.Properties()));
+    public static final Supplier<Item> SIZE_3_ISOPOD_SPAWN_EGG = CreateAbyss.ITEMS.register("size_3_isopod_spawn_egg",
+            () -> new IsopodSpawnEggItem(ISOPOD, 0x8F7C6A, 0x5F4F3F, 3, new Item.Properties()));
+    public static final Supplier<Item> SIZE_4_ISOPOD_SPAWN_EGG = CreateAbyss.ITEMS.register("size_4_isopod_spawn_egg",
+            () -> new IsopodSpawnEggItem(ISOPOD, 0xA18D78, 0x726051, 4, new Item.Properties()));
 
     public static final Supplier<EntityType<AmphistiumEntity>> AMPHISTIUM = ENTITY_TYPES.register("amphistium",
             () -> EntityType.Builder.of(AmphistiumEntity::new, MobCategory.WATER_AMBIENT)
@@ -50,6 +57,15 @@ public final class EntityRegistry {
     public static final Supplier<Item> COOKIECUTTER_SHARK_SPAWN_EGG = CreateAbyss.ITEMS.register("cookiecutter_shark_spawn_egg",
             () -> new DeferredSpawnEggItem(COOKIECUTTER_SHARK, 0x12283A, 0x1E3B26, new Item.Properties()));
 
+    public static final Supplier<EntityType<AbyssalCuttlefishEntity>> ABYSSAL_CUTTLEFISH = ENTITY_TYPES.register("abyssal_cuttlefish",
+            () -> EntityType.Builder.of(AbyssalCuttlefishEntity::new, MobCategory.WATER_CREATURE)
+                    .sized(2.5F, 3.5F)
+                    .clientTrackingRange(8)
+                    .build("abyssal_cuttlefish"));
+
+    public static final Supplier<Item> ABYSSAL_CUTTLEFISH_SPAWN_EGG = CreateAbyss.ITEMS.register("abyssal_cuttlefish_spawn_egg",
+            () -> new DeferredSpawnEggItem(ABYSSAL_CUTTLEFISH, 0x4A90D9, 0xE8A87C, new Item.Properties()));
+
     public static void init(IEventBus modEventBus) {
         ENTITY_TYPES.register(modEventBus);
         modEventBus.addListener(EntityRegistry::registerAttributes);
@@ -61,6 +77,7 @@ public final class EntityRegistry {
         event.put(COOKIECUTTER_SHARK.get(), CookiecutterSharkEntity.createAttributes().build());
         event.put(MAGMATIC_SNAIL.get(), MagmaticSnailEntity.createAttributes().build());
         event.put(ISOPOD.get(), IsopodEntity.createAttributes().build());
+        event.put(ABYSSAL_CUTTLEFISH.get(), AbyssalCuttlefishEntity.createAttributes().build());
     }
 
     public static void registerSpawnPlacements(net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent event) {
@@ -90,6 +107,13 @@ public final class EntityRegistry {
                 net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
                 net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
                 IsopodEntity::checkSpawnRules,
+                net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
+        );
+        event.register(
+                ABYSSAL_CUTTLEFISH.get(),
+                net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
+                net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                AbyssalCuttlefishEntity::checkSpawnRules,
                 net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
         );
     }

@@ -295,11 +295,23 @@ public class CreateSubmarine {
                         () -> new com.maxenonyme.createsubmarine.submarine.item.warding_staff.WardingStaffItem(
                                         new Item.Properties().rarity(net.minecraft.world.item.Rarity.EPIC).stacksTo(1)));
 
+        public static final Supplier<Item> PURGE_STAFF = ITEMS.register("purge_staff",
+                        () -> new com.maxenonyme.createsubmarine.submarine.item.purge_staff.PurgeStaffItem(
+                                        new Item.Properties().rarity(net.minecraft.world.item.Rarity.EPIC).stacksTo(1)));
+
         public static final Supplier<Item> PHYCOLOGICAL_MEMBRANE = ITEMS.register("phycological_membrane",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.PhycologicalMembraneItem(new net.minecraft.world.item.Item.Properties()
                                         .rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
         public static final Supplier<Item> STEEL_CABLE = ITEMS.register("steel_cable",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(new net.minecraft.world.item.Item.Properties()));
+
+        public static final Supplier<Block> DECOMPRESSION_CHAMBER = BLOCKS.register("decompression_chamber",
+                        () -> new DecompressionChamberBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).noOcclusion()));
+        public static final Supplier<Item> DECOMPRESSION_CHAMBER_ITEM = ITEMS.register("decompression_chamber",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.DecompressionChamberItem(DECOMPRESSION_CHAMBER.get(), new Item.Properties()));
+        public static final Supplier<BlockEntityType<DecompressionChamberBlockEntity>> DECOMPRESSION_CHAMBER_BE = BLOCK_ENTITIES.register(
+                        "decompression_chamber",
+                        () -> BlockEntityType.Builder.of(DecompressionChamberBlockEntity::new, DECOMPRESSION_CHAMBER.get()).build(null));
 
         public static final Supplier<Block> PULLEY = BLOCKS.register("pulley",
                         () -> new PulleyBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK).requiresCorrectToolForDrops().noOcclusion()));
@@ -606,8 +618,12 @@ public class CreateSubmarine {
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "leak_detector"), subSection);
                         tabItems.add(WARDING_STAFF::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "warding_staff"), subSection);
+                        tabItems.add(PURGE_STAFF::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "purge_staff"), subSection);
                         tabItems.add(STEEL_CABLE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
+                        tabItems.add(DECOMPRESSION_CHAMBER_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "decompression_chamber"), subSection);
                         tabItems.add(PULLEY_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "pulley"), subSection);
                         tabItems.add(UNDERWATER_MINE_ITEM::get);

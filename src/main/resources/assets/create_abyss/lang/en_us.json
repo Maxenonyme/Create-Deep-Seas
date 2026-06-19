@@ -14,5 +14,10 @@
   "entity.create_abyss.isopod": "Isopod",
   "item.create_abyss.magmatic_snail_spawn_egg": "Magmatic Sea Snail Spawn Egg",
   "item.create_abyss.isopod_spawn_egg": "Isopod Spawn Egg",
+  "item.create_abyss.size_2_isopod_spawn_egg": "Size 2 Isopod Spawn Egg",
+  "item.create_abyss.size_3_isopod_spawn_egg": "Size 3 Isopod Spawn Egg",
+  "item.create_abyss.size_4_isopod_spawn_egg": "Size 4 Isopod Spawn Egg",
+  "entity.create_abyss.abyssal_cuttlefish": "Abyssal Cuttlefish",
+  "item.create_abyss.abyssal_cuttlefish_spawn_egg": "Abyssal Cuttlefish Spawn Egg",
   "itemGroup.create_abyss.abyss_tab": "Create Abyss"
 }
