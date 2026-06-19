@@ -21,6 +21,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import net.neoforged.neoforge.entity.PartEntity;
@@ -42,6 +43,15 @@ public class AbyssalCuttlefishEntity extends WaterAnimal {
 
     public AbyssalCuttlefishEntity(EntityType<? extends WaterAnimal> type, Level level) {
         super(type, level);
+    }
+
+    @Override
+    public void setPos(double x, double y, double z) {
+        super.setPos(x, y, z);
+        double hx = 1.5;
+        double hz = 2.5;
+        double hh = 1.0;
+        this.setBoundingBox(new AABB(x - hx, y - hh, z - hz, x + hx, y + hh, z + hz));
     }
 
     public static AttributeSupplier.Builder createAttributes() {

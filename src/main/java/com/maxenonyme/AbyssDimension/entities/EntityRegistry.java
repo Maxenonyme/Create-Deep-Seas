@@ -59,7 +59,7 @@ public final class EntityRegistry {
 
     public static final Supplier<EntityType<AbyssalCuttlefishEntity>> ABYSSAL_CUTTLEFISH = ENTITY_TYPES.register("abyssal_cuttlefish",
             () -> EntityType.Builder.of(AbyssalCuttlefishEntity::new, MobCategory.WATER_CREATURE)
-                    .sized(2.5F, 3.5F)
+                    .sized(3.0F, 2.0F)
                     .clientTrackingRange(8)
                     .build("abyssal_cuttlefish"));
 
