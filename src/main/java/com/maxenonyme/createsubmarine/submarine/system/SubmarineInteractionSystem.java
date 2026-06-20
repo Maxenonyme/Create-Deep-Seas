@@ -55,13 +55,8 @@ public class SubmarineInteractionSystem {
     }
     private static void blockEntities(ServerLevel level, OrientedBoundingBox3d obb, double velocity) {
         Vector3d pos = obb.getPosition();
-        Vector3d dim = obb.getDimensions();
         boolean isHighSpeed = velocity > 1.0;
-        double maxDim = Math.max(dim.x, Math.max(dim.y, dim.z)) * 0.8;
-        AABB searchBox = new AABB(
-            pos.x - maxDim, pos.y - maxDim, pos.z - maxDim,
-            pos.x + maxDim, pos.y + maxDim, pos.z + maxDim
-        );
+        AABB searchBox = obb.getWorldAABB();
         for (Entity entity : level.getEntitiesOfClass(Entity.class, searchBox)) {
             if (entity instanceof WaterAnimal || entity.getType().is(net.minecraft.tags.EntityTypeTags.AQUATIC)) {
                 if (SubmarineHullManager.contains(obb, entity.getX(), entity.getY(), entity.getZ())) {
@@ -80,20 +75,13 @@ public class SubmarineInteractionSystem {
         }
     }
     private static void clearVegetation(ServerLevel level, OrientedBoundingBox3d obb) {
-        Vector3d pos = obb.getPosition();
-        Vector3d dim = obb.getDimensions();
-        Vector3d ax = obb.getOrientation().transform(new Vector3d(dim.x * 0.5, 0, 0));
-        Vector3d ay = obb.getOrientation().transform(new Vector3d(0, dim.y * 0.5, 0));
-        Vector3d az = obb.getOrientation().transform(new Vector3d(0, 0, dim.z * 0.5));
-        double hx = Math.abs(ax.x) + Math.abs(ay.x) + Math.abs(az.x);
-        double hy = Math.abs(ax.y) + Math.abs(ay.y) + Math.abs(az.y);
-        double hz = Math.abs(ax.z) + Math.abs(ay.z) + Math.abs(az.z);
-        int minX = (int) Math.floor(pos.x - hx);
-        int maxX = (int) Math.ceil(pos.x + hx);
-        int minY = Math.max((int) Math.floor(pos.y - hy), level.getMinBuildHeight());
-        int maxY = Math.min((int) Math.ceil(pos.y + hy), level.getMaxBuildHeight() - 1);
-        int minZ = (int) Math.floor(pos.z - hz);
-        int maxZ = (int) Math.ceil(pos.z + hz);
+        AABB box = obb.getWorldAABB();
+        int minX = (int) Math.floor(box.minX);
+        int maxX = (int) Math.ceil(box.maxX);
+        int minY = Math.max((int) Math.floor(box.minY), level.getMinBuildHeight());
+        int maxY = Math.min((int) Math.ceil(box.maxY), level.getMaxBuildHeight() - 1);
+        int minZ = (int) Math.floor(box.minZ);
+        int maxZ = (int) Math.ceil(box.maxZ);
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
         for (int cx = minX >> 4; cx <= maxX >> 4; cx++) {
             for (int cz = minZ >> 4; cz <= maxZ >> 4; cz++) {

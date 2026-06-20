@@ -9,27 +9,22 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.AnimationState;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.RandomSwimmingGoal;
+import net.minecraft.world.entity.ai.goal.TryFindWaterGoal;
 import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-
-import net.neoforged.neoforge.entity.PartEntity;
 
 import java.util.List;
 
 public class AbyssalCuttlefishEntity extends WaterAnimal {
-
     public final AnimationState swimAnimationState = new AnimationState();
     public final AnimationState idleAnimationState = new AnimationState();
     public final AnimationState biteAnimationState = new AnimationState();
@@ -46,18 +41,15 @@ public class AbyssalCuttlefishEntity extends WaterAnimal {
     }
 
     @Override
-    public void setPos(double x, double y, double z) {
-        super.setPos(x, y, z);
-        double hx = 1.5;
-        double hz = 2.5;
-        double hh = 1.0;
-        this.setBoundingBox(new AABB(x - hx, y - hh, z - hz, x + hx, y + hh, z + hz));
+    protected void registerGoals() {
+        this.goalSelector.addGoal(0, new TryFindWaterGoal(this));
+        this.goalSelector.addGoal(1, new RandomSwimmingGoal(this, 0.5, 40));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0)
-                .add(Attributes.MOVEMENT_SPEED, 0.6);
+                .add(Attributes.MOVEMENT_SPEED, 0.15);
     }
 
     @Override
@@ -81,16 +73,16 @@ public class AbyssalCuttlefishEntity extends WaterAnimal {
     private void tickServer() {
         if (biteCooldown > 0) biteCooldown--;
 
-        List<Mob> nearbyMobs = this.level().getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(5.0),
-            m -> m != this && m.isAlive());
-        boolean hasMobNearby = !nearbyMobs.isEmpty();
-
-        if (biteCooldown == 0 && hasMobNearby) {
-            Mob target = nearbyMobs.get(0);
-            if (this.distanceToSqr(target) < 16.0) {
-                target.hurt(this.damageSources().mobAttack(this), 6.0F);
-                biteCooldown = 30;
-                this.level().broadcastEntityEvent(this, BITE_EVENT_ID);
+        if (biteCooldown == 0) {
+            List<Mob> nearbyMobs = this.level().getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(5.0),
+                m -> m != this && m.isAlive());
+            for (Mob target : nearbyMobs) {
+                if (this.distanceToSqr(target) < 16.0) {
+                    target.hurt(this.damageSources().mobAttack(this), 6.0F);
+                    biteCooldown = 30;
+                    this.level().broadcastEntityEvent(this, BITE_EVENT_ID);
+                    break;
+                }
             }
         }
     }
@@ -182,13 +174,10 @@ public class AbyssalCuttlefishEntity extends WaterAnimal {
 
     private void spawnInkCloud() {
         RandomSource random = this.getRandom();
-        float yawRad = (180.0F - this.getYRot()) * Mth.DEG_TO_RAD;
-        float sin = Mth.sin(yawRad);
-        float cos = Mth.cos(yawRad);
-
-        double bx = this.getX() + sin * 2.0;
-        double by = this.getY() + 0.8;
-        double bz = this.getZ() + cos * 2.0;
+        Vec3 forward = Vec3.directionFromRotation(0, this.getYRot());
+        double bx = this.getX() + forward.x * 4.0;
+        double by = this.getY() + 0.5;
+        double bz = this.getZ() + forward.z * 4.0;
 
         for (int i = 0; i < 20; i++) {
             double speed = 0.05 + random.nextDouble() * 0.4;
@@ -196,9 +185,9 @@ public class AbyssalCuttlefishEntity extends WaterAnimal {
                 bx + (random.nextDouble() - 0.5) * 1.5,
                 by + (random.nextDouble() - 0.5) * 1.0,
                 bz + (random.nextDouble() - 0.5) * 1.5,
-                sin * speed + (random.nextDouble() - 0.5) * 0.3,
+                forward.x * speed + (random.nextDouble() - 0.5) * 0.3,
                 (random.nextDouble() - 0.5) * 0.3,
-                cos * speed + (random.nextDouble() - 0.5) * 0.3);
+                forward.z * speed + (random.nextDouble() - 0.5) * 0.3);
         }
     }
 

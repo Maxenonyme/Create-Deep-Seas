@@ -1,6 +1,7 @@
 package com.maxenonyme.createsubmarine;
 
 import com.maxenonyme.createsubmarine.submarine.block.entity.renderer.ElectrolyzerBlockEntityRenderer;
+import com.maxenonyme.createsubmarine.submarine.client.RotatedHitboxDebugRenderer;
 import com.maxenonyme.createsubmarine.submarine.client.ShapeVizRenderer;
 import com.maxenonyme.createsubmarine.submarine.client.SubLevelCrackRenderer;
 import com.maxenonyme.createsubmarine.submarine.client.SubmarineFogHandler;
@@ -59,6 +60,7 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS.register(SubmarineFogHandler.class);
         NeoForge.EVENT_BUS.register(SubLevelCrackRenderer.class);
         NeoForge.EVENT_BUS.register(ShapeVizRenderer.class);
+        NeoForge.EVENT_BUS.register(RotatedHitboxDebugRenderer.class);
         NeoForge.EVENT_BUS.register(com.maxenonyme.createsubmarine.submarine.client.LeakDetectorPathRenderer.class);
         NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.ClientTickEvent.Pre.class,
             e -> ShapeVizRenderer.onClientTick());

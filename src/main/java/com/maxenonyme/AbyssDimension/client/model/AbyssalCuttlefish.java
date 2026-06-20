@@ -68,7 +68,7 @@ public class AbyssalCuttlefish<T extends AbyssalCuttlefishEntity> extends Hierar
         // eyes
         head.addOrReplaceChild("eyes", CubeListBuilder.create()
             .texOffs(208, 224).mirror().addBox(18.0F, -8.0F, -8.0F, 16.0F, 16.0F, 16.0F)
-            .texOffs(208, 224).addBox(-34.0F, -8.0F, -8.0F, 16.0F, 16.0F, 16.0F),
+            .texOffs(208, 224).mirror().addBox(-34.0F, -8.0F, -8.0F, 16.0F, 16.0F, 16.0F),
             PartPose.offset(0.0F, 4.0F, 0.0F));
 
         // top_beak — generated TopBeak at its head-space pivot; cubes directly in group

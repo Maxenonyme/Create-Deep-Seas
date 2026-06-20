@@ -20,12 +20,7 @@ public class SubmarineHullManager {
     public static void updateHull(UUID id, Vector3dc position, Vector3dc dimensions, Quaterniondc orientation) {
         OrientedBoundingBox3d obb = AIRTIGHT_HULLS.computeIfAbsent(id, k -> new OrientedBoundingBox3d(SINK));
         obb.set(position, dimensions, orientation);
-
-        double maxDim = Math.max(dimensions.x(), Math.max(dimensions.y(), dimensions.z())) * 0.75;
-        HULL_AABBS.put(id, new AABB(
-            position.x() - maxDim, position.y() - maxDim, position.z() - maxDim,
-            position.x() + maxDim, position.y() + maxDim, position.z() + maxDim
-        ));
+        HULL_AABBS.put(id, obb.getWorldAABB());
     }
 
     public static void removeHull(UUID id) {
@@ -38,12 +33,6 @@ public class SubmarineHullManager {
     }
 
     public static boolean contains(OrientedBoundingBox3d obb, double x, double y, double z) {
-        Vector3d center = obb.getPosition();
-        Vector3d dim = obb.getDimensions();
-        Vector3d local = new Vector3d(x - center.x, y - center.y, z - center.z);
-        obb.getOrientation().conjugate(new Quaterniond()).transform(local);
-        return Math.abs(local.x) <= dim.x * 0.5 &&
-               Math.abs(local.y) <= dim.y * 0.5 &&
-               Math.abs(local.z) <= dim.z * 0.5;
+        return obb.contains(x, y, z);
     }
 }
