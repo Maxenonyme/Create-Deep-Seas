@@ -167,6 +167,7 @@
   "create_submarine.force_group.floater": "Floater",
   "create_submarine.force_group.floater.description": "Forces exerted by floaters",
   "block.create_submarine.barometer": "Pressure Barometer",
+  "block.create_submarine.weather_vane": "Weather Vane",
   "create_submarine.gui.goggles.barometer.title": "Pressure Barometer",
   "create_submarine.gui.goggles.barometer.no_pressure": "No Pressure",
   "create_submarine.gui.goggles.barometer.critical": "CRITICAL: Pressure exceeded",
