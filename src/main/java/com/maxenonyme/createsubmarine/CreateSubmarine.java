@@ -146,6 +146,14 @@ public class CreateSubmarine {
                                         () -> BlockEntityType.Builder.of(
                                                         com.maxenonyme.createsubmarine.submarine.block.entity.BarometerBlockEntity::new,
                                                         BAROMETER.get()).build(null));
+        public static final Supplier<Block> WEATHER_VANE = BLOCKS.register("weather_vane",
+                        () -> new WeatherVaneBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)
+                                        .requiresCorrectToolForDrops()
+                                        .noOcclusion()
+                                        .isViewBlocking((state, level, pos) -> false)
+                                        .isSuffocating((state, level, pos) -> false)));
+        public static final Supplier<Item> WEATHER_VANE_ITEM = ITEMS.register("weather_vane",
+                        () -> new net.minecraft.world.item.BlockItem(WEATHER_VANE.get(), new Item.Properties()));
         public static final Supplier<Block> CREATIVE_OXYGENATOR = BLOCKS.register("creative_oxygenator",
                         () -> new HullControllerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OBSIDIAN)));
         public static final Supplier<Item> CREATIVE_OXYGENATOR_ITEM = ITEMS.register("creative_oxygenator",
@@ -546,6 +554,8 @@ public class CreateSubmarine {
                                         subSection);
                         tabItems.add(BAROMETER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "barometer"), subSection);
+                        tabItems.add(WEATHER_VANE_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "weather_vane"), subSection);
                         tabItems.add(ARRESTING_HOOK_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "arresting_hook"), subSection);
                 } catch (Exception ignored) {
