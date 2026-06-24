@@ -127,8 +127,11 @@ public class CreateSubmarine {
 
         private static net.neoforged.neoforge.fluids.BaseFlowingFluid.Properties makeOxygenProperties() {
                 return new net.neoforged.neoforge.fluids.BaseFlowingFluid.Properties(
-                                OXYGEN_TYPE, OXYGEN, OXYGEN_FLOWING);
+                                OXYGEN_TYPE, OXYGEN, OXYGEN_FLOWING).bucket(OXYGEN_BUCKET);
         }
+
+        public static final Supplier<Item> OXYGEN_BUCKET = ITEMS.register("oxygen_bucket",
+                        () -> new com.maxenonyme.createsubmarine.submarine.item.OxygenBucketItem(OXYGEN::get, new Item.Properties().stacksTo(1).craftRemainder(net.minecraft.world.item.Items.BUCKET)));
 
         public static final net.neoforged.neoforge.registries.DeferredHolder<net.minecraft.world.effect.MobEffect, net.minecraft.world.effect.MobEffect> SUFFOCATION = MOB_EFFECTS
                         .register("suffocation",
@@ -288,6 +291,10 @@ public class CreateSubmarine {
         public static final Supplier<Item> STEEL_CABLE = ITEMS.register("steel_cable",
                         () -> new com.maxenonyme.createsubmarine.submarine.block.SteelCableItem(
                                         new net.minecraft.world.item.Item.Properties()));
+        public static final Supplier<Item> SUBMARINE_STAFF = ITEMS.register("submarine_staff",
+                        () -> new com.maxenonyme.createsubmarine.submarine.item.SubmarineStaffItem(
+                                        new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+
 
         public static final Supplier<Block> PULLEY = BLOCKS.register("pulley",
                         () -> new PulleyBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)
@@ -334,6 +341,12 @@ public class CreateSubmarine {
                                         () -> BlockEntityType.Builder.of(
                                                         com.maxenonyme.createsubmarine.submarine.block.propeller.submarine_propeller.SubmarinePropellerBlockEntity::new,
                                                         SUBMARINE_PROPELLER.get()).build(null));
+
+        public static final Supplier<Block> SUBMARINE_RUDDER = BLOCKS.register("submarine_rudder",
+                        () -> new com.maxenonyme.createsubmarine.submarine.block.SubmarineRudderBlock(
+                                        BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK)));
+        public static final Supplier<Item> SUBMARINE_RUDDER_ITEM = ITEMS.register("submarine_rudder",
+                        () -> new net.minecraft.world.item.BlockItem(SUBMARINE_RUDDER.get(), new Item.Properties()));
 
         public CreateSubmarine(IEventBus modEventBus, ModContainer modContainer) {
                 modContainer.registerConfig(ModConfig.Type.COMMON, SubmarineConfig.SPEC);
@@ -472,13 +485,17 @@ public class CreateSubmarine {
                                         return null;
                                 });
                 event.registerBlockEntity(
-                                net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+                                        net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
                                 ELECTROLYZER_BE.get(),
                                 (be, side) -> {
                                         if (side != null && side != Direction.UP && side != Direction.DOWN)
                                                 return be.energyStorage;
                                         return null;
                                 });
+                event.registerItem(
+                                net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.ITEM,
+                                (stack, ctx) -> new net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper(stack),
+                                OXYGEN_BUCKET.get());
         }
 
         private void onConfigLoaded(net.neoforged.fml.event.config.ModConfigEvent event) {
@@ -514,6 +531,7 @@ public class CreateSubmarine {
                         List<Supplier<Item>> tabItems = (List<Supplier<Item>>) regClass.getField("TAB_ITEMS").get(null);
                         Map<ResourceLocation, ResourceLocation> itemToSection = (Map<ResourceLocation, ResourceLocation>) regClass
                                         .getField("ITEM_TO_SECTION").get(null);
+
                         tabItems.add(CREATIVE_OXYGENATOR_ITEM::get);
                         tabItems.add(BALLAST_TANK_ITEM::get);
                         tabItems.add(BALLAST_VENT_ITEM::get);
@@ -543,6 +561,9 @@ public class CreateSubmarine {
                         tabItems.add(PHYCOLOGICAL_MEMBRANE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "phycological_membrane"),
                                         subSection);
+                        tabItems.add(OXYGEN_BUCKET::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "oxygen_bucket"),
+                                        subSection);
                         tabItems.add(STEEL_CABLE::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "steel_cable"), subSection);
                         tabItems.add(PULLEY_ITEM::get);
@@ -552,12 +573,16 @@ public class CreateSubmarine {
                         tabItems.add(SUBMARINE_PROPELLER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine_propeller"),
                                         subSection);
+                        tabItems.add(SUBMARINE_RUDDER_ITEM::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine_rudder"), subSection);
                         tabItems.add(BAROMETER_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "barometer"), subSection);
                         tabItems.add(WEATHER_VANE_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "weather_vane"), subSection);
                         tabItems.add(ARRESTING_HOOK_ITEM::get);
                         itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "arresting_hook"), subSection);
+                        tabItems.add(SUBMARINE_STAFF::get);
+                        itemToSection.put(ResourceLocation.fromNamespaceAndPath(MOD_ID, "submarine_staff"), subSection);
                 } catch (Exception ignored) {
                 }
         }

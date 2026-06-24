@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.maxenonyme.highseas.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "SymmetricSailCollisionMixin"
+  ],
+  "client": [
+    "ChunkRenderTypeSetAccessor",
+    "IrisSailPhaseMixin",
+    "SailRenderLayerMixin",
+    "SailSubLevelRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

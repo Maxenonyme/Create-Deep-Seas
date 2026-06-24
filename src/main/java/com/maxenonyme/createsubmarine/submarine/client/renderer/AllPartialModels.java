@@ -17,7 +17,17 @@ public class AllPartialModels {
     public static final PartialModel SUBMARINE_PROPELLER_REVERSED = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_reversed"));
     public static final PartialModel SUBMARINE_PROPELLER_CONTRA = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_contra"));
     public static final PartialModel SUBMARINE_PROPELLER_REVERSED_CONTRA = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/submarine_propeller/propeller_reversed_contra"));
+    public static final PartialModel SUBMARINE_STAFF_BASE_MODEL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_base_model"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_1 = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_1"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_2 = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_2"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_3 = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_3"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_4 = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_4"));
 
+    public static final PartialModel SUBMARINE_STAFF_BASE_MODEL_CRYSTAL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_base_model_crystal"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_1_CRYSTAL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_1_crystal"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_2_CRYSTAL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_2_crystal"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_3_CRYSTAL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_3_crystal"));
+    public static final PartialModel SUBMARINE_STAFF_TOPCORE_4_CRYSTAL = PartialModel.of(ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "item/submarine_staff_topcore_4_crystal"));
     public static final SpriteShiftEntry WINCH_STEEL_COIL_SCROLL = SpriteShifter.get(
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil"),
         ResourceLocation.fromNamespaceAndPath(CreateSubmarine.MOD_ID, "block/steel_cable/winch_steel_coil_scroll")

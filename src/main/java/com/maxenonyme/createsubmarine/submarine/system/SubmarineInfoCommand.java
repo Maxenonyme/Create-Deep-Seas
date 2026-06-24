@@ -123,7 +123,10 @@ public final class SubmarineInfoCommand {
     }
 
     private static int findHoles(CommandContext<CommandSourceStack> ctx) {
-        CommandSourceStack source = ctx.getSource();
+        return findHoles(ctx.getSource());
+    }
+
+    public static int findHoles(CommandSourceStack source) {
         ServerPlayer player = source.getPlayer();
         if (player == null) {
             source.sendFailure(Component.literal("Player only."));

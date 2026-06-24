@@ -64,12 +64,15 @@ public final class CreateSubmarineClient {
         NeoForge.EVENT_BUS.register(com.maxenonyme.AbyssDimension.client.CameraShake.GameEvents.class);
         NeoForge.EVENT_BUS
                 .addListener(com.maxenonyme.createsubmarine.submarine.client.ClientSteelCableItemHandler::onClientTick);
+        NeoForge.EVENT_BUS
+                .addListener(com.maxenonyme.createsubmarine.submarine.client.SubmarineStaffClientHandler::onClientTick);
         NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
             SubLevelCrackRenderer.clearAll();
             SubLevelRegistry.clearAll();
             CompartmentTracker.clearAll();
             com.maxenonyme.createsubmarine.submarine.system.SubmarineDriverRegistry.clearAll();
             com.maxenonyme.createsubmarine.submarine.config.HullStrengthConfig.load();
+            com.maxenonyme.createsubmarine.submarine.client.SubmarineStaffClientHandler.reset();
         });
     }
 
@@ -99,6 +102,12 @@ public final class CreateSubmarineClient {
                 return new com.maxenonyme.createsubmarine.submarine.block.entity.renderer.BarometerItemRenderer();
             }
         }, CreateSubmarine.BAROMETER_ITEM.get());
+        event.registerItem(new net.neoforged.neoforge.client.extensions.common.IClientItemExtensions() {
+            @Override
+            public net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer getCustomRenderer() {
+                return new com.maxenonyme.createsubmarine.submarine.item.SubmarineStaffItemRenderer();
+            }
+        }, CreateSubmarine.SUBMARINE_STAFF.get());
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

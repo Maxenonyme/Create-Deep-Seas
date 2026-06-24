@@ -4,6 +4,7 @@
 
 - **Modded Fluids Compatibility:** Completely rewrote the fluid detection logic across the entire mod (Decompression Chambers, Ballasts, Electrolyzers, etc.) to use standard NeoForge Fluid Tags (`#minecraft:water`) instead of hardcoded vanilla blocks. The mod is now natively compatible with modded liquids like Terrafirmacraft's saltwater out of the box!
 - **Mod Compatibility (Veil/Spotlights):** Fixed a shader compilation crash that occurred when using the "Spotlights or Something" mod (Veil rendering engine) alongside Sodium. Rewrote the Sodium shader injection using MixinExtras `@ModifyReturnValue` to gracefully allow Veil's mixins to apply their shader uniforms first, preventing `undefined variable "lodBias"` OpenGL errors.
+- **Mod Compatibility (Sodium):** Lifted the official "incompatible" tag for Sodium. The mod is now fully compatible with Sodium!
 
 ## [June 17, 2026] - Performance & Dedicated Server Fixes
 
