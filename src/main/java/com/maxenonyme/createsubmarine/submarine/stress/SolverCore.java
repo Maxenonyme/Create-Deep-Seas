@@ -263,9 +263,12 @@ public class SolverCore {
             return;
         }
 
-        // Warm-start scaling: if bNorm differs significantly from previous solve,
-        // scale u to match the new RHS magnitude before CG begins
-        if (previousBNorm > 0 && bNorm > 1e-30) {
+        // Cold start on first solve (previousBNorm < 0 means new SolverCore
+        // or world reload). Warm-start only on repeated calls within the same
+        // SolverCore where previousBNorm is a valid reference.
+        if (previousBNorm < 0) {
+            Arrays.fill(u, 0.0);
+        } else if (bNorm > 1e-30) {
             final double scale = bNorm / previousBNorm;
             if (Math.abs(scale - 1.0) > 1e-6) {
                 for (int k = 0; k < N3; k++) u[k] *= scale;
