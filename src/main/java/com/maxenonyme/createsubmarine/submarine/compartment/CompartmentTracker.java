@@ -221,7 +221,12 @@ public class CompartmentTracker {
         return STRUCTURE_DIRTY.contains(id);
     }
 
-    public static void onPlotBlockChanged(Level level, BlockPos pos) {
+    public static void clearStructureDirty(UUID id) {
+        STRUCTURE_DIRTY.remove(id);
+    }
+
+    public static void onPlotBlockChanged(Level level, BlockPos pos, boolean blockTypeChanged) {
+        if (!blockTypeChanged) return;
         for (Map.Entry<UUID, SubLevelAccess> e : SUBS.entrySet()) {
             if (!(e.getValue() instanceof dev.ryanhcode.sable.sublevel.SubLevel sl)) continue;
             if (sl.getLevel() != null && sl.getLevel().dimension() != level.dimension()) continue;

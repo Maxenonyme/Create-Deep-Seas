@@ -19,7 +19,7 @@ public abstract class LevelChunkMixin {
         BlockState old = cir.getReturnValue();
         if (old == null) return;
         net.minecraft.world.level.Level level = ((LevelChunk) (Object) this).getLevel();
-        CompartmentTracker.onPlotBlockChanged(level, pos);
+        CompartmentTracker.onPlotBlockChanged(level, pos, old.getBlock() != state.getBlock());
         if (!level.isClientSide && old.getBlock() != state.getBlock()) {
             com.maxenonyme.createsubmarine.submarine.system.SubmarinePressureSystem.onPlotBlockReplaced(level, pos);
         }

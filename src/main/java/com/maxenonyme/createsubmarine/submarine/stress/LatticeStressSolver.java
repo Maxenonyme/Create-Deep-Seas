@@ -96,8 +96,8 @@ public class LatticeStressSolver {
     private final Map<BlockPos, Vector3d> smoothedNormals;
     private final Map<BlockPos, Integer> effectiveFaceCounts;
     private final double coherence;
-    private final Quaterniondc orientation;
-    private final boolean orientationEnabled;
+    private Quaterniondc orientation;
+    private boolean orientationEnabled;
     private static double MOON_POOL_FACTOR = 0.8;
     private static boolean ORIENTATION_ENABLED = true;
     private static boolean COPYCAT_INHERIT = false;
@@ -485,7 +485,7 @@ public class LatticeStressSolver {
                 final int comp = dir / 2;
                 final double sign = (dir % 2 == 0) ? -1.0 : 1.0;
                 double localPressure = this.rhoG * waterDepth * this.volFraction[i];
-                final Direction faceDir = Direction.from3DDataValue(dir);
+                final Direction faceDir = Direction.from3DDataValue(DIR_TO_MC[dir]);
 
                 double faceDot = faceDir.getStepX() * localDown.x + faceDir.getStepY() * localDown.y + faceDir.getStepZ() * localDown.z;
                 if (faceDot > 0.7) {
@@ -528,7 +528,7 @@ public class LatticeStressSolver {
                 final int comp = dir / 2;
                 final double sign = (dir % 2 == 0) ? -1.0 : 1.0;
                 double localPressure = pressure * this.volFraction[i];
-                final Direction faceDir = Direction.from3DDataValue(dir);
+                final Direction faceDir = Direction.from3DDataValue(DIR_TO_MC[dir]);
 
                 double faceDot = faceDir.getStepX() * localDown.x + faceDir.getStepY() * localDown.y + faceDir.getStepZ() * localDown.z;
                 if (faceDot > 0.7) {
@@ -554,7 +554,7 @@ public class LatticeStressSolver {
         final double[] b = new double[3 * this.n];
         buildRHS(b);
         solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
-        solverCore.tikhonovAlphaFraction = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01);
+        solverCore.tikhonovAlphaFraction = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 1e-6);
         solverCore.rhoG = this.rhoG;
         if (USE_MULTIGRID && this.n > 2000 && this.n <= 200000) {
             solveMultigrid(b);
@@ -776,7 +776,7 @@ public class LatticeStressSolver {
         final double[] b = new double[3 * this.n];
         buildRHS(b);
         solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
-        solverCore.tikhonovAlphaFraction = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01);
+        solverCore.tikhonovAlphaFraction = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 1e-6);
         solverCore.rhoG = this.rhoG;
         solverCore.solveCG(b);
         solverCore.removeRigidBodyMode(this.u);
@@ -949,7 +949,11 @@ public class LatticeStressSolver {
 
     public void refreshWaterDepths(final double newWaterSurfaceWorldY, final Pose3dc currentPose) {
         this.waterSurfaceWorldY = newWaterSurfaceWorldY;
-        if (currentPose != null) this.subLevelPose = currentPose;
+        if (currentPose != null) {
+            this.subLevelPose = currentPose;
+            this.orientation = currentPose.orientation();
+            this.orientationEnabled = ORIENTATION_ENABLED;
+        }
         if (!Double.isFinite(this.waterSurfaceWorldY)) {
             java.util.Arrays.fill(this.blockWaterDepths, 0.0);
             return;

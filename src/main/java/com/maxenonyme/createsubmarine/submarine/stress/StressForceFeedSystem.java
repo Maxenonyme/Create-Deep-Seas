@@ -23,6 +23,8 @@ import java.util.*;
 public class StressForceFeedSystem {
     private static final Map<UUID, Long> stressLastGameTick = new HashMap<>();
     private static final Map<UUID, Integer> stressSubstepIdx = new HashMap<>();
+    private static final int SOLVE_INTERVAL = 4;
+    private static final Map<UUID, Long> lastSolvedGameTick = new HashMap<>();
 
     
 
@@ -95,9 +97,18 @@ public class StressForceFeedSystem {
         final LatticeStressSolver solver = analyzer.getSolver(ssl);
         if (solver == null || solver.blockCount() == 0) return;
 
-        final double freshWaterSurface = SubLevelStressAnalyzer.getWaterSurfaceWorldY(ssl);
-        solver.refreshWaterDepths(freshWaterSurface, ssl.logicalPose());
-        solver.resolve();
+        final UUID subId = ssl.getUniqueId();
+        final long tick = ssl.getLevel().getGameTime();
+        final boolean shouldSolve = isLastSubstep && (
+            !lastSolvedGameTick.containsKey(subId) ||
+            tick - lastSolvedGameTick.get(subId) >= SOLVE_INTERVAL
+        );
+        if (shouldSolve) {
+            lastSolvedGameTick.put(subId, tick);
+            final double freshWaterSurface = SubLevelStressAnalyzer.getWaterSurfaceWorldY(ssl);
+            solver.refreshWaterDepths(freshWaterSurface, ssl.logicalPose());
+            solver.resolve();
+        }
 
         if (!ssl.isTrackingIndividualQueuedForces()) {
             ssl.enableIndividualQueuedForcesTracking(true);
@@ -113,8 +124,6 @@ public class StressForceFeedSystem {
         // Only set crush depths, broadcast, and check failure on the LAST substep per game tick
         if (isLastSubstep) {
             analyzer.setCrushDepths(ssl, solver.computeCrushDepth());
-
-            final UUID subId = ssl.getUniqueId();
 
             checkStructuralFailure(ssl, solver, analyzer);
 

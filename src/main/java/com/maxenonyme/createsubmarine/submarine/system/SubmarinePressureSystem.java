@@ -6,8 +6,6 @@ import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import com.maxenonyme.createsubmarine.submarine.network.SubCrackPayload;
 import com.maxenonyme.createsubmarine.submarine.stress.SubLevelStressAnalyzer;
 import com.maxenonyme.createsubmarine.submarine.util.SubLevelRegistry;
-import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
-import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.SubLevelAccess;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
@@ -110,19 +108,7 @@ public class SubmarinePressureSystem {
             processSubmarine(entry.getKey(), entry.getValue());
         }
 
-        // Also run stress checks on ALL sublevels, not just registered submarines
-        for (final ServerLevel level : event.getServer().getAllLevels()) {
-            final SubLevelContainer container = SubLevelContainer.getContainer(level);
-            if (!(container instanceof final ServerSubLevelContainer sslc)) continue;
-            for (final ServerSubLevel ssl : sslc.getAllSubLevels()) {
-                if (SubLevelRegistry.getAll().containsKey(ssl.getUniqueId())) continue;
-                final SubLevelStressAnalyzer analyzer = SubLevelStressAnalyzer.getOrCreate(level);
-                final int seaLevel = level.getSeaLevel();
-                final int waterDepth = (int) Math.max(0, seaLevel - ssl.logicalPose().position().y());
-                if (waterDepth <= 0) continue;
-                analyzer.checkAndBreak(ssl, waterDepth, ssl.getLevel());
-            }
-        }
+
     }
 
     private static void processSubmarine(UUID id, SubLevelAccess sub) {
@@ -141,14 +127,6 @@ public class SubmarinePressureSystem {
         if (surfaceY == Integer.MIN_VALUE) {
             BREACHED_PLOT.remove(id);
             return;
-        }
-
-        // Run stress analysis (tickRefresh is handled by onGlobalServerTick)
-        if (oceanLevel instanceof ServerLevel serverLevel) {
-            final SubLevelStressAnalyzer analyzer = SubLevelStressAnalyzer.getOrCreate(serverLevel);
-            if (waterDepth > 0 && sub instanceof ServerSubLevel ssl) {
-                analyzer.checkAndBreak(ssl, waterDepth, plotLevel);
-            }
         }
 
         if (waterDepth <= 0) {

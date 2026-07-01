@@ -27,6 +27,7 @@ public class SubmarineInteractionSystem {
 
     public static void onServerTick(ServerTickEvent.Post event) {
         tickCounter++;
+        if (tickCounter % 3 != 0) return;
         Map<UUID, OrientedBoundingBox3d> hulls = SubmarineHullManager.getActiveHulls();
         if (hulls.isEmpty()) {
             LAST_POSITIONS.clear();
@@ -38,6 +39,8 @@ public class SubmarineInteractionSystem {
             OrientedBoundingBox3d obb = entry.getValue();
             Level level = SubLevelRegistry.getLevel(id);
             if (level instanceof ServerLevel serverLevel) {
+                final AABB box = obb.getWorldAABB();
+                if (box.maxY >= serverLevel.getSeaLevel()) continue;
                 Vector3d currentPos = new Vector3d(obb.getPosition());
                 Vector3d lastPos = LAST_POSITIONS.get(id);
                 double velocity = 0;
@@ -46,36 +49,33 @@ public class SubmarineInteractionSystem {
                 }
                 LAST_POSITIONS.put(id, currentPos);
                 SUB_VELOCITIES.put(id, velocity);
-                blockEntities(serverLevel, obb, velocity);
-                if (velocity > 0.01 && tickCounter % 5 == 0) {
-                    clearVegetation(serverLevel, obb);
+                blockEntities(serverLevel, obb, velocity, box);
+                if (velocity > 0.01 && tickCounter % 10 == 0) {
+                    clearVegetation(serverLevel, obb, box);
                 }
             }
         }
     }
-    private static void blockEntities(ServerLevel level, OrientedBoundingBox3d obb, double velocity) {
+    private static void blockEntities(ServerLevel level, OrientedBoundingBox3d obb, double velocity, final AABB searchBox) {
         Vector3d pos = obb.getPosition();
         boolean isHighSpeed = velocity > 1.0;
-        AABB searchBox = obb.getWorldAABB();
-        for (Entity entity : level.getEntitiesOfClass(Entity.class, searchBox)) {
-            if (entity instanceof WaterAnimal || entity.getType().is(net.minecraft.tags.EntityTypeTags.AQUATIC)) {
-                if (SubmarineHullManager.contains(obb, entity.getX(), entity.getY(), entity.getZ())) {
-                    Vec3 center = new Vec3(pos.x, pos.y, pos.z);
-                    Vec3 pushDir = entity.position().subtract(center).normalize();
-                    if (pushDir.lengthSqr() < 0.01) pushDir = new Vec3(0, 1, 0);
-                    if (isHighSpeed) {
-                        entity.setDeltaMovement(entity.getDeltaMovement().add(pushDir.scale(velocity * 1.5)));
-                        entity.hurt(level.damageSources().generic(), (float)(velocity * 10.0));
-                    } else {
-                        entity.setDeltaMovement(entity.getDeltaMovement().add(pushDir.scale(0.2)));
-                    }
-                    entity.hasImpulse = true;
-                }
+        final java.util.List<Entity> aquatic = level.getEntities((Entity)null, searchBox,
+            e -> e instanceof WaterAnimal || e.getType().is(net.minecraft.tags.EntityTypeTags.AQUATIC));
+        for (final Entity e : aquatic) {
+            if (!SubmarineHullManager.contains(obb, e.getX(), e.getY(), e.getZ())) continue;
+            Vec3 center = new Vec3(pos.x, pos.y, pos.z);
+            Vec3 pushDir = e.position().subtract(center).normalize();
+            if (pushDir.lengthSqr() < 0.01) pushDir = new Vec3(0, 1, 0);
+            if (isHighSpeed) {
+                e.setDeltaMovement(e.getDeltaMovement().add(pushDir.scale(velocity * 1.5)));
+                e.hurt(level.damageSources().generic(), (float)(velocity * 10.0));
+            } else {
+                e.setDeltaMovement(e.getDeltaMovement().add(pushDir.scale(0.2)));
             }
+            e.hasImpulse = true;
         }
     }
-    private static void clearVegetation(ServerLevel level, OrientedBoundingBox3d obb) {
-        AABB box = obb.getWorldAABB();
+    private static void clearVegetation(ServerLevel level, OrientedBoundingBox3d obb, final AABB box) {
         int minX = (int) Math.floor(box.minX);
         int maxX = (int) Math.ceil(box.maxX);
         int minY = Math.max((int) Math.floor(box.minY), level.getMinBuildHeight());

@@ -139,8 +139,8 @@ public class SubmarineConfig {
                         "Added to stiffness matrix diagonal to suppress rigid-body modes.",
                         "Higher = more regularization (stiffer, fewer CG iterations),",
                         "Lower = more accurate but slower convergence.",
-                        "Range: 1e-6 to 0.1, Default: 0.01 (1% of E)")
-                .defineInRange("tikhonovAlphaFraction", 0.01, 1e-6, 0.1);
+                        "Range: 1e-6 to 0.1, Default: 1e-6 (0.0001% of E)")
+                .defineInRange("tikhonovAlphaFraction", 1e-6, 1e-6, 0.1);
         STRESS_FORCE_MAX = builder
                 .comment("Maximum force (in arbitrary units) applied per exposed hull face",
                         "at full stress fraction (waterDepth >> crushDepth).",

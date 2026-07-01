@@ -183,5 +183,11 @@ task runStressTest(type: JavaExec) {
     systemProperty 'neoforge.enableModLoading', 'false'
 }
 
+task runCalibration(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.maxenonyme.createsubmarine.submarine.stress.CalibrationRunner'
+    systemProperty 'neoforge.enableModLoading', 'false'
+}
+
 def changelogFile = file("changelog.md")
 def changelogText = changelogFile.exists() ? changelogFile.text : "No changelog provided."

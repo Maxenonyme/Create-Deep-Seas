@@ -1,5 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.stress;
 
+import com.maxenonyme.createsubmarine.submarine.compartment.CompartmentTracker;
 import com.maxenonyme.createsubmarine.submarine.config.SubmarineConfig;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
@@ -13,7 +14,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -44,7 +44,6 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
     private final Map<UUID, Integer> tickCounter = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> wasInWater = new ConcurrentHashMap<>();
     private final Map<UUID, double[]> previousU = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> previousStructureHashes = new ConcurrentHashMap<>();
 
     public long totalSolveTimeNanos = 0;
     public long totalCheckTimeNanos = 0;
@@ -91,7 +90,6 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
         this.tickCounter.remove(id);
         this.wasInWater.remove(id);
         this.previousU.remove(id);
-        this.previousStructureHashes.remove(id);
         cachedWaterSurfaceY.remove(id);
         lastWaterScanTick.remove(id);
         cachedFluidDensityMultiplier.remove(id);
@@ -126,10 +124,18 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     this.needsRecompute.remove(id);
                     this.wasInWater.remove(id);
                     this.previousU.remove(id);
-                    this.previousStructureHashes.remove(id);
                     cachedWaterSurfaceY.remove(id);
                     lastWaterScanTick.remove(id);
                     cachedFluidDensityMultiplier.remove(id);
+                    continue;
+                }
+
+                if (!isUnderwater(ssl)) {
+                    this.solvers.remove(id);
+                    this.cachedCrushDepths.remove(id);
+                    this.needsRecompute.remove(id);
+                    this.wasInWater.put(id, false);
+                    this.previousU.remove(id);
                     continue;
                 }
 
@@ -140,23 +146,26 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     this.needsRecompute.put(id, true);
                 }
 
-                final boolean inWater = isUnderwater(ssl);
                 final Boolean prevWasInWater = this.wasInWater.get(id);
-                if (prevWasInWater == null || inWater != prevWasInWater || count % 100 == 0) {
+                if (prevWasInWater == null || !prevWasInWater) {
                     this.needsRecompute.put(id, true);
                 }
-                this.wasInWater.put(id, inWater);
+                this.wasInWater.put(id, true);
 
-                if (count % 40 == 0 && !alreadyTracked) {
+                if (CompartmentTracker.isStructureDirty(id)) {
+                    this.needsRecompute.put(id, true);
+                }
+
+                if (count % 600 == 0) {
                     this.needsRecompute.put(id, true);
                 }
 
                 if (this.needsRecompute.getOrDefault(id, false)) {
                     final LatticeStressSolver oldSolver = this.solvers.get(id);
                     final BoundingBox3ic bb = ssl.getPlot().getBoundingBox();
-                    final long currentHash = computeBlockHash(ssl.getLevel(), bb);
-                    final Long prevHash = this.previousStructureHashes.get(id);
-                    if (oldSolver != null && prevHash != null && prevHash == currentHash) {
+                    final boolean dirty = CompartmentTracker.isStructureDirty(id);
+
+                    if (oldSolver != null && !dirty && alreadyTracked) {
                         this.needsRecompute.put(id, false);
                         oldSolver.refreshWaterDepths(getWaterSurfaceWorldY(ssl), ssl.logicalPose());
                         oldSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(ssl));
@@ -164,6 +173,8 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                         this.cachedCrushDepths.put(id, oldSolver.computeCrushDepth());
                         continue;
                     }
+
+                    if (dirty) CompartmentTracker.clearStructureDirty(id);
 
                     if (oldSolver != null) {
                         this.previousU.put(id, oldSolver.getU());
@@ -183,14 +194,10 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                         ssl.logicalPose(), getWaterSurfaceWorldY(ssl));
                     newSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(ssl));
                     this.solvers.put(id, newSolver);
-                    this.previousStructureHashes.put(id, newSolver.getStructureHash());
                     this.totalSolveTimeNanos += System.nanoTime() - t0;
                     this.solveCount++;
                     this.needsRecompute.put(id, false);
                     this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
-
-                    if (classification.coherence() < 0.85) {
-                    }
                 }
 
             }
@@ -214,7 +221,6 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             this.needsRecompute.keySet().removeIf(id -> container.getSubLevel(id) == null);
             this.wasInWater.keySet().removeIf(id -> container.getSubLevel(id) == null);
             this.previousU.keySet().removeIf(id -> container.getSubLevel(id) == null);
-            this.previousStructureHashes.keySet().removeIf(id -> container.getSubLevel(id) == null);
             cachedWaterSurfaceY.keySet().removeIf(id -> container.getSubLevel(id) == null);
             lastWaterScanTick.keySet().removeIf(id -> container.getSubLevel(id) == null);
             cachedFluidDensityMultiplier.keySet().removeIf(id -> container.getSubLevel(id) == null);
@@ -310,7 +316,6 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                 subLevel.logicalPose(), getWaterSurfaceWorldY(subLevel));
             newSolver.setFluidDensityMultiplier(getFluidDensityMultiplier(subLevel));
             this.solvers.put(id, newSolver);
-            this.previousStructureHashes.put(id, newSolver.getStructureHash());
             this.totalSolveTimeNanos += System.nanoTime() - t0;
             this.solveCount++;
             this.needsRecompute.put(id, false);
@@ -497,22 +502,6 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             totalCheckTimeNanos / 1e6);
     }
 
-    private static long computeBlockHash(final BlockGetter level, final BoundingBox3ic bounds) {
-        long hash = 0;
-        final BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
-        for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
-            for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
-                for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
-                    mutable.set(x, y, z);
-                    if (LatticeStressSolver.includeBlockForHash(level.getBlockState(mutable), level, mutable)) {
-                        hash ^= BlockPos.asLong(x, y, z);
-                    }
-                }
-            }
-        }
-        return hash;
-    }
-
     public static void clearForLevel(final ServerLevel level) {
         final SubLevelStressAnalyzer analyzer = INSTANCES.remove(level);
         if (analyzer != null) {
@@ -522,7 +511,6 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             analyzer.tickCounter.clear();
             analyzer.wasInWater.clear();
             analyzer.previousU.clear();
-            analyzer.previousStructureHashes.clear();
             cachedWaterSurfaceY.clear();
             lastWaterScanTick.clear();
             cachedFluidDensityMultiplier.clear();

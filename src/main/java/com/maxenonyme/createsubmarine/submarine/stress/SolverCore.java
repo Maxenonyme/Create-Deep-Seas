@@ -1,6 +1,7 @@
 package com.maxenonyme.createsubmarine.submarine.stress;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 /**
  * Pure-math spring-lattice FEA solver with no Minecraft or Sable dependencies.
@@ -60,9 +61,12 @@ public class SolverCore {
     public final double[] u;
     public final double[] blockWaterDepths;
 
+    // ---- cached Jacobi preconditioner ----
+    private double[] diagPrecon;
+
     // ---- config parameters ----
     public double poissonRatio = 0.3;
-    public double tikhonovAlphaFraction = 0.01;
+    public double tikhonovAlphaFraction = 1e-6;
     public double rhoG = RHO_G;
     public boolean useMoonPool = true;
 
@@ -118,7 +122,7 @@ public class SolverCore {
                 final int comp = dir / 2;
                 final double sign = (dir % 2 == 0) ? -1.0 : 1.0;
                 double localPressure = this.rhoG * depth * volFraction[i];
-                if (useMoonPool && dir == 0) {
+                if (useMoonPool && dir == 3) {
                     // downward(-Y) exposed face: check if there's a hull block below
                     final int belowIdx = findBlock(x[i] + DX[dir], y[i] + DY[dir], z[i] + DZ[dir]);
                     if (belowIdx >= 0 && isHullBlock[belowIdx]) {
@@ -139,35 +143,86 @@ public class SolverCore {
 
     public void applyK(final double[] uvec, final double[] Ku) {
         Arrays.fill(Ku, 0.0);
-        for (int i = 0; i < n; i++) {
-            final int i3 = 3 * i;
-            final double uix = uvec[i3], uiy = uvec[i3 + 1], uiz = uvec[i3 + 2];
-            for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
-                final int j = neighbors[i][dir];
-                if (j < 0) continue;
-                final double Kij = springK[i][dir];
-                final int j3 = 3 * j;
-                if (dir < 6) {
-                    final int comp = dir / 2;
-                    final double sign = (dir % 2 == 0) ? 1.0 : -1.0;
-                    final double du = sign * (uvec[j3 + comp] - (comp == 0 ? uix : comp == 1 ? uiy : uiz));
-                    Ku[i3 + comp] += Kij * du * sign;
-                } else {
-                    final double cosX = DIR_COS[dir][0];
-                    final double cosY = DIR_COS[dir][1];
-                    final double cosZ = DIR_COS[dir][2];
-                    final double duProj = cosX * (uvec[j3] - uix) + cosY * (uvec[j3 + 1] - uiy) + cosZ * (uvec[j3 + 2] - uiz);
-                    final double force = Kij * duProj;
-                    Ku[i3] += force * cosX;
-                    Ku[i3 + 1] += force * cosY;
-                    Ku[i3 + 2] += force * cosZ;
+        if (n > 200) {
+            IntStream.range(0, n).parallel().forEach(i -> {
+                final int i3 = 3 * i;
+                final double uix = uvec[i3], uiy = uvec[i3 + 1], uiz = uvec[i3 + 2];
+                for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
+                    final int j = neighbors[i][dir];
+                    if (j < 0) continue;
+                    final double Kij = springK[i][dir];
+                    final int j3 = 3 * j;
+                    if (dir < 6) {
+                        final int comp = dir / 2;
+                        final double sign = (dir % 2 == 0) ? 1.0 : -1.0;
+                        final double du = sign * (uvec[j3 + comp] - (comp == 0 ? uix : comp == 1 ? uiy : uiz));
+                        Ku[i3 + comp] += Kij * du * sign;
+                    } else {
+                        final double cosX = DIR_COS[dir][0];
+                        final double cosY = DIR_COS[dir][1];
+                        final double cosZ = DIR_COS[dir][2];
+                        final double duProj = cosX * (uvec[j3] - uix) + cosY * (uvec[j3 + 1] - uiy) + cosZ * (uvec[j3 + 2] - uiz);
+                        final double force = Kij * duProj;
+                        Ku[i3] += force * cosX;
+                        Ku[i3 + 1] += force * cosY;
+                        Ku[i3 + 2] += force * cosZ;
+                    }
+                }
+            });
+        } else {
+            for (int i = 0; i < n; i++) {
+                final int i3 = 3 * i;
+                final double uix = uvec[i3], uiy = uvec[i3 + 1], uiz = uvec[i3 + 2];
+                for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
+                    final int j = neighbors[i][dir];
+                    if (j < 0) continue;
+                    final double Kij = springK[i][dir];
+                    final int j3 = 3 * j;
+                    if (dir < 6) {
+                        final int comp = dir / 2;
+                        final double sign = (dir % 2 == 0) ? 1.0 : -1.0;
+                        final double du = sign * (uvec[j3 + comp] - (comp == 0 ? uix : comp == 1 ? uiy : uiz));
+                        Ku[i3 + comp] += Kij * du * sign;
+                    } else {
+                        final double cosX = DIR_COS[dir][0];
+                        final double cosY = DIR_COS[dir][1];
+                        final double cosZ = DIR_COS[dir][2];
+                        final double duProj = cosX * (uvec[j3] - uix) + cosY * (uvec[j3 + 1] - uiy) + cosZ * (uvec[j3 + 2] - uiz);
+                        final double force = Kij * duProj;
+                        Ku[i3] += force * cosX;
+                        Ku[i3 + 1] += force * cosY;
+                        Ku[i3 + 2] += force * cosZ;
+                    }
                 }
             }
         }
     }
 
     // ============================================================
-    //  Conjugate Gradient solver with Tikhonov regularization
+    //  Jacobi preconditioner (diagonal of K + αI)
+    // ============================================================
+
+    private void ensurePreconditioner() {
+        if (diagPrecon != null) return;
+        diagPrecon = new double[3 * n];
+        for (int i = 0; i < n; i++) {
+            for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
+                if (neighbors[i][dir] < 0) continue;
+                final double k = springK[i][dir];
+                if (dir < 6) {
+                    diagPrecon[3 * i + dir / 2] += k;
+                } else {
+                    diagPrecon[3 * i]     += k * DIR_COS[dir][0] * DIR_COS[dir][0];
+                    diagPrecon[3 * i + 1] += k * DIR_COS[dir][1] * DIR_COS[dir][1];
+                    diagPrecon[3 * i + 2] += k * DIR_COS[dir][2] * DIR_COS[dir][2];
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    //  Preconditioned Conjugate Gradient solver
+    //  with Tikhonov regularization
     // ============================================================
 
     public void solveCG(final double[] b) {
@@ -185,19 +240,23 @@ public class SolverCore {
 
         final double avgE = n > 0 ? Arrays.stream(E).summaryStatistics().getAverage() : 0.0;
         final double tikhonovAlpha = tikhonovAlphaFraction * avgE;
+        ensurePreconditioner();
 
         final double[] r = new double[N3];
+        final double[] z = new double[N3];
         final double[] p = new double[N3];
         final double[] Ap = new double[N3];
 
         applyK(u, r);
-        double rr = 0;
         for (int k = 0; k < N3; k++) {
             r[k] = b[k] - r[k] - tikhonovAlpha * u[k];
-            rr += r[k] * r[k];
         }
-        System.arraycopy(r, 0, p, 0, N3);
-        double rrOld = rr;
+
+        for (int k = 0; k < N3; k++) {
+            z[k] = r[k] / (diagPrecon[k] + tikhonovAlpha);
+        }
+        System.arraycopy(z, 0, p, 0, N3);
+        double rz = dot(r, z);
 
         final int maxIter = maxIterOverride > 0 ? maxIterOverride : Math.max(300, N3);
         for (int iter = 0; iter < maxIter; iter++) {
@@ -206,18 +265,23 @@ public class SolverCore {
             final double pAp = dot(p, Ap);
             if (pAp <= 0) break;
 
-            final double alpha = rr / pAp;
+            final double alpha = rz / pAp;
             for (int k = 0; k < N3; k++) {
                 u[k] += alpha * p[k];
                 r[k] -= alpha * Ap[k];
             }
 
-            rr = dot(r, r);
-            if (rr < 1e-12 * bNorm) break;
+            if (dot(r, r) < 1e-12 * bNorm) break;
 
-            final double beta = rr / rrOld;
-            for (int k = 0; k < N3; k++) p[k] = r[k] + beta * p[k];
-            rrOld = rr;
+            for (int k = 0; k < N3; k++) {
+                z[k] = r[k] / (diagPrecon[k] + tikhonovAlpha);
+            }
+            final double rzNew = dot(r, z);
+            if (rzNew <= 0) break;
+
+            final double beta = rzNew / rz;
+            for (int k = 0; k < N3; k++) p[k] = z[k] + beta * p[k];
+            rz = rzNew;
         }
     }
 
@@ -337,6 +401,11 @@ public class SolverCore {
         double globalDepth = Double.POSITIVE_INFINITY;
         int worstBlock = -1;
 
+        double maxBlockDepth = 0;
+        for (int i = 0; i < n; i++) {
+            if (blockWaterDepths[i] > maxBlockDepth) maxBlockDepth = blockWaterDepths[i];
+        }
+
         for (int i = 0; i < n; i++) {
             if (yieldStress[i] <= 0) {
                 result[i] = Double.POSITIVE_INFINITY;
@@ -352,7 +421,7 @@ public class SolverCore {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
             }
-            final double depth = blockDepth * yieldStress[i] / vm;
+            final double depth = maxBlockDepth * yieldStress[i] / vm;
             if (depth > 1e15) {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
@@ -458,15 +527,30 @@ public class SolverCore {
 
     public double[] getStressDistribution() {
         final double[] dist = new double[n];
-        for (int i = 0; i < n; i++) {
-            if (blockWaterDepths[i] <= 0) {
-                dist[i] = 0;
-            } else {
-                final double vm = computeVonMises(i);
-                if (vm <= 1e-30) {
+        if (n > 200) {
+            IntStream.range(0, n).parallel().forEach(i -> {
+                if (blockWaterDepths[i] <= 0) {
                     dist[i] = 0;
                 } else {
-                    dist[i] = Math.min(1.0, vm / yieldStress[i]);
+                    final double vm = computeVonMises(i);
+                    if (vm <= 1e-30) {
+                        dist[i] = 0;
+                    } else {
+                        dist[i] = Math.min(1.0, vm / yieldStress[i]);
+                    }
+                }
+            });
+        } else {
+            for (int i = 0; i < n; i++) {
+                if (blockWaterDepths[i] <= 0) {
+                    dist[i] = 0;
+                } else {
+                    final double vm = computeVonMises(i);
+                    if (vm <= 1e-30) {
+                        dist[i] = 0;
+                    } else {
+                        dist[i] = Math.min(1.0, vm / yieldStress[i]);
+                    }
                 }
             }
         }
