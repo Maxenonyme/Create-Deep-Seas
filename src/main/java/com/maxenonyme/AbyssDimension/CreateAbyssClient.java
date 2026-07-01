@@ -38,6 +38,12 @@ public final class CreateAbyssClient {
         event.registerEntityRenderer(
                 EntityRegistry.ABYSSAL_CUTTLEFISH.get(),
                 com.maxenonyme.AbyssDimension.client.renderer.AbyssalCuttlefishRenderer::new);
+        event.registerEntityRenderer(
+                EntityRegistry.PELICAN_EEL.get(),
+                com.maxenonyme.AbyssDimension.client.renderer.PelicanEelRenderer::new);
+        event.registerEntityRenderer(
+                EntityRegistry.SEGMENT_HITBOX.get(),
+                net.minecraft.client.renderer.entity.NoopRenderer::new);
     }
 
     private static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
@@ -56,6 +62,9 @@ public final class CreateAbyssClient {
         event.registerLayerDefinition(
                 com.maxenonyme.AbyssDimension.client.model.AbyssalCuttlefish.LAYER_LOCATION,
                 com.maxenonyme.AbyssDimension.client.model.AbyssalCuttlefish::createBodyLayer);
+        event.registerLayerDefinition(
+                com.maxenonyme.AbyssDimension.client.model.PelicanEel.LAYER_LOCATION,
+                com.maxenonyme.AbyssDimension.client.model.PelicanEel::createBodyLayer);
     }
 
     private static void onClientSetup(FMLClientSetupEvent event) {

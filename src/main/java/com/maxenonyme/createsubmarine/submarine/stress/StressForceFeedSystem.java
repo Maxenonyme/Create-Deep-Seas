@@ -1,7 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.stress;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload;
 import dev.ryanhcode.sable.api.physics.force.ForceGroup;
 import dev.ryanhcode.sable.api.physics.force.ForceGroups;
 import dev.ryanhcode.sable.api.physics.force.QueuedForceGroup;
@@ -13,45 +12,17 @@ import dev.ryanhcode.sable.physics.config.block_properties.PhysicsBlockPropertyH
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Vector3d;
-import org.joml.Vector3dc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.io.*;
-import java.nio.file.*;
 import java.util.*;
 
 public class StressForceFeedSystem {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger("StressForceFeed");
-    private static final Map<UUID, Long> lastBroadcastTime = new HashMap<>();
-    private static final Map<UUID, Integer> arrowLogTick = new HashMap<>();
-    private static final Map<UUID, StressSnapshot> lastStressState = new HashMap<>();
-
-    private static final double STRESS_CHANGE_REL_TOLERANCE = 0.01;
-    private static final double CRUSH_CHANGE_REL_TOLERANCE = 0.05;
-
     private static final Map<UUID, Long> stressLastGameTick = new HashMap<>();
     private static final Map<UUID, Integer> stressSubstepIdx = new HashMap<>();
-
-    private static PrintWriter stressLogWriter;
-    private static final Object stressLogLock = new Object();
-
-    private record StressSnapshot(
-        double maxRatio,
-        double meanRatio,
-        double minCrush,
-        long time
-    ) {}
 
     
 
@@ -72,10 +43,9 @@ public class StressForceFeedSystem {
     }
 
     public static void register() {
-        LOGGER.info("StressForceFeedSystem registered");
         ForceGroup fg = getStressForceGroup();
         if (fg != null) {
-            LOGGER.info("Stress force group found: defaultDisplayed={}", fg.defaultDisplayed());
+            fg.defaultDisplayed();
         }
     }
 
@@ -140,100 +110,16 @@ public class StressForceFeedSystem {
         final double[] stressDist = solver.getStressDistribution();
         final int n = solver.blockCount();
 
-        // Only set crush depths, log, broadcast, and check failure on the LAST substep per game tick
+        // Only set crush depths, broadcast, and check failure on the LAST substep per game tick
         if (isLastSubstep) {
             analyzer.setCrushDepths(ssl, solver.computeCrushDepth());
 
-            // Log stress UPDATES (only when the distribution changes significantly)
-            double maxRatio = 0, sumRatio = 0;
-            int worstRatioIdx = -1;
-            for (int i = 0; i < n; i++) {
-                if (stressDist[i] > maxRatio) { maxRatio = stressDist[i]; worstRatioIdx = i; }
-                sumRatio += stressDist[i];
-            }
-            final double meanRatio = sumRatio / n;
-            final double[] crush = solver.computeCrushDepth();
-            final int worstIdx = (int) crush[n];
-            final double minCrush = worstIdx >= 0 ? crush[worstIdx] : Double.POSITIVE_INFINITY;
-
             final UUID subId = ssl.getUniqueId();
-            final StressSnapshot prev = lastStressState.get(subId);
-            final StressSnapshot cur = new StressSnapshot(maxRatio, meanRatio, minCrush, ssl.getLevel().getGameTime());
-
-            if (prev == null) {
-                final String vmYieldInfo = worstRatioIdx >= 0
-                    ? String.format(" vm=%.2e yield=%.2e E=%.2e",
-                        solver.getVonMises(worstRatioIdx), solver.getYieldStress(worstRatioIdx), solver.getYoungsModulus(worstRatioIdx))
-                    : "";
-                LOGGER.debug("STRESS INIT ssl={}: max={} mean={} crush={} bounds={} blocks={} hull={}{}",
-                    subId.toString().substring(0, 8),
-                    String.format("%.4f", maxRatio * 100),
-                    String.format("%.4f", meanRatio * 100),
-                    String.format("%.1f", minCrush),
-                    solver.getBounds(), n, solver.hullBlockCount(), vmYieldInfo);
-                lastStressState.put(subId, cur);
-            } else {
-                final double dMaxRel = prev.maxRatio > 0 ? Math.abs(maxRatio - prev.maxRatio) / prev.maxRatio : Math.abs(maxRatio - prev.maxRatio);
-                final double dMeanRel = prev.meanRatio > 0 ? Math.abs(meanRatio - prev.meanRatio) / prev.meanRatio : Math.abs(meanRatio - prev.meanRatio);
-                final double dCrushRel = Double.isFinite(prev.minCrush) && prev.minCrush > 0
-                    ? Math.abs(minCrush - prev.minCrush) / prev.minCrush : Double.NaN;
-                if (dMaxRel > STRESS_CHANGE_REL_TOLERANCE || dMeanRel > STRESS_CHANGE_REL_TOLERANCE
-                        || (Double.isFinite(dCrushRel) && dCrushRel > CRUSH_CHANGE_REL_TOLERANCE)) {
-                    final String vmYieldInfo = worstRatioIdx >= 0
-                        ? String.format(" vm=%.2e yield=%.2e", solver.getVonMises(worstRatioIdx), solver.getYieldStress(worstRatioIdx))
-                        : "";
-                    LOGGER.debug("STRESS UPDATE ssl={}: max={} (was {}) mean={} (was {}) crush={} (was {}) bounds={} blocks={} hull={}{}",
-                        subId.toString().substring(0, 8),
-                        String.format("%.4f%%", maxRatio * 100),
-                        String.format("%.4f%%", prev.maxRatio * 100),
-                        String.format("%.4f%%", meanRatio * 100),
-                        String.format("%.4f%%", prev.meanRatio * 100),
-                        String.format("%.1f", minCrush),
-                        Double.isFinite(prev.minCrush) ? String.format("%.1f", prev.minCrush) : "inf",
-                        solver.getBounds(), n, solver.hullBlockCount(), vmYieldInfo);
-                    lastStressState.put(subId, cur);
-                }
-            }
 
             checkStructuralFailure(ssl, solver, analyzer);
 
-            // Arrow count log
-            {
-                final int totalArrows = recordFaceForces(solver, queued, stressDist, n)
-                                      + recordInternalForces(solver, internalQueued, n, stressDist, timeStep);
-                if (totalArrows > 0) {
-                    final int prevLogTick = arrowLogTick.getOrDefault(subId, 0);
-                    if (prevLogTick == 0 || prevLogTick != totalArrows) {
-                        LOGGER.debug("Recorded {} arrow(s) for ssl={}",
-                            totalArrows, subId.toString().substring(0, 8));
-                        arrowLogTick.put(subId, totalArrows);
-                    }
-                }
-            }
-
-            // Broadcast stress center once per second
-            final long gameTime = ssl.getLevel().getGameTime();
-            final Long lastTime = lastBroadcastTime.get(subId);
-            if (lastTime == null || gameTime - lastTime >= 20) {
-                lastBroadcastTime.put(subId, gameTime);
-                try {
-                    BlockPos stressCenterLocal = solver.getStressCenter();
-                    BoundingBox3ic bounds = solver.getBounds();
-                    BlockPos worldPos = new BlockPos(
-                        bounds.minX() + stressCenterLocal.getX(),
-                        bounds.minY() + stressCenterLocal.getY(),
-                        bounds.minZ() + stressCenterLocal.getZ()
-                    );
-                    StressCenterPayload payload = new StressCenterPayload(subId, worldPos);
-                    for (ServerPlayer player : ssl.getLevel().players()) {
-                        if (player.distanceToSqr(worldPos.getX(), worldPos.getY(), worldPos.getZ()) < 256.0 * 256.0) {
-                            PacketDistributor.sendToPlayer(player, payload);
-                        }
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("Failed to broadcast stress center for ssl={}", subId.toString().substring(0, 8), e);
-                }
-            }
+            recordFaceForces(solver, queued, stressDist, n);
+            recordInternalForces(solver, internalQueued, n, stressDist, timeStep);
         }
 
         // Always record forces on every substep (drive the physics)
@@ -246,51 +132,6 @@ public class StressForceFeedSystem {
             recordBuoyancyForce(ssl, buoyancyGroup, solver, timeStep);
         }
 
-        // Write every substep to file for analysis
-        writeStressLogToFile(ssl, solver, substepIdx, isLastSubstep);
-    }
-
-    private static void writeStressLogToFile(final ServerSubLevel ssl, final LatticeStressSolver solver,
-                                              final int substepIdx, final boolean isLastSubstep) {
-        synchronized (stressLogLock) {
-            try {
-                if (stressLogWriter == null) {
-                    final Path logDir = Path.of("logs");
-                    Files.createDirectories(logDir);
-                    final Path logFile = logDir.resolve("stress_details.txt");
-                    stressLogWriter = new PrintWriter(new FileWriter(logFile.toFile(), true));
-                }
-                final double[] stressDist = solver.getStressDistribution();
-                final int n = solver.blockCount();
-                double maxRatio = 0, sumRatio = 0;
-                int worstRatioIdx = -1;
-                for (int i = 0; i < n; i++) {
-                    if (stressDist[i] > maxRatio) { maxRatio = stressDist[i]; worstRatioIdx = i; }
-                    sumRatio += stressDist[i];
-                }
-                final double meanRatio = sumRatio / n;
-                final double[] crush = solver.computeCrushDepth();
-                final int worstIdx = (int) crush[n];
-                final double minCrush = worstIdx >= 0 ? crush[worstIdx] : Double.POSITIVE_INFINITY;
-
-                final double worstVm = worstRatioIdx >= 0 ? solver.getVonMises(worstRatioIdx) : Double.NaN;
-                final double worstYield = worstRatioIdx >= 0 ? solver.getYieldStress(worstRatioIdx) : Double.NaN;
-
-                stressLogWriter.printf("[%d] SSL=%s substep=%d last=%b n=%d hull=%d | "
-                    + "maxRatio=%.6f%% meanRatio=%.6f%% minCrush=%.1f worstIdx=%d | "
-                    + "vm=%.4e yield=%.4e | bounds=%s%n",
-                    ssl.getLevel().getGameTime(),
-                    ssl.getUniqueId().toString().substring(0, 8),
-                    substepIdx, isLastSubstep,
-                    n, solver.hullBlockCount(),
-                    maxRatio * 100, meanRatio * 100, minCrush, worstRatioIdx,
-                    worstVm, worstYield,
-                    solver.getBounds());
-                stressLogWriter.flush();
-            } catch (IOException e) {
-                LOGGER.error("Failed to write stress log", e);
-            }
-        }
     }
 
     private static void checkStructuralFailure(final ServerSubLevel ssl, final LatticeStressSolver solver,
@@ -302,22 +143,6 @@ public class StressForceFeedSystem {
         boolean brokeAny = false;
         int brokeCount = 0;
 
-        // Log top stress ratios for debugging
-        double maxRatio = 0;
-        int maxIdx = -1;
-        for (int i = 0; i < n; i++) {
-            final double r = solver.getStressRatio(i);
-            if (r > maxRatio) { maxRatio = r; maxIdx = i; }
-        }
-        if (maxRatio > 0.5) {
-            final BlockPos pos = solver.getPosition(maxIdx);
-            final BlockState state = plotLevel.getBlockState(pos);
-            LOGGER.debug("checkStructuralFailure ssl={}: n={} maxRatio={} at {} (block={})",
-                ssl.getUniqueId().toString().substring(0, 8), n,
-                String.format("%.4f", maxRatio), pos.toShortString(),
-                state.getBlock().getName().getString());
-        }
-
         for (int i = 0; i < n; i++) {
             final double ratio = solver.getStressRatio(i);
             if (ratio < 1.0) continue;
@@ -326,26 +151,12 @@ public class StressForceFeedSystem {
             final BlockState state = plotLevel.getBlockState(pos);
             if (state.isAir()) continue;
 
-            final double waterDepth = solver.getBlockWaterDepth(i);
-            final String matName = state.getBlock().getName().getString();
-            final double yield = solver.getYieldStress(i);
-
-            LOGGER.warn("BLOCK FAILURE at {}: material={} stressRatio={} depth={} yield={} E={}",
-                pos.toShortString(), matName, String.format("%.4f", ratio),
-                String.format("%.1f", waterDepth), String.format("%.2e", yield),
-                String.format("%.2e", solver.getYoungsModulus(i)));
-
             plotLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
             brokeAny = true;
             brokeCount++;
         }
 
         if (brokeAny) {
-            final BoundingBox3ic b = solver.getBounds();
-            LOGGER.warn("STRUCTURAL FAILURE in {}: {} block(s) broke, bounds=[{},{},{}]-[{},{},{}] blocks={} hull={}",
-                ssl.getUniqueId().toString().substring(0, 8), brokeCount,
-                b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ(),
-                solver.blockCount(), solver.hullBlockCount());
             analyzer.markDirty(ssl);
         }
     }
@@ -382,12 +193,8 @@ public class StressForceFeedSystem {
         }
 
         if (totalBuoyancy <= 0) {
-            LOGGER.debug("buoyancy: n={} hull={} total=0 (no underwater hull blocks)", n, hullCount);
             return;
         }
-
-        LOGGER.trace("buoyancy: n={} hull={} counted={} total={}",
-            n, hullCount, counted, String.format("%.1f", totalBuoyancy));
 
         // Multiply by timeStep (impulse convention) so ForceTrackingDispatcher's division recovers correct force
         final double recordedBuoyancy = totalBuoyancy * timeStep;

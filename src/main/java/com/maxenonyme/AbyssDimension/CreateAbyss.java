@@ -43,6 +43,7 @@ public class CreateAbyss {
                         output.accept(EntityRegistry.SIZE_3_ISOPOD_SPAWN_EGG.get());
                         output.accept(EntityRegistry.SIZE_4_ISOPOD_SPAWN_EGG.get());
                         output.accept(EntityRegistry.ABYSSAL_CUTTLEFISH_SPAWN_EGG.get());
+                        output.accept(EntityRegistry.PELICAN_EEL_SPAWN_EGG.get());
                     })
                     .build());
 

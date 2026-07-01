@@ -42,3 +42,6 @@ stress_details*
 
 # Stray compiled classes outside build/
 /com/
+
+
+discord-dump-*

@@ -23,8 +23,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.joml.Vector3dc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +32,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SubLevelStressAnalyzer implements SubLevelObserver {
 
     public static final Object2ObjectOpenHashMap<ServerLevel, SubLevelStressAnalyzer> INSTANCES = new Object2ObjectOpenHashMap<>();
-    private static final Logger LOGGER = LoggerFactory.getLogger("SubmarineStress");
     private static final Map<UUID, Double> cachedWaterSurfaceY = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> lastWaterScanTick = new ConcurrentHashMap<>();
     private static final Map<UUID, Double> cachedFluidDensityMultiplier = new ConcurrentHashMap<>();
@@ -190,13 +187,9 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                     this.totalSolveTimeNanos += System.nanoTime() - t0;
                     this.solveCount++;
                     this.needsRecompute.put(id, false);
-                    this.cachedCrushDepths.remove(id);
+                    this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
 
                     if (classification.coherence() < 0.85) {
-                        LOGGER.debug("SubLevel {}: coherence={} (roughness penalty={})",
-                            id.toString().substring(0, 8),
-                            String.format("%.3f", classification.coherence()),
-                            String.format("%.3f", ShapeClassifier.roughnessPenalty(classification.coherence())));
                     }
                 }
 
@@ -211,10 +204,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
                 final boolean inWater = this.wasInWater.getOrDefault(pid, false);
                 final double[] cd = this.cachedCrushDepths.get(pid);
                 final String stressRange = cd != null ? String.format("%.1f-%.1f", cd[0], cd[s.blockCount()]) : "N/A";
-                LOGGER.debug("SubLevel {}: {} blocks, inWater={}, stressRange=[{}], avgSolve={}ms",
-                    pid.toString().substring(0, 8), s.blockCount(), inWater, stressRange,
-                    String.format("%.2f", solveCount > 0 ? totalSolveTimeNanos / 1e6 / solveCount : 0));
-            }
+                }
         }
 
         if (container instanceof ServerSubLevelContainer) {
@@ -272,16 +262,12 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
 
         int startY = Math.max(level.getMinBuildHeight(), (int) Math.round(pos.y()));
 
-        for (int y = startY; y < level.getMaxBuildHeight(); y++) {
+        for (int y = startY + 1; y < level.getMaxBuildHeight(); y++) {
             final FluidState fluid = level.getFluidState(new BlockPos(x, y, z));
-            if (fluid.is(FluidTags.WATER)) {
+            if (fluid.is(FluidTags.WATER) || fluid.is(FluidTags.LAVA)) {
+                final boolean lava = fluid.is(FluidTags.LAVA);
                 surfaceY = y + 1.0;
-                densityMultiplier = 1.0;
-                break;
-            }
-            if (fluid.is(FluidTags.LAVA)) {
-                surfaceY = y + 1.0;
-                densityMultiplier = LAVA_DENSITY_MULTIPLIER;
+                densityMultiplier = lava ? LAVA_DENSITY_MULTIPLIER : 1.0;
                 break;
             }
             if (fluid.isEmpty() && y >= level.getSeaLevel()) {
@@ -328,7 +314,7 @@ public class SubLevelStressAnalyzer implements SubLevelObserver {
             this.totalSolveTimeNanos += System.nanoTime() - t0;
             this.solveCount++;
             this.needsRecompute.put(id, false);
-            this.cachedCrushDepths.remove(id);
+            this.cachedCrushDepths.put(id, newSolver.computeCrushDepth());
             return newSolver;
         }
         return solver;

@@ -1,7 +1,6 @@
 package com.maxenonyme.createsubmarine.submarine.network;
 
 import com.maxenonyme.createsubmarine.CreateSubmarine;
-import com.maxenonyme.createsubmarine.submarine.client.ShapeVizRenderer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -35,9 +34,6 @@ public record ShapeVizPayload(UUID subId, String mode, boolean value) implements
     public static void handle(ShapeVizPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             CreateSubmarine.LOGGER.info("ShapeViz payload: subId={}, mode={}, value={}", payload.subId(), payload.mode(), payload.value());
-            if ("stresscenter".equals(payload.mode())) {
-                ShapeVizRenderer.setStressCenterEnabled(payload.subId(), payload.value());
-            }
         });
     }
 }

@@ -131,8 +131,9 @@ public class SubmarineConfig {
         POISSON_RATIO = builder
                 .comment("Poisson's ratio for hull materials.",
                         "Affects the relationship between Young's modulus and shear modulus.",
-                        "Range: 0.0-0.5, Default: 0.25 (typical for structural steel)")
-                .defineInRange("poissonRatio", 0.25, 0.0, 0.49);
+                        "Default 0.3 matches the lattice's intrinsic Poisson ratio (~0.297).",
+                        "Range: 0.0-0.5, Default: 0.3")
+                .defineInRange("poissonRatio", 0.3, 0.0, 0.49);
         TIKHONOV_ALPHA_FRACTION = builder
                 .comment("Tikhonov regularization fraction relative to Young's modulus.",
                         "Added to stiffness matrix diagonal to suppress rigid-body modes.",

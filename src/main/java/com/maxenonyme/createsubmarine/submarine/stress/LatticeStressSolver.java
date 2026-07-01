@@ -6,7 +6,6 @@ import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -15,8 +14,6 @@ import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 
 import java.util.*;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RecursiveAction;
 
 public class LatticeStressSolver {
 
@@ -82,6 +79,7 @@ public class LatticeStressSolver {
     private final double[] yieldStress;
     private final int[][] neighbors;
     private final double[][] springK;
+    private final int[] neighborCount;
 
     private final double[] u;
     private final double[] blockWaterDepths;
@@ -106,6 +104,7 @@ public class LatticeStressSolver {
 
     private long solveTimeNanos = 0;
     private final long structureHash;
+    final SolverCore solverCore;
 
     public LatticeStressSolver(final BlockGetter level, final BoundingBox3ic bounds) {
         this(level, bounds, null, null, null, null, Double.POSITIVE_INFINITY);
@@ -151,6 +150,20 @@ public class LatticeStressSolver {
         this.coherence = 1.0;
         this.orientation = new org.joml.Quaterniond();
         this.orientationEnabled = false;
+        this.neighborCount = computeNeighborCounts();
+
+        // Create SolverCore referencing our shared arrays
+        final int[] sx = new int[n], sy = new int[n], sz = new int[n];
+        for (int i = 0; i < n; i++) {
+            sx[i] = positions[i].getX();
+            sy[i] = positions[i].getY();
+            sz[i] = positions[i].getZ();
+        }
+        this.solverCore = new SolverCore(n, sx, sy, sz,
+            E, yieldStress, neighbors, springK, neighborCount,
+            exposedFaceCount, isHullBlock, hullBlockCount, volFraction,
+            u, blockWaterDepths);
+
         final long t0 = System.nanoTime();
         solve(null);
         this.solveTimeNanos = System.nanoTime() - t0;
@@ -291,6 +304,8 @@ public class LatticeStressSolver {
             }
         }
 
+        this.neighborCount = computeNeighborCounts();
+
         int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
         int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
         int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
@@ -321,6 +336,18 @@ public class LatticeStressSolver {
         if (previousU != null && previousU.length == 3 * this.n) {
             System.arraycopy(previousU, 0, this.u, 0, 3 * this.n);
         }
+
+        // Create SolverCore referencing our shared arrays
+        final int[] sx = new int[n], sy = new int[n], sz = new int[n];
+        for (int i = 0; i < n; i++) {
+            sx[i] = positions[i].getX();
+            sy[i] = positions[i].getY();
+            sz[i] = positions[i].getZ();
+        }
+        this.solverCore = new SolverCore(n, sx, sy, sz,
+            E, yieldStress, neighbors, springK, neighborCount,
+            exposedFaceCount, isHullBlock, hullBlockCount, volFraction,
+            u, blockWaterDepths);
 
         final long t0 = System.nanoTime();
         solve(level);
@@ -460,15 +487,6 @@ public class LatticeStressSolver {
                 double localPressure = this.rhoG * waterDepth * this.volFraction[i];
                 final Direction faceDir = Direction.from3DDataValue(dir);
 
-                if (this.orientationEnabled) {
-                    double nx = faceDir.getStepX();
-                    double ny = faceDir.getStepY();
-                    double nz = faceDir.getStepZ();
-                    double dot = nx * localDown.x + ny * localDown.y + nz * localDown.z;
-                    if (dot < 0) continue;
-                    localPressure *= dot + 0.5;
-                }
-
                 double faceDot = faceDir.getStepX() * localDown.x + faceDir.getStepY() * localDown.y + faceDir.getStepZ() * localDown.z;
                 if (faceDot > 0.7) {
                     BlockPos below = this.positions[i].relative(faceDir);
@@ -512,15 +530,6 @@ public class LatticeStressSolver {
                 double localPressure = pressure * this.volFraction[i];
                 final Direction faceDir = Direction.from3DDataValue(dir);
 
-                if (this.orientationEnabled) {
-                    double nx = faceDir.getStepX();
-                    double ny = faceDir.getStepY();
-                    double nz = faceDir.getStepZ();
-                    double dot = nx * localDown.x + ny * localDown.y + nz * localDown.z;
-                    if (dot < 0) continue;
-                    localPressure *= dot + 0.5;
-                }
-
                 double faceDot = faceDir.getStepX() * localDown.x + faceDir.getStepY() * localDown.y + faceDir.getStepZ() * localDown.z;
                 if (faceDot > 0.7) {
                     BlockPos below = this.positions[i].relative(faceDir);
@@ -537,60 +546,228 @@ public class LatticeStressSolver {
         }
     }
 
+    private static boolean USE_MULTIGRID = true;
+
+    public static void setUseMultigrid(boolean v) { USE_MULTIGRID = v; }
+
     private void solve(final BlockGetter level) {
         final double[] b = new double[3 * this.n];
         buildRHS(b);
-        solveCG(b);
+        solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
+        solverCore.tikhonovAlphaFraction = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01);
+        solverCore.rhoG = this.rhoG;
+        if (USE_MULTIGRID && this.n > 2000 && this.n <= 200000) {
+            solveMultigrid(b);
+        } else {
+            solverCore.solveCG(b);
+        }
+        solverCore.removeRigidBodyMode(this.u);
     }
 
     private void solveCG(final double[] b) {
-        double bNorm = 0;
-        for (int k = 0; k < 3 * this.n; k++) bNorm += b[k] * b[k];
-        if (bNorm < 1e-30) {
-            java.util.Arrays.fill(this.u, 0.0);
-            return;
-        }
+        solverCore.solveCG(b);
+    }
+
+    private void solveCG(final double[] b, final int maxIterOverride) {
+        solverCore.solveCG(b, maxIterOverride);
+    }
+
+    private void solveMultigrid(final double[] b) {
+        final int smoothIters = Math.max(10, this.n / 200);
+
+        solverCore.solveCG(b, smoothIters);
+
+        final double avgE = n > 0 ? Arrays.stream(E).summaryStatistics().getAverage() : 0.0;
+        final double tikhonovAlpha = solverCore.tikhonovAlphaFraction * avgE;
 
         final double[] r = new double[3 * this.n];
-        final double[] p = new double[3 * this.n];
-        final double[] Ap = new double[3 * this.n];
-
-        final double tikhonovAlpha = this.n > 0
-            ? cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01) * E[0]
-            : 0.0;
-
-
-        applyK(this.u, r);
-        double rr = 0;
+        solverCore.applyK(this.u, r);
         for (int k = 0; k < 3 * this.n; k++) {
             r[k] = b[k] - r[k] - tikhonovAlpha * this.u[k];
-            rr += r[k] * r[k];
         }
 
-        System.arraycopy(r, 0, p, 0, 3 * this.n);
-        double rrOld = rr;
+        final CoarseGrid coarse = new CoarseGrid();
+        final int cn = coarse.n;
+        if (cn <= 0) return;
 
-        final int maxIter = Math.max(300, 3 * this.n);
-        for (int iter = 0; iter < maxIter; iter++) {
-            applyK(p, Ap);
-            for (int k = 0; k < 3 * this.n; k++) Ap[k] += tikhonovAlpha * p[k];
-            final double pAp = dot(p, Ap);
-            if (pAp <= 0) break;
+        final double[] cr = new double[3 * cn];
+        restrict(r, cr, coarse);
+        final double[] cu = new double[3 * cn];
+        coarse.solveCG(cr, cu);
 
-            final double alpha = rr / pAp;
-            for (int k = 0; k < 3 * this.n; k++) {
-                this.u[k] += alpha * p[k];
-                r[k] -= alpha * Ap[k];
+        final double[] correction = new double[3 * this.n];
+        prolongate(cu, correction, coarse);
+        for (int k = 0; k < 3 * this.n; k++) {
+            this.u[k] += correction[k];
+        }
+
+        solverCore.solveCG(b, smoothIters);
+    }
+
+    private void restrict(final double[] fineR, final double[] coarseR, final CoarseGrid coarse) {
+        java.util.Arrays.fill(coarseR, 0.0);
+        for (int i = 0; i < this.n; i++) {
+            final int ci = coarse.group[i];
+            if (ci < 0) continue;
+            coarseR[3 * ci]     += fineR[3 * i];
+            coarseR[3 * ci + 1] += fineR[3 * i + 1];
+            coarseR[3 * ci + 2] += fineR[3 * i + 2];
+        }
+    }
+
+    private void prolongate(final double[] coarseU, final double[] fineCorrection, final CoarseGrid coarse) {
+        java.util.Arrays.fill(fineCorrection, 0.0);
+        for (int i = 0; i < this.n; i++) {
+            final int ci = coarse.group[i];
+            if (ci < 0) continue;
+            fineCorrection[3 * i]     = coarseU[3 * ci];
+            fineCorrection[3 * i + 1] = coarseU[3 * ci + 1];
+            fineCorrection[3 * i + 2] = coarseU[3 * ci + 2];
+        }
+    }
+
+    private class CoarseGrid {
+        final int n;
+        final int[] group;
+        private final int[] coarseCX;
+        private final int[] coarseCY;
+        private final int[] coarseCZ;
+        private final int[][] neighbors;
+        private final double[][] springK;
+
+        CoarseGrid() {
+            final java.util.HashMap<Long, Integer> coarseMap = new java.util.HashMap<>();
+            final int[] coarseIdx = new int[LatticeStressSolver.this.n];
+            java.util.Arrays.fill(coarseIdx, -1);
+            final int[][] keyToCXYZ = new int[LatticeStressSolver.this.n][];
+
+            for (int i = 0; i < LatticeStressSolver.this.n; i++) {
+                final BlockPos p = LatticeStressSolver.this.positions[i];
+                final int cx = p.getX() >= 0 ? p.getX() / 2 : (p.getX() - 1) / 2;
+                final int cy = p.getY() >= 0 ? p.getY() / 2 : (p.getY() - 1) / 2;
+                final int cz = p.getZ() >= 0 ? p.getZ() / 2 : (p.getZ() - 1) / 2;
+                final long key = BlockPos.asLong(cx, cy, cz);
+                final int ci = coarseMap.computeIfAbsent(key, k -> {
+                    final int idx = coarseMap.size();
+                    keyToCXYZ[idx] = new int[]{cx, cy, cz};
+                    return idx;
+                });
+                coarseIdx[i] = ci;
             }
 
-            removeRigidBodyMode(r);
+            this.n = coarseMap.size();
+            this.group = coarseIdx;
+            this.coarseCX = new int[this.n];
+            this.coarseCY = new int[this.n];
+            this.coarseCZ = new int[this.n];
+            for (int ci = 0; ci < this.n; ci++) {
+                this.coarseCX[ci] = keyToCXYZ[ci][0];
+                this.coarseCY[ci] = keyToCXYZ[ci][1];
+                this.coarseCZ[ci] = keyToCXYZ[ci][2];
+            }
 
-            rr = dot(r, r);
-            if (rr < 1e-24 * bNorm) break;
+            this.neighbors = new int[this.n][MAX_NEIGHBORS];
+            this.springK = new double[this.n][MAX_NEIGHBORS];
 
-            final double beta = rr / rrOld;
-            for (int k = 0; k < 3 * this.n; k++) p[k] = r[k] + beta * p[k];
-            rrOld = rr;
+            final double[] avgE = new double[this.n];
+            final int[] count = new int[this.n];
+            for (int i = 0; i < LatticeStressSolver.this.n; i++) {
+                final int ci = coarseIdx[i];
+                avgE[ci] += LatticeStressSolver.this.E[i];
+                count[ci]++;
+            }
+            for (int ci = 0; ci < this.n; ci++) {
+                avgE[ci] = count[ci] > 0 ? avgE[ci] / count[ci] : 1.0;
+            }
+
+            final double kVolCoarse = 2.0;
+            for (int ci = 0; ci < this.n; ci++) {
+                final int cx = this.coarseCX[ci];
+                final int cy = this.coarseCY[ci];
+                final int cz = this.coarseCZ[ci];
+                for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
+                    final long nKey = BlockPos.asLong(cx + DX[dir], cy + DY[dir], cz + DZ[dir]);
+                    final Integer cj = coarseMap.get(nKey);
+                    if (cj != null && cj != ci) {
+                        this.neighbors[ci][dir] = cj;
+                        final double axialK = 0.5 * (avgE[ci] + avgE[cj]) * kVolCoarse;
+                        this.springK[ci][dir] = -(axialK * INV_DIST[dir] * INV_DIST[dir]);
+                    } else {
+                        this.neighbors[ci][dir] = -1;
+                        this.springK[ci][dir] = 0.0;
+                    }
+                }
+            }
+        }
+
+        void solveCG(final double[] rhs, final double[] u) {
+            java.util.Arrays.fill(u, 0.0);
+            double bNorm = 0;
+            for (int k = 0; k < 3 * this.n; k++) bNorm += rhs[k] * rhs[k];
+            if (bNorm < 1e-30) return;
+
+            final double[] r = new double[3 * this.n];
+            final double[] p = new double[3 * this.n];
+            final double[] Ap = new double[3 * this.n];
+
+            this.applyK(u, r);
+            double rr = 0;
+            for (int k = 0; k < 3 * this.n; k++) {
+                r[k] = rhs[k] - r[k];
+                rr += r[k] * r[k];
+            }
+
+            System.arraycopy(r, 0, p, 0, 3 * this.n);
+            double rrOld = rr;
+
+            final int maxIter = Math.max(100, 3 * this.n);
+            for (int iter = 0; iter < maxIter; iter++) {
+                this.applyK(p, Ap);
+                final double pAp = dot(p, Ap);
+                if (pAp <= 0) break;
+
+                final double alpha = rr / pAp;
+                for (int k = 0; k < 3 * this.n; k++) {
+                    u[k] += alpha * p[k];
+                    r[k] -= alpha * Ap[k];
+                }
+
+                rr = dot(r, r);
+                if (rr < 1e-12 * bNorm) break;
+
+                final double beta = rr / rrOld;
+                for (int k = 0; k < 3 * this.n; k++) p[k] = r[k] + beta * p[k];
+                rrOld = rr;
+            }
+        }
+
+        private void applyK(final double[] uvec, final double[] Ku) {
+            java.util.Arrays.fill(Ku, 0.0);
+            for (int ci = 0; ci < this.n; ci++) {
+                final int ci3 = 3 * ci;
+                final double uix = uvec[ci3], uiy = uvec[ci3 + 1], uiz = uvec[ci3 + 2];
+                for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
+                    final int cj = this.neighbors[ci][dir];
+                    if (cj < 0) continue;
+                    final double Kij = this.springK[ci][dir];
+                    final int cj3 = 3 * cj;
+                    if (dir < 6) {
+                        final int comp = dir / 2;
+                        final double sign = (dir % 2 == 0) ? 1.0 : -1.0;
+                        final double du = sign * (uvec[cj3 + comp] - (comp == 0 ? uix : comp == 1 ? uiy : uiz));
+                        Ku[ci3 + comp] += Kij * du * sign;
+                    } else {
+                        final double cosX = DIR_COS[dir][0];
+                        final double cosY = DIR_COS[dir][1];
+                        final double cosZ = DIR_COS[dir][2];
+                        final double duProj = cosX * (uvec[cj3] - uix) + cosY * (uvec[cj3 + 1] - uiy) + cosZ * (uvec[cj3 + 2] - uiz);
+                        final double force = Kij * duProj;
+                        Ku[ci3] += force * cosX;
+                        Ku[ci3 + 1] += force * cosY;
+                        Ku[ci3 + 2] += force * cosZ;
+                    }
+                }
+            }
         }
     }
 
@@ -598,89 +775,24 @@ public class LatticeStressSolver {
         final long t0 = System.nanoTime();
         final double[] b = new double[3 * this.n];
         buildRHS(b);
-        solveCG(b);
+        solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
+        solverCore.tikhonovAlphaFraction = cfgDouble(SubmarineConfig.TIKHONOV_ALPHA_FRACTION, 0.01);
+        solverCore.rhoG = this.rhoG;
+        solverCore.solveCG(b);
+        solverCore.removeRigidBodyMode(this.u);
         this.solveTimeNanos = System.nanoTime() - t0;
     }
 
     private void removeRigidBodyMode(final double[] v) {
-        double sumX = 0, sumY = 0, sumZ = 0;
-        for (int i = 0; i < this.n; i++) {
-            sumX += v[3 * i];
-            sumY += v[3 * i + 1];
-            sumZ += v[3 * i + 2];
-        }
-        final double avgX = sumX / this.n;
-        final double avgY = sumY / this.n;
-        final double avgZ = sumZ / this.n;
-        for (int i = 0; i < this.n; i++) {
-            v[3 * i] -= avgX;
-            v[3 * i + 1] -= avgY;
-            v[3 * i + 2] -= avgZ;
-        }
+        solverCore.removeRigidBodyMode(v);
     }
-
-    private static final int PAR_THRESHOLD = 5000;
-    private static final ForkJoinPool FJP = ForkJoinPool.commonPool();
 
     private void applyK(final double[] uvec, final double[] Ku) {
-        java.util.Arrays.fill(Ku, 0.0);
-        if (this.n <= PAR_THRESHOLD) {
-            applyKRange(uvec, Ku, 0, this.n);
-        } else {
-            FJP.invoke(new ApplyKRecursive(uvec, Ku, 0, this.n));
-        }
-    }
-
-    private void applyKRange(final double[] uvec, final double[] Ku, final int start, final int end) {
-        for (int i = start; i < end; i++) {
-            final int i3 = 3 * i;
-            final double uix = uvec[i3], uiy = uvec[i3 + 1], uiz = uvec[i3 + 2];
-            for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
-                final int j = this.neighbors[i][dir];
-                if (j < 0) continue;
-                final double Kij = this.springK[i][dir];
-                final int j3 = 3 * j;
-                if (dir < 6) {
-                    final int comp = dir / 2;
-                    final double sign = (dir % 2 == 0) ? 1.0 : -1.0;
-                    final double du = sign * (uvec[j3 + comp] - (comp == 0 ? uix : comp == 1 ? uiy : uiz));
-                    Ku[i3 + comp] += Kij * du * sign;
-                } else {
-                    final double cosX = DIR_COS[dir][0];
-                    final double cosY = DIR_COS[dir][1];
-                    final double cosZ = DIR_COS[dir][2];
-                    final double duProj = cosX * (uvec[j3] - uix) + cosY * (uvec[j3 + 1] - uiy) + cosZ * (uvec[j3 + 2] - uiz);
-                    final double force = Kij * duProj;
-                    Ku[i3] += force * cosX;
-                    Ku[i3 + 1] += force * cosY;
-                    Ku[i3 + 2] += force * cosZ;
-                }
-            }
-        }
-    }
-
-    private class ApplyKRecursive extends RecursiveAction {
-        private final double[] uvec, Ku;
-        private final int start, end;
-        ApplyKRecursive(final double[] uvec, final double[] Ku, final int start, final int end) {
-            this.uvec = uvec; this.Ku = Ku; this.start = start; this.end = end;
-        }
-        @Override
-        protected void compute() {
-            if (this.end - this.start <= PAR_THRESHOLD) {
-                applyKRange(this.uvec, this.Ku, this.start, this.end);
-            } else {
-                final int mid = (this.start + this.end) / 2;
-                invokeAll(new ApplyKRecursive(this.uvec, this.Ku, this.start, mid),
-                          new ApplyKRecursive(this.uvec, this.Ku, mid, this.end));
-            }
-        }
+        solverCore.applyK(uvec, Ku);
     }
 
     private static double dot(final double[] a, final double[] b) {
-        double sum = 0;
-        for (int i = 0; i < a.length; i++) sum += a[i] * b[i];
-        return sum;
+        return SolverCore.dot(a, b);
     }
 
     public double getMaxWaterDepth() {
@@ -740,6 +852,46 @@ public class LatticeStressSolver {
     public static int[] getDZ() { return DZ; }
     public static double[] getInvDist() { return INV_DIST; }
 
+    public int getNeighborCount(final int i) {
+        if (i < 0 || i >= this.n) return 0;
+        return this.neighborCount[i];
+    }
+
+    private int[] computeNeighborCounts() {
+        final int[] hullDist = new int[this.n];
+        java.util.Arrays.fill(hullDist, Integer.MAX_VALUE);
+        final ArrayDeque<Integer> queue = new ArrayDeque<>();
+        for (int i = 0; i < this.n; i++) {
+            if (this.isHullBlock[i]) {
+                hullDist[i] = 0;
+                queue.addLast(i);
+            }
+        }
+        while (!queue.isEmpty()) {
+            final int i = queue.removeFirst();
+            final int nd = hullDist[i] + 1;
+            for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
+                final int j = this.neighbors[i][dir];
+                if (j >= 0 && hullDist[j] > nd) {
+                    hullDist[j] = nd;
+                    queue.addLast(j);
+                }
+            }
+        }
+
+        final int[] nc = new int[this.n];
+        for (int i = 0; i < this.n; i++) {
+            if (hullDist[i] <= 1) {
+                nc[i] = 26;
+            } else if (hullDist[i] <= 3) {
+                nc[i] = 18;
+            } else {
+                nc[i] = 6;
+            }
+        }
+        return nc;
+    }
+
     public double getYoungsModulus(final int i) { return this.E[i]; }
     public double getYieldStress(final int i) { return this.yieldStress[i]; }
     public double getVonMises(final int i) { return computeVonMises(i); }
@@ -775,39 +927,24 @@ public class LatticeStressSolver {
     }
 
     public double[] computeCrushDepth() {
-        final double[] result = new double[this.n + 1];
-        double globalDepth = Double.POSITIVE_INFINITY;
-        int worstBlock = -1;
+        solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
+        return solverCore.computeCrushDepth();
+    }
 
-        for (int i = 0; i < this.n; i++) {
-            if (this.yieldStress[i] <= 0) {
-                result[i] = Double.POSITIVE_INFINITY;
-                continue;
-            }
-            final double blockDepth = this.blockWaterDepths[i];
-            if (blockDepth <= 0) {
-                result[i] = Double.POSITIVE_INFINITY;
-                continue;
-            }
-            final double vm = computeVonMises(i);
-            if (vm <= 1e-30) {
-                result[i] = Double.POSITIVE_INFINITY;
-                continue;
-            }
-            final double depth = blockDepth * this.yieldStress[i] / vm;
-            if (depth > 1e15) {
-                result[i] = Double.POSITIVE_INFINITY;
-                continue;
-            }
-            result[i] = depth;
-            if (depth < globalDepth) {
-                globalDepth = depth;
-                worstBlock = i;
-            }
-        }
+    private static final double PLATE_BENDING_BETA = 0.3;
 
-        result[this.n] = (double) worstBlock;
-        return result;
+    public double[] computePanelBendingRatios() {
+        if (!Double.isFinite(this.waterSurfaceWorldY)) return new double[this.n];
+        solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
+        solverCore.rhoG = this.rhoG;
+        return solverCore.computePanelBendingRatios();
+    }
+
+    public double[] computeCombinedStressRatios() {
+        if (!Double.isFinite(this.waterSurfaceWorldY)) return new double[this.n];
+        solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
+        solverCore.rhoG = this.rhoG;
+        return solverCore.computeCombinedStressRatios();
     }
 
     public void refreshWaterDepths(final double newWaterSurfaceWorldY, final Pose3dc currentPose) {
@@ -880,20 +1017,8 @@ public class LatticeStressSolver {
     }
 
     public double[] getStressDistribution() {
-        final double[] dist = new double[this.n];
-        for (int i = 0; i < this.n; i++) {
-            if (this.blockWaterDepths[i] <= 0) {
-                dist[i] = 0;
-            } else {
-                final double vm = computeVonMises(i);
-                if (vm <= 1e-30) {
-                    dist[i] = 0;
-                } else {
-                    dist[i] = Math.min(1.0, vm / this.yieldStress[i]);
-                }
-            }
-        }
-        return dist;
+        solverCore.poissonRatio = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.3);
+        return solverCore.getStressDistribution();
     }
 
     public double getStressRatio(final int i) {
@@ -916,58 +1041,7 @@ public class LatticeStressSolver {
     }
 
     private double computeVonMises(final int blockIdx) {
-        final double Ei = this.E[blockIdx];
-        final int i3 = 3 * blockIdx;
-        final double uix = this.u[i3], uiy = this.u[i3 + 1], uiz = this.u[i3 + 2];
-
-        double gxx = 0, gxy = 0, gxz = 0;
-        double gyx = 0, gyy = 0, gyz = 0;
-        double gzx = 0, gzy = 0, gzz = 0;
-        double denomX = 0, denomY = 0, denomZ = 0;
-
-        for (int dir = 0; dir < MAX_NEIGHBORS; dir++) {
-            final int j = this.neighbors[blockIdx][dir];
-            if (j < 0) continue;
-            final int j3 = 3 * j;
-            final double dux = this.u[j3] - uix;
-            final double duy = this.u[j3 + 1] - uiy;
-            final double duz = this.u[j3 + 2] - uiz;
-            final double dx = DX[dir], dy = DY[dir], dz = DZ[dir];
-
-            gxx += dux * dx; gxy += dux * dy; gxz += dux * dz;
-            gyx += duy * dx; gyy += duy * dy; gyz += duy * dz;
-            gzx += duz * dx; gzy += duz * dy; gzz += duz * dz;
-            denomX += dx * dx; denomY += dy * dy; denomZ += dz * dz;
-        }
-
-        if (denomX > 0) { final double inv = 1.0 / denomX; gxx *= inv; gyx *= inv; gzx *= inv; }
-        if (denomY > 0) { final double inv = 1.0 / denomY; gxy *= inv; gyy *= inv; gzy *= inv; }
-        if (denomZ > 0) { final double inv = 1.0 / denomZ; gxz *= inv; gyz *= inv; gzz *= inv; }
-
-        final double exx = gxx;
-        final double eyy = gyy;
-        final double ezz = gzz;
-        final double exy = (gxy + gyx) * 0.5;
-        final double eyz = (gyz + gzy) * 0.5;
-        final double ezx = (gxz + gzx) * 0.5;
-
-        final double nu = cfgDouble(SubmarineConfig.POISSON_RATIO, 0.25);
-        final double lambda = Ei * nu / ((1.0 + nu) * (1.0 - 2.0 * nu));
-        final double mu = Ei / (2.0 * (1.0 + nu));
-        final double eVol = exx + eyy + ezz;
-        final double sxx = 2.0 * mu * exx + lambda * eVol;
-        final double syy = 2.0 * mu * eyy + lambda * eVol;
-        final double szz = 2.0 * mu * ezz + lambda * eVol;
-        final double sxy = 2.0 * mu * exy;
-        final double syz = 2.0 * mu * eyz;
-        final double szx = 2.0 * mu * ezx;
-
-        return Math.sqrt(0.5 * (
-                (sxx - syy) * (sxx - syy) +
-                (syy - szz) * (syy - szz) +
-                (szz - sxx) * (szz - sxx) +
-                6.0 * (sxy * sxy + syz * syz + szx * szx)
-        ));
+        return solverCore.computeVonMises(blockIdx);
     }
 
     public BlockPos getStressCenter() {

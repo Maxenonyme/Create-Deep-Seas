@@ -1,6 +1,8 @@
 package com.maxenonyme.AbyssDimension.entities;
 
 import com.maxenonyme.AbyssDimension.CreateAbyss;
+import com.maxenonyme.AbyssDimension.entities.parts.SegmentHitbox;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -66,6 +68,22 @@ public final class EntityRegistry {
     public static final Supplier<Item> ABYSSAL_CUTTLEFISH_SPAWN_EGG = CreateAbyss.ITEMS.register("abyssal_cuttlefish_spawn_egg",
             () -> new DeferredSpawnEggItem(ABYSSAL_CUTTLEFISH, 0x4A90D9, 0xE8A87C, new Item.Properties()));
 
+    public static final Supplier<EntityType<PelicanEelEntity>> PELICAN_EEL = ENTITY_TYPES.register("pelican_eel",
+            () -> EntityType.Builder.of(PelicanEelEntity::new, MobCategory.WATER_CREATURE)
+                    .sized(0.8F, 0.5F)
+                    .clientTrackingRange(10)
+                    .build("pelican_eel"));
+
+    public static final Supplier<Item> PELICAN_EEL_SPAWN_EGG = CreateAbyss.ITEMS.register("pelican_eel_spawn_egg",
+            () -> new DeferredSpawnEggItem(PELICAN_EEL, 0x0A1A2A, 0xE8845A, new Item.Properties()));
+
+    public static final Supplier<EntityType<SegmentHitbox>> SEGMENT_HITBOX = ENTITY_TYPES.register("segment_hitbox",
+            () -> EntityType.Builder.<SegmentHitbox>of((type, level) -> new SegmentHitbox(level), MobCategory.MISC)
+                    .sized(0.01F, 0.01F)
+                    .clientTrackingRange(10)
+                    .updateInterval(Integer.MAX_VALUE)
+                    .build("segment_hitbox"));
+
     public static void init(IEventBus modEventBus) {
         ENTITY_TYPES.register(modEventBus);
         modEventBus.addListener(EntityRegistry::registerAttributes);
@@ -78,6 +96,7 @@ public final class EntityRegistry {
         event.put(MAGMATIC_SNAIL.get(), MagmaticSnailEntity.createAttributes().build());
         event.put(ISOPOD.get(), IsopodEntity.createAttributes().build());
         event.put(ABYSSAL_CUTTLEFISH.get(), AbyssalCuttlefishEntity.createAttributes().build());
+        event.put(PELICAN_EEL.get(), PelicanEelEntity.createAttributes().build());
     }
 
     public static void registerSpawnPlacements(net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent event) {
@@ -114,6 +133,13 @@ public final class EntityRegistry {
                 net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
                 net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
                 AbyssalCuttlefishEntity::checkSpawnRules,
+                net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
+        );
+        event.register(
+                PELICAN_EEL.get(),
+                net.minecraft.world.entity.SpawnPlacementTypes.IN_WATER,
+                net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,
+                PelicanEelEntity::checkSpawnRules,
                 net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent.Operation.OR
         );
     }

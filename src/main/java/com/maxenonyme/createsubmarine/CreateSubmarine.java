@@ -461,10 +461,6 @@ public class CreateSubmarine {
                                 com.maxenonyme.createsubmarine.submarine.network.ShapeVizPayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.ShapeVizPayload::handle);
                 registrar.playToClient(
-                                com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload.TYPE,
-                                com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload.CODEC,
-                                com.maxenonyme.createsubmarine.submarine.network.StressCenterPayload::handle);
-                registrar.playToClient(
                                 com.maxenonyme.createsubmarine.submarine.network.HullConfigSyncPayload.TYPE,
                                 com.maxenonyme.createsubmarine.submarine.network.HullConfigSyncPayload.CODEC,
                                 com.maxenonyme.createsubmarine.submarine.network.HullConfigSyncPayload::handle);
