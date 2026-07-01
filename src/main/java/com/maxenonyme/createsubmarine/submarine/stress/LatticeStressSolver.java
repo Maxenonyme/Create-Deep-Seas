@@ -276,7 +276,9 @@ public class LatticeStressSolver {
                         final double kVol = 0.5 * (this.volFraction[i] + this.volFraction[j]);
                         final double factorI = DefaultMaterialProperties.getDirectionalFactor(blockState, DX[dir], DY[dir], DZ[dir]);
                         final double factorJ = DefaultMaterialProperties.getDirectionalFactor(neighborState, -DX[dir], -DY[dir], -DZ[dir]);
-                        final double axialK = 0.5 * (Ei * factorI + this.E[j] * factorJ) * kVol;
+                        final double EiEff = Ei * factorI;
+                        final double EjEff = this.E[j] * factorJ;
+                        final double axialK = (2.0 * EiEff * EjEff / (EiEff + EjEff + 1e-30)) * kVol;
                         this.springK[i][dir] = -(axialK * INV_DIST[dir] * INV_DIST[dir]);
                     } else {
                         this.neighbors[i][dir] = -1;
@@ -348,6 +350,20 @@ public class LatticeStressSolver {
             E, yieldStress, neighbors, springK, neighborCount,
             exposedFaceCount, isHullBlock, hullBlockCount, volFraction,
             u, blockWaterDepths);
+
+        // Wire smoothed normals for curvature-aware panel bending
+        if (!this.smoothedNormals.isEmpty()) {
+            final double[][] normals = new double[this.n][3];
+            for (int i = 0; i < this.n; i++) {
+                final Vector3d v = this.smoothedNormals.get(this.positions[i]);
+                if (v != null) {
+                    normals[i][0] = v.x;
+                    normals[i][1] = v.y;
+                    normals[i][2] = v.z;
+                }
+            }
+            this.solverCore.smoothedNormals = normals;
+        }
 
         final long t0 = System.nanoTime();
         solve(level);
@@ -489,12 +505,10 @@ public class LatticeStressSolver {
 
                 double faceDot = faceDir.getStepX() * localDown.x + faceDir.getStepY() * localDown.y + faceDir.getStepZ() * localDown.z;
                 if (faceDot > 0.7) {
-                    BlockPos below = this.positions[i].relative(faceDir);
-                    for (int j = 0; j < this.n; j++) {
-                        if (this.positions[j].equals(below) && this.isHullBlock[j]) {
-                            localPressure *= MOON_POOL_FACTOR;
-                            break;
-                        }
+                    final BlockPos below = this.positions[i].relative(faceDir);
+                    final int belowIdx = solverCore.findBlock(below.getX(), below.getY(), below.getZ());
+                    if (belowIdx >= 0 && this.isHullBlock[belowIdx]) {
+                        localPressure *= MOON_POOL_FACTOR;
                     }
                 }
 
@@ -532,12 +546,10 @@ public class LatticeStressSolver {
 
                 double faceDot = faceDir.getStepX() * localDown.x + faceDir.getStepY() * localDown.y + faceDir.getStepZ() * localDown.z;
                 if (faceDot > 0.7) {
-                    BlockPos below = this.positions[i].relative(faceDir);
-                    for (int j = 0; j < this.n; j++) {
-                        if (this.positions[j].equals(below) && this.isHullBlock[j]) {
-                            localPressure *= MOON_POOL_FACTOR;
-                            break;
-                        }
+                    final BlockPos below = this.positions[i].relative(faceDir);
+                    final int belowIdx = solverCore.findBlock(below.getX(), below.getY(), below.getZ());
+                    if (belowIdx >= 0 && this.isHullBlock[belowIdx]) {
+                        localPressure *= MOON_POOL_FACTOR;
                     }
                 }
 

@@ -1,6 +1,8 @@
 package com.maxenonyme.createsubmarine.submarine.stress;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 /**
@@ -57,6 +59,9 @@ public class SolverCore {
     public final int hullBlockCount;
     public final double[] volFraction;
 
+    // ---- position lookup (built at construction) ----
+    private final Map<Long, Integer> blockIndex;
+
     // ---- mutable solver state ----
     public final double[] u;
     public final double[] blockWaterDepths;
@@ -69,6 +74,15 @@ public class SolverCore {
     public double tikhonovAlphaFraction = 1e-6;
     public double rhoG = RHO_G;
     public boolean useMoonPool = true;
+
+    // ---- orientation (affects moon-pool detection) ----
+    public double localDownX = 0, localDownY = -1, localDownZ = 0;
+
+    // ---- smoothed normals from ShapeClassifier (null = flat-only) ----
+    public double[][] smoothedNormals;
+
+    // ---- warm-start tracking ----
+    private double previousBNorm = -1;
 
     public long solveTimeNanos = 0;
 
@@ -104,6 +118,15 @@ public class SolverCore {
         this.volFraction = volFraction;
         this.u = u;
         this.blockWaterDepths = blockWaterDepths;
+
+        this.blockIndex = new HashMap<>(n * 4 / 3 + 1);
+        for (int i = 0; i < n; i++) {
+            blockIndex.put(pack(x[i], y[i], z[i]), i);
+        }
+    }
+
+    private static long pack(final int x, final int y, final int z) {
+        return ((long) x & 0x7FFFF) | (((long) y & 0x7FFFF) << 18) | (((long) z & 0x7FFFF) << 36);
     }
 
     // ============================================================
@@ -122,11 +145,13 @@ public class SolverCore {
                 final int comp = dir / 2;
                 final double sign = (dir % 2 == 0) ? -1.0 : 1.0;
                 double localPressure = this.rhoG * depth * volFraction[i];
-                if (useMoonPool && dir == 3) {
-                    // downward(-Y) exposed face: check if there's a hull block below
-                    final int belowIdx = findBlock(x[i] + DX[dir], y[i] + DY[dir], z[i] + DZ[dir]);
-                    if (belowIdx >= 0 && isHullBlock[belowIdx]) {
-                        localPressure *= MOON_POOL_FACTOR;
+                if (useMoonPool) {
+                    final double faceDot = DX[dir] * localDownX + DY[dir] * localDownY + DZ[dir] * localDownZ;
+                    if (faceDot > 0.7) {
+                        final int belowIdx = findBlock(x[i] + DX[dir], y[i] + DY[dir], z[i] + DZ[dir]);
+                        if (belowIdx >= 0 && isHullBlock[belowIdx]) {
+                            localPressure *= MOON_POOL_FACTOR;
+                        }
                     }
                 }
                 b[3 * i + comp] += -sign * localPressure;
@@ -237,6 +262,16 @@ public class SolverCore {
             Arrays.fill(u, 0.0);
             return;
         }
+
+        // Warm-start scaling: if bNorm differs significantly from previous solve,
+        // scale u to match the new RHS magnitude before CG begins
+        if (previousBNorm > 0 && bNorm > 1e-30) {
+            final double scale = bNorm / previousBNorm;
+            if (Math.abs(scale - 1.0) > 1e-6) {
+                for (int k = 0; k < N3; k++) u[k] *= scale;
+            }
+        }
+        previousBNorm = bNorm;
 
         final double avgE = n > 0 ? Arrays.stream(E).summaryStatistics().getAverage() : 0.0;
         final double tikhonovAlpha = tikhonovAlphaFraction * avgE;
@@ -405,6 +440,12 @@ public class SolverCore {
         for (int i = 0; i < n; i++) {
             if (blockWaterDepths[i] > maxBlockDepth) maxBlockDepth = blockWaterDepths[i];
         }
+        if (maxBlockDepth <= 0) {
+            result[n] = -1;
+            return result;
+        }
+
+        final double[] panelRatios = computePanelBendingRatios();
 
         for (int i = 0; i < n; i++) {
             if (yieldStress[i] <= 0) {
@@ -416,12 +457,12 @@ public class SolverCore {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
             }
-            final double vm = computeVonMises(i);
-            if (vm <= 1e-30) {
+            final double ratio = panelRatios[i];
+            if (ratio <= 1e-30) {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
             }
-            final double depth = maxBlockDepth * yieldStress[i] / vm;
+            final double depth = maxBlockDepth / ratio;
             if (depth > 1e15) {
                 result[i] = Double.POSITIVE_INFINITY;
                 continue;
@@ -498,8 +539,45 @@ public class SolverCore {
                 final double P = this.rhoG * avgDepth;
                 final double bendingStress = PLATE_BENDING_BETA * P * shortSpan * shortSpan;
 
+                double curvatureFactor = 1.0;
+                if (smoothedNormals != null) {
+                    double avgNx = 0, avgNy = 0, avgNz = 0;
+                    int count = 0;
+                    for (int idx : patch) {
+                        final double[] n = smoothedNormals[idx];
+                        if (n != null) { avgNx += n[0]; avgNy += n[1]; avgNz += n[2]; count++; }
+                    }
+                    if (count >= 2) {
+                        final double len = Math.sqrt(avgNx * avgNx + avgNy * avgNy + avgNz * avgNz);
+                        if (len > 1e-10) { avgNx /= len; avgNy /= len; avgNz /= len; }
+                        double sumAngleSq = 0;
+                        for (int idx : patch) {
+                            final double[] n = smoothedNormals[idx];
+                            if (n != null) {
+                                double dot = avgNx * n[0] + avgNy * n[1] + avgNz * n[2];
+                                dot = Math.max(-1.0, Math.min(1.0, dot));
+                                double angle = Math.acos(dot);
+                                sumAngleSq += angle * angle;
+                            }
+                        }
+                        final double rmsAngle = Math.sqrt(sumAngleSq / count);
+                        curvatureFactor = 1.0 / (1.0 + rmsAngle * rmsAngle * 10.0);
+                    }
+                }
+
                 for (int idx : patch) {
-                    ratios[idx] = bendingStress / yieldStress[idx];
+                    int thickness = 1;
+                    int cx = x[idx], cy = y[idx], cz = z[idx];
+                    int inward = dir ^ 1;
+                    while (true) {
+                        cx += DX[inward];
+                        cy += DY[inward];
+                        cz += DZ[inward];
+                        int ni = findBlock(cx, cy, cz);
+                        if (ni < 0) break;
+                        thickness++;
+                    }
+                    ratios[idx] = bendingStress * curvatureFactor / (thickness * thickness) / yieldStress[idx];
                 }
             }
         }
@@ -568,10 +646,8 @@ public class SolverCore {
     }
 
     public int findBlock(final int bx, final int by, final int bz) {
-        for (int i = 0; i < n; i++) {
-            if (x[i] == bx && y[i] == by && z[i] == bz) return i;
-        }
-        return -1;
+        final Integer idx = blockIndex.get(pack(bx, by, bz));
+        return idx != null ? idx : -1;
     }
 
     public void solve() {
