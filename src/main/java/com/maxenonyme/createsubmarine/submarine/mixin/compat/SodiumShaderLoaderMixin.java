@@ -7,9 +7,22 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.regex.Pattern;
+
 @Pseudo
 @Mixin(targets = "net.caffeinemc.mods.sodium.client.gl.shader.ShaderLoader", remap = false)
 public abstract class SodiumShaderLoaderMixin {
+
+    private static final boolean VEIL_PRESENT;
+    static {
+        boolean found = false;
+        try {
+            Class.forName("foundry.veil.Veil");
+            found = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+        VEIL_PRESENT = found;
+    }
 
     private static final String UNIFORM_BLOCK = "uniform vec2 ScreenSize;\n" +
             "uniform sampler2D SableCloseSampler;\n" +
@@ -23,8 +36,13 @@ public abstract class SodiumShaderLoaderMixin {
             "        if (_csubCloseDepth < 1.0 && _csubFragDepth > _csubCloseDepth && _csubFragDepth < _csubFarDepth) { discard; }\n" +
             "    }\n";
 
+    private static final Pattern SAFE_DIRECTIVE = Pattern.compile("^\\s*#(version|extension|define|undef|pragma|line|error)\\b");
+
     @Inject(method = "getShaderSource", at = @At("RETURN"), cancellable = true, remap = false)
     private static void createsubmarine$injectOcclusion(ResourceLocation location, CallbackInfoReturnable<String> cir) {
+        if (VEIL_PRESENT)
+            return;
+
         String path = location.getPath();
         if (!path.endsWith(".fsh"))
             return;
@@ -37,23 +55,27 @@ public abstract class SodiumShaderLoaderMixin {
 
         StringBuilder out = new StringBuilder(source.length() + 1024);
 
-        int versionEnd = -1;
-        int versionIdx = source.indexOf("#version");
-        if (versionIdx >= 0) {
-            versionEnd = source.indexOf('\n', versionIdx);
-        }
-        if (versionEnd >= 0) {
-            out.append(source, 0, versionEnd + 1);
-            out.append(UNIFORM_BLOCK);
-            String rest = source.substring(versionEnd + 1);
-            String injected = injectDiscardInMain(rest);
-            out.append(injected);
-        } else {
-            out.append(UNIFORM_BLOCK);
-            out.append(injectDiscardInMain(source));
-        }
+        int insertPos = findAfterPreprocessor(source);
+        out.append(source, 0, insertPos);
+        out.append(UNIFORM_BLOCK);
+        String rest = source.substring(insertPos);
+        out.append(injectDiscardInMain(rest));
 
         cir.setReturnValue(out.toString());
+    }
+
+    private static int findAfterPreprocessor(String source) {
+        int pos = 0;
+        String[] lines = source.split("\n", -1);
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("//") || SAFE_DIRECTIVE.matcher(trimmed).find()) {
+                pos += line.length() + 1;
+            } else {
+                break;
+            }
+        }
+        return pos;
     }
 
     private static String injectDiscardInMain(String source) {
